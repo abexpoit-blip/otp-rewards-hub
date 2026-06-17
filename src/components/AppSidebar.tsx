@@ -94,18 +94,18 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
         variant === "desktop" && (collapsed ? "w-[78px]" : "w-[240px]"),
       )}
     >
-      {/* Logo */}
+      {/* Logo — single image per mode (no duplicate X) */}
       <Link
         to="/"
         aria-label="Nexus 2.0 home"
         className="mb-8 flex h-20 shrink-0 items-center justify-start pl-1"
       >
-        {/* Fixed-width slot so the mark/logo always shares the same left anchor — no shift during collapse/expand or skeleton swaps */}
-        <span className="flex h-full w-11 shrink-0 items-center justify-center">
-          <img src={nexusMark} alt="" className="h-11 w-11 object-contain" />
-        </span>
-        {!collapsed && (
-          <img src={nexusLogo} alt="" className="ml-2 h-14 w-auto object-contain" />
+        {collapsed ? (
+          <span className="flex h-full w-11 shrink-0 items-center justify-center">
+            <img src={nexusMark} alt="" className="h-11 w-11 object-contain" />
+          </span>
+        ) : (
+          <img src={nexusLogo} alt="" className="h-14 w-auto object-contain" />
         )}
       </Link>
 
