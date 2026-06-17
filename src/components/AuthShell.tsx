@@ -26,8 +26,8 @@ export function AuthShell({
       <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
         {/* Left brand panel */}
         <aside className="hidden flex-col justify-between p-12 lg:flex">
-          <Link to="/" aria-label="Nexus 2.0 home" className="flex h-28 shrink-0 items-center">
-            <img src={nexusLogo} alt="" className="h-full w-auto object-contain" />
+          <Link to="/" aria-label="Nexus 2.0 home" className="flex h-24 w-[15.5rem] shrink-0 items-center overflow-hidden">
+            <img src={nexusLogo} alt="" className="h-[11.5rem] w-auto max-w-none -translate-x-3 object-contain" />
           </Link>
 
           <div className="space-y-6">
@@ -68,9 +68,9 @@ export function AuthShell({
             <Link
               to="/"
               aria-label="Nexus 2.0 home"
-              className="mb-6 flex h-20 shrink-0 items-center justify-center sm:mb-8 sm:justify-start lg:hidden"
+              className="mb-6 flex h-20 w-full shrink-0 items-center justify-center overflow-hidden sm:mb-8 sm:w-[14rem] sm:justify-start lg:hidden"
             >
-              <img src={nexusLogo} alt="" className="h-full w-auto object-contain" />
+              <img src={nexusLogo} alt="" className="h-[9.5rem] w-auto max-w-none object-contain sm:-translate-x-3" />
             </Link>
 
             <div className="glass-panel-strong relative p-5 sm:p-8">
