@@ -16,6 +16,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
+ENV NITRO_PORT=3000
+ENV NITRO_HOST=0.0.0.0
 
 # Copy built output + minimal runtime files
 COPY --from=builder /app/.output ./.output
