@@ -102,7 +102,7 @@ function GetNumberPage() {
                     <button
                       key={r}
                       disabled={busy === r}
-                      onClick={() => handleAllocate(r)}
+                      onClick={() => handleAllocate(r, s.sid)}
                       className="rounded-md border border-border bg-background/40 px-3 py-1.5 font-mono text-xs hover:bg-primary/10 hover:border-primary disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {busy === r && <Loader2 className="size-3 animate-spin" />}
