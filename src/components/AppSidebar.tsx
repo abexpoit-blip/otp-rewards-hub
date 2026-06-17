@@ -43,6 +43,12 @@ export function AppSidebar() {
   const { sidebar } = useTweaks();
   const collapsed = sidebar === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   return (
     <aside
