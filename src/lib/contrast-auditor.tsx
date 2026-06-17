@@ -44,16 +44,25 @@ function contrastRatio(
   return (a + 0.05) / (b + 0.05);
 }
 
-function effectiveBackground(el: Element): [number, number, number] {
+function effectiveBackground(
+  el: Element,
+): { rgb: [number, number, number]; reliable: boolean } {
   let node: Element | null = el;
   while (node) {
     const cs = getComputedStyle(node);
+    // If this ancestor has any background image (gradient, pattern), we
+    // cannot reliably compute its sampled color from CSS. Skip the audit.
+    if (cs.backgroundImage && cs.backgroundImage !== "none") {
+      return { rgb: [255, 255, 255], reliable: false };
+    }
     const parsed = parseColor(cs.backgroundColor);
-    if (parsed && parsed[3] >= 0.85) return [parsed[0], parsed[1], parsed[2]];
+    if (parsed && parsed[3] >= 0.85) {
+      return { rgb: [parsed[0], parsed[1], parsed[2]], reliable: true };
+    }
     node = node.parentElement;
   }
   // fallback: white
-  return [255, 255, 255];
+  return { rgb: [255, 255, 255], reliable: true };
 }
 
 function isLargeText(cs: CSSStyleDeclaration): boolean {
@@ -103,11 +112,12 @@ function audit(): Failure[] {
     const fgRgb: [number, number, number] = [fg[0], fg[1], fg[2]];
 
     const bg = effectiveBackground(el);
-    const ratio = contrastRatio(fgRgb, bg);
+    if (!bg.reliable) continue; // ancestor uses gradient/image — skip
+    const ratio = contrastRatio(fgRgb, bg.rgb);
     const threshold = isLargeText(cs) ? 3 : 4.5;
 
     if (ratio < threshold) {
-      failures.push({ el, text, ratio, threshold, fg: cs.color, bg });
+      failures.push({ el, text, ratio, threshold, fg: cs.color, bg: bg.rgb });
     }
   }
   return failures;
