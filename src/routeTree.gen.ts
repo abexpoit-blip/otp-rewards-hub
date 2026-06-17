@@ -19,9 +19,13 @@ import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as GetNumberRouteImport } from './routes/get-number'
 import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as ApiKeysRouteImport } from './routes/api-keys'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccessListRouteImport } from './routes/access-list'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as AdminWithdrawalsRouteImport } from './routes/admin.withdrawals'
+import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
+import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
 
 const WithdrawalsRoute = WithdrawalsRouteImport.update({
   id: '/withdrawals',
@@ -73,6 +77,11 @@ const ApiKeysRoute = ApiKeysRouteImport.update({
   path: '/api-keys',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccessListRoute = AccessListRouteImport.update({
   id: '/access-list',
   path: '/access-list',
@@ -88,10 +97,26 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminWithdrawalsRoute = AdminWithdrawalsRouteImport.update({
+  id: '/withdrawals',
+  path: '/withdrawals',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPayoutsRoute = AdminPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiInboxStreamRoute = ApiInboxStreamRouteImport.update({
+  id: '/api/inbox/stream',
+  path: '/api/inbox/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access-list': typeof AccessListRoute
+  '/admin': typeof AdminRouteWithChildren
   '/api-keys': typeof ApiKeysRoute
   '/console': typeof ConsoleRoute
   '/get-number': typeof GetNumberRoute
@@ -102,11 +127,15 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/payouts': typeof AdminPayoutsRoute
+  '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/inbox/stream': typeof ApiInboxStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-list': typeof AccessListRoute
+  '/admin': typeof AdminRouteWithChildren
   '/api-keys': typeof ApiKeysRoute
   '/console': typeof ConsoleRoute
   '/get-number': typeof GetNumberRoute
@@ -117,12 +146,16 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/payouts': typeof AdminPayoutsRoute
+  '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/inbox/stream': typeof ApiInboxStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/access-list': typeof AccessListRoute
+  '/admin': typeof AdminRouteWithChildren
   '/api-keys': typeof ApiKeysRoute
   '/console': typeof ConsoleRoute
   '/get-number': typeof GetNumberRoute
@@ -133,13 +166,17 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/payouts': typeof AdminPayoutsRoute
+  '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/inbox/stream': typeof ApiInboxStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/access-list'
+    | '/admin'
     | '/api-keys'
     | '/console'
     | '/get-number'
@@ -150,11 +187,15 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/payouts'
+    | '/admin/withdrawals'
     | '/api/health'
+    | '/api/inbox/stream'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/access-list'
+    | '/admin'
     | '/api-keys'
     | '/console'
     | '/get-number'
@@ -165,11 +206,15 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/payouts'
+    | '/admin/withdrawals'
     | '/api/health'
+    | '/api/inbox/stream'
   id:
     | '__root__'
     | '/'
     | '/access-list'
+    | '/admin'
     | '/api-keys'
     | '/console'
     | '/get-number'
@@ -180,12 +225,16 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/payouts'
+    | '/admin/withdrawals'
     | '/api/health'
+    | '/api/inbox/stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessListRoute: typeof AccessListRoute
+  AdminRoute: typeof AdminRouteWithChildren
   ApiKeysRoute: typeof ApiKeysRoute
   ConsoleRoute: typeof ConsoleRoute
   GetNumberRoute: typeof GetNumberRoute
@@ -197,6 +246,7 @@ export interface RootRouteChildren {
   SummaryRoute: typeof SummaryRoute
   WithdrawalsRoute: typeof WithdrawalsRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiInboxStreamRoute: typeof ApiInboxStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -271,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKeysRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/access-list': {
       id: '/access-list'
       path: '/access-list'
@@ -292,12 +349,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/withdrawals': {
+      id: '/admin/withdrawals'
+      path: '/withdrawals'
+      fullPath: '/admin/withdrawals'
+      preLoaderRoute: typeof AdminWithdrawalsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payouts': {
+      id: '/admin/payouts'
+      path: '/payouts'
+      fullPath: '/admin/payouts'
+      preLoaderRoute: typeof AdminPayoutsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/inbox/stream': {
+      id: '/api/inbox/stream'
+      path: '/api/inbox/stream'
+      fullPath: '/api/inbox/stream'
+      preLoaderRoute: typeof ApiInboxStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminPayoutsRoute: typeof AdminPayoutsRoute
+  AdminWithdrawalsRoute: typeof AdminWithdrawalsRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminPayoutsRoute: AdminPayoutsRoute,
+  AdminWithdrawalsRoute: AdminWithdrawalsRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessListRoute: AccessListRoute,
+  AdminRoute: AdminRouteWithChildren,
   ApiKeysRoute: ApiKeysRoute,
   ConsoleRoute: ConsoleRoute,
   GetNumberRoute: GetNumberRoute,
@@ -309,6 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   SummaryRoute: SummaryRoute,
   WithdrawalsRoute: WithdrawalsRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiInboxStreamRoute: ApiInboxStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
