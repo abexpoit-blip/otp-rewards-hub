@@ -153,3 +153,78 @@ export const summaryFn = createServerFn({ method: "POST" })
     `;
     return { stats, byCountry };
   });
+
+// ---------- Dashboard stats (hourly traffic + trending services) ----------
+export const dashboardStatsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => tokenSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { requireAuth } = await import("./auth-guard.server");
+    const auth = requireAuth(data.token);
+    const { sql } = await import("./db.server");
+
+    // Hourly buckets — last 24h, user-scoped
+    const hourly = await sql<any[]>`
+      SELECT date_trunc('hour', created_at) AS bucket,
+             COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE status='success')::int AS success
+      FROM allocations
+      WHERE user_id = ${auth.sub}
+        AND created_at >= now() - interval '24 hours'
+      GROUP BY bucket ORDER BY bucket ASC
+    `;
+
+    // Today/yesterday totals
+    const [today] = await sql<any[]>`
+      SELECT COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE status='success')::int AS success,
+             COALESCE(SUM(payout_amount) FILTER (WHERE status='success'),0)::text AS earned
+      FROM allocations
+      WHERE user_id = ${auth.sub} AND created_at::date = current_date
+    `;
+    const [yest] = await sql<any[]>`
+      SELECT COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE status='success')::int AS success,
+             COALESCE(SUM(payout_amount) FILTER (WHERE status='success'),0)::text AS earned
+      FROM allocations
+      WHERE user_id = ${auth.sub} AND created_at::date = current_date - 1
+    `;
+    const [active] = await sql<any[]>`
+      SELECT COUNT(*)::int AS n FROM allocations
+      WHERE user_id = ${auth.sub} AND status = 'pending'
+    `;
+
+    // Trending services — global (last 24h, top 8 by success)
+    const trending = await sql<any[]>`
+      SELECT COALESCE(sid,'UNKNOWN') AS sid,
+             COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE status='success')::int AS success
+      FROM allocations
+      WHERE created_at >= now() - interval '24 hours'
+      GROUP BY sid
+      ORDER BY success DESC, total DESC
+      LIMIT 8
+    `;
+
+    return { hourly, today, yest, active: active?.n ?? 0, trending };
+  });
+
+// ---------- Summary daily series (for line chart + CSV) ----------
+export const summaryDailyFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(1), days: z.number().min(7).max(90).default(14) }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAuth } = await import("./auth-guard.server");
+    const auth = requireAuth(data.token);
+    const { sql } = await import("./db.server");
+
+    const daily = await sql<any[]>`
+      SELECT date_trunc('day', created_at)::date AS day,
+             COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE status='success')::int AS success,
+             COALESCE(SUM(payout_amount) FILTER (WHERE status='success'),0)::text AS earned
+      FROM allocations
+      WHERE user_id = ${auth.sub}
+        AND created_at >= now() - (${data.days}::text || ' days')::interval
+      GROUP BY day ORDER BY day ASC
+    `;
+    return { daily };
+  });
