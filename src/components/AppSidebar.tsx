@@ -14,6 +14,8 @@ import { TweaksPanel } from "./TweaksPanel";
 import { useTweaks } from "@/lib/tweaks";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import nexusLogo from "@/assets/nexus-logo.png";
+import nexusMark from "@/assets/nexus-favicon.png";
 
 const sections = [
   {
@@ -58,19 +60,13 @@ export function AppSidebar() {
       )}
     >
       {/* Logo */}
-      <div className="mb-8 flex items-center gap-3 px-1">
-        <div className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold text-xl shadow-lg shadow-blue-500/30">
-          N
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col leading-none">
-            <span className="text-sm font-bold tracking-tight text-foreground">NEXUS</span>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              v2 Panel
-            </span>
-          </div>
+      <Link to="/" className="mb-8 flex items-center gap-2 px-1">
+        {collapsed ? (
+          <img src={nexusMark} alt="Nexus" className="size-10 object-contain" />
+        ) : (
+          <img src={nexusLogo} alt="Nexus 2.0" className="h-10 w-auto object-contain" />
         )}
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden -mx-1 px-1">

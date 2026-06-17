@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import nexusLogo from "@/assets/nexus-logo.png";
 
 /**
  * Geist Glass Bento auth shell — light, airy, frosted glass.
@@ -25,14 +26,8 @@ export function AuthShell({
       <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
         {/* Left brand panel */}
         <aside className="hidden flex-col justify-between p-12 lg:flex">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold text-xl shadow-lg shadow-blue-500/30">
-              N
-            </div>
-            <div>
-              <p className="text-sm font-bold tracking-tight text-foreground">NEXUS SMS</p>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">V2 Panel</p>
-            </div>
+          <Link to="/" className="flex items-center">
+            <img src={nexusLogo} alt="Nexus 2.0" className="h-12 w-auto object-contain" />
           </Link>
 
           <div className="space-y-6">
@@ -70,11 +65,8 @@ export function AuthShell({
         {/* Right form */}
         <main className="flex items-center justify-center px-6 py-12 lg:p-12">
           <div className="w-full max-w-md">
-            <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
-              <div className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold shadow-md">
-                N
-              </div>
-              <span className="text-sm font-bold tracking-tight text-foreground">NEXUS SMS</span>
+            <Link to="/" className="mb-8 flex items-center lg:hidden">
+              <img src={nexusLogo} alt="Nexus 2.0" className="h-10 w-auto object-contain" />
             </Link>
 
             <div className="glass-panel-strong relative p-8">
