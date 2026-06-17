@@ -9,10 +9,13 @@ import {
   ListChecks,
   LogOut,
   Radio,
+  Settings,
   ShieldCheck,
   Tags,
   User,
+  Users,
   Wallet,
+  Activity,
   DollarSign,
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
