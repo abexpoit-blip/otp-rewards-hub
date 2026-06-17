@@ -4,7 +4,7 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { ShieldCheck, Wallet, DollarSign, AlertTriangle } from "lucide-react";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/admin/")({
   head: () => ({ meta: [{ title: "Admin — Nexus SMS" }] }),
   component: () => (<Protected><AdminHome /></Protected>),
 });
