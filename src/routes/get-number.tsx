@@ -370,8 +370,8 @@ function GetNumberPage() {
           <h3 className="text-sm font-bold flex items-center gap-2">
             <Globe2 className="size-4" /> Live access ({filteredServices.length} services)
           </h3>
-          <button onClick={() => refetchLive()} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            <RefreshCw className="size-3" /> Refresh
+          <button onClick={() => refetchLive()} disabled={liveFetching} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
+            <RefreshCw className={`size-3 ${liveFetching ? "animate-spin" : ""}`} /> {liveFetching ? "Refreshing…" : "Refresh"}
           </button>
         </div>
         {liveLoading ? (
