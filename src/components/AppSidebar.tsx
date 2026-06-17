@@ -87,25 +87,30 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
   return (
     <aside
       className={cn(
-        "flex flex-col p-5 transition-all duration-300",
+        "flex flex-col transition-all duration-300",
         variant === "desktop"
-          ? "glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 lg:top-6 lg:flex lg:h-[calc(100vh-3rem)]"
-          : "h-full w-full",
-        variant === "desktop" && (collapsed ? "w-[78px]" : "w-[240px]"),
+          ? cn(
+              "glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 lg:top-6 lg:flex lg:h-[calc(100vh-3rem)]",
+              collapsed ? "w-[86px] p-4" : "w-[272px] p-5",
+            )
+          : "h-full w-full p-5",
       )}
     >
       {/* Logo — single image per mode (no duplicate X) */}
       <Link
         to="/"
         aria-label="Nexus 2.0 home"
-        className="mb-8 flex h-20 shrink-0 items-center justify-start pl-1"
+        className={cn(
+          "mb-8 flex shrink-0 items-center",
+          collapsed ? "h-[76px] justify-center" : "h-[92px] justify-start",
+        )}
       >
         {collapsed ? (
-          <span className="flex h-full w-11 shrink-0 items-center justify-center">
-            <img src={nexusMark} alt="" className="h-11 w-11 object-contain" />
+          <span className="flex size-14 shrink-0 items-center justify-center">
+            <img src={nexusMark} alt="" className="size-16 object-contain" />
           </span>
         ) : (
-          <img src={nexusLogo} alt="" className="h-14 w-auto object-contain" />
+          <img src={nexusLogo} alt="" className="h-[7.5rem] w-auto object-contain" />
         )}
       </Link>
 
