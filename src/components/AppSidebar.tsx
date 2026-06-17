@@ -8,9 +8,11 @@ import {
   ListChecks,
   LogOut,
   Radio,
+  ShieldCheck,
   Tags,
   User,
   Wallet,
+  DollarSign,
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
 import { useTweaks } from "@/lib/tweaks";
@@ -19,9 +21,12 @@ import { cn } from "@/lib/utils";
 import nexusLogo from "@/assets/nexus-logo.png";
 import nexusMark from "@/assets/nexus-favicon.png";
 
-const sections = [
+type NavItem = { to: string; icon: any; label: string };
+type NavSection = { label: string | null; items: NavItem[] };
+
+const baseSections: NavSection[] = [
   {
-    label: null as string | null,
+    label: null,
     items: [{ to: "/", icon: LayoutDashboard, label: "Dashboard" }],
   },
   {
@@ -43,18 +48,30 @@ const sections = [
       { to: "/api-keys", icon: Key, label: "API Keys" },
     ],
   },
-] as const;
+];
+
+const adminSection: NavSection = {
+  label: "Admin",
+  items: [
+    { to: "/admin", icon: ShieldCheck, label: "Admin Home" },
+    { to: "/admin/withdrawals", icon: Wallet, label: "Withdrawals" },
+    { to: "/admin/payouts", icon: DollarSign, label: "Payouts" },
+  ],
+};
 
 export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mobile" } = {}) {
   const { sidebar } = useTweaks();
   const collapsed = variant === "desktop" && sidebar === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const handleLogout = () => {
     logout();
     navigate({ to: "/login" });
   };
+  const sections = user?.roles?.includes("admin")
+    ? [...baseSections, adminSection]
+    : baseSections;
 
   return (
     <aside
