@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import nexusLogo from "@/assets/nexus-logo.png";
 import nexusMark from "@/assets/nexus-favicon.png";
+import { SkeletonNavItems } from "./Skeleton";
 
 type NavItem = { to: string; icon: any; label: string };
 type NavSection = { label: string | null; items: NavItem[] };
@@ -72,7 +73,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
   const { sidebar } = useTweaks();
   const collapsed = variant === "desktop" && sidebar === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { logout, user } = useAuth();
+  const { logout, user, loading } = useAuth();
   const navigate = useNavigate();
   const handleLogout = () => {
     logout();
@@ -81,6 +82,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
   const sections = user?.roles?.includes("admin")
     ? [...baseSections, adminSection]
     : baseSections;
+  const authLoading = loading || !user;
 
   return (
     <aside
@@ -95,50 +97,60 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
       {/* Logo */}
       <Link to="/" className={cn("mb-8 flex items-center px-1", collapsed ? "justify-center" : "justify-start")}>
         {collapsed ? (
-          <img src={nexusMark} alt="Nexus" className="size-10 object-contain" />
+          <img src={nexusMark} alt="Nexus" className="size-11 object-contain" />
         ) : (
-          <img src={nexusLogo} alt="Nexus 2.0" className="h-14 w-auto object-contain" />
+          <img src={nexusLogo} alt="Nexus 2.0" className="h-20 w-auto object-contain" />
         )}
       </Link>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden -mx-1 px-1">
-        {sections.map((section, i) => (
-          <div key={i} className="mb-5">
-            {section.label && !collapsed && (
-              <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
-                {section.label}
-              </div>
-            )}
-            <ul className="flex flex-col gap-1">
-              {section.items.map((item) => {
-                const active =
-                  item.to === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.to);
-                const Icon = item.icon;
-                return (
-                  <li key={item.to}>
-                    <Link
-                      to={item.to as any}
-                      className={cn(
-                        "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
-                        collapsed && "justify-center",
-                        active
-                          ? "bg-white/80 text-primary shadow-sm border border-primary/15"
-                          : "text-foreground/70 hover:bg-white/50 hover:text-foreground",
-                      )}
-                      title={collapsed ? item.label : undefined}
-                    >
-                      <Icon className="size-[18px] shrink-0" />
-                      {!collapsed && <span>{item.label}</span>}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+        {authLoading ? (
+          <div className="space-y-5">
+            <SkeletonNavItems rows={1} label="Loading menu…" />
+            <SkeletonNavItems rows={7} label="Loading dialer menu…" />
+            <SkeletonNavItems rows={3} label="Loading account menu…" />
           </div>
-        ))}
+        ) : (
+          <>
+            {sections.map((section, i) => (
+              <div key={i} className="mb-5">
+                {section.label && !collapsed && (
+                  <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                    {section.label}
+                  </div>
+                )}
+                <ul className="flex flex-col gap-1">
+                  {section.items.map((item) => {
+                    const active =
+                      item.to === "/"
+                        ? pathname === "/"
+                        : pathname.startsWith(item.to);
+                    const Icon = item.icon;
+                    return (
+                      <li key={item.to}>
+                        <Link
+                          to={item.to as any}
+                          className={cn(
+                            "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
+                            collapsed && "justify-center",
+                            active
+                              ? "bg-white/80 text-primary shadow-sm border border-primary/15"
+                              : "text-foreground/70 hover:bg-white/50 hover:text-foreground",
+                          )}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          <Icon className="size-[18px] shrink-0" />
+                          {!collapsed && <span>{item.label}</span>}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </>
+        )}
 
         <button
           type="button"

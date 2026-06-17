@@ -201,10 +201,12 @@ function GetNumberPage() {
           <button
             onClick={handleDirect}
             disabled={!!busy}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 disabled:opacity-50"
+            aria-busy={!!busy}
+            aria-label={busy ? "Allocating number, please wait" : "Get number"}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <Hash className="size-4" />}
-            Get Number
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Hash className="size-4" aria-hidden="true" />}
+            {busy ? "Allocating…" : "Get Number"}
           </button>
         </div>
       </div>
@@ -266,8 +268,8 @@ function GetNumberPage() {
             <span className="text-xs text-muted-foreground">
               {mine?.rows?.length ? `1 – ${mine.rows.length} of ${counts.total}` : "0 of 0"}
             </span>
-            <button onClick={() => refetchMine()} disabled={mineFetching} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed">
-              <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} /> {mineFetching ? "Refreshing…" : "Refresh"}
+            <button onClick={() => refetchMine()} disabled={mineFetching} aria-busy={mineFetching} aria-label={mineFetching ? "Refreshing allocations" : "Refresh allocations"} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed">
+              <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} aria-hidden="true" /> {mineFetching ? "Refreshing…" : "Refresh"}
             </button>
           </div>
 
