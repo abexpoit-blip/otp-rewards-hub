@@ -82,10 +82,11 @@ function GetNumberPage() {
     const rid = rangePattern.replace(/X+$/i, "");
     setBusy(rangePattern);
     try {
-      const r = await callAlloc({ data: { token, rid, sid } });
-      const row: Alloc = { full: r.full_number, country: r.country || "", operator: r.operator || "", sid, at: Date.now() };
+      const r = await callAlloc({ data: { token, rid, sid, national, no_plus: noPlus } });
+      const shown = (r as any).display_number || r.full_number;
+      const row: Alloc = { full: shown, country: r.country || "", operator: r.operator || "", sid, at: Date.now() };
       setRecent((p) => [row, ...p].slice(0, 20));
-      toast.success(`Allocated ${r.full_number}`);
+      toast.success(`Allocated ${shown}`);
       return r;
     } catch (e: any) {
       toast.error(e?.message || "Allocation failed");
