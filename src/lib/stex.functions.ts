@@ -6,7 +6,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const tokenSchema = z.object({ token: z.string().min(1) });
-const allocSchema = z.object({ token: z.string().min(1), rid: z.string().min(2).max(64), sid: z.string().trim().max(80).optional().nullable() });
+const allocSchema = z.object({
+  token: z.string().min(1),
+  rid: z.string().min(2).max(64),
+  sid: z.string().trim().max(80).optional().nullable(),
+  national: z.boolean().optional(),
+  no_plus: z.boolean().optional(),
+});
 
 // ---------- Live access (services + ranges from upstream) ----------
 export const liveAccessFn = createServerFn({ method: "POST" })
