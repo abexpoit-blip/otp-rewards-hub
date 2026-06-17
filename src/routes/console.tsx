@@ -175,8 +175,8 @@ function ConsolePage() {
               className="bg-transparent outline-none w-48"
             />
           </div>
-          <button onClick={() => refetch()} disabled={isFetching} className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2.5 py-1.5 text-xs hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed">
-            <RefreshCw className={`size-3 ${isFetching ? "animate-spin" : ""}`} />
+          <button onClick={() => refetch()} disabled={isFetching} aria-busy={isFetching} aria-label={isFetching ? "Refreshing console feed" : "Refresh now"} className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2.5 py-1.5 text-xs hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed">
+            <RefreshCw className={`size-3 ${isFetching ? "animate-spin" : ""}`} aria-hidden="true" />
             {isFetching ? "Refreshing…" : <>Next update: <span className="font-mono font-semibold">{nextUpdateIn}s</span></>}
           </button>
         </div>
