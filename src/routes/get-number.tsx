@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { liveAccessFn, allocateNumberFn, myAllocationsFn } from "@/lib/stex.functions";
 import { Hash, Copy, Loader2, Search, Globe2, ListFilter, Play, Pause, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { SkeletonRows } from "@/components/Skeleton";
 
 export const Route = createFileRoute("/get-number")({
   head: () => ({ meta: [{ title: "Get Number — Nexus SMS" }] }),
