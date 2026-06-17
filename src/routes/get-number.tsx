@@ -20,9 +20,12 @@ type StatusTab = "all" | "success" | "failed" | "pending";
 
 function GetNumberPage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const callLive = useServerFn(liveAccessFn);
   const callAlloc = useServerFn(allocateNumberFn);
   const callMine = useServerFn(myAllocationsFn);
+  const seenStatusRef = useRef<Map<string, string>>(new Map());
+  const initializedRef = useRef(false);
 
   const [mode, setMode] = useState<Mode>("range");
   const [rangeInput, setRangeInput] = useState("");
