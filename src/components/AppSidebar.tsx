@@ -2,6 +2,8 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CreditCard,
   Hash,
+  Inbox,
+  Key,
   LayoutDashboard,
   LineChart,
   ListChecks,
@@ -9,6 +11,7 @@ import {
   Radio,
   Tags,
   User,
+  Wallet,
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
 import { useTweaks } from "@/lib/tweaks";
@@ -26,6 +29,7 @@ const sections = [
     label: "Dialer Panel",
     items: [
       { to: "/get-number", icon: Hash, label: "Get Number" },
+      { to: "/inbox", icon: Inbox, label: "OTP Inbox" },
       { to: "/console", icon: Radio, label: "Console" },
       { to: "/summary", icon: LineChart, label: "Summary" },
       { to: "/access-list", icon: ListChecks, label: "Access List" },
@@ -36,7 +40,8 @@ const sections = [
     label: "Account",
     items: [
       { to: "/profile", icon: User, label: "Profile" },
-      { to: "/payment", icon: CreditCard, label: "Payment" },
+      { to: "/withdrawals", icon: Wallet, label: "Withdrawals" },
+      { to: "/api-keys", icon: Key, label: "API Keys" },
     ],
   },
 ] as const;
