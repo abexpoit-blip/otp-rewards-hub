@@ -265,8 +265,8 @@ function GetNumberPage() {
             <span className="text-xs text-muted-foreground">
               {mine?.rows?.length ? `1 – ${mine.rows.length} of ${counts.total}` : "0 of 0"}
             </span>
-            <button onClick={() => refetchMine()} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent">
-              <RefreshCw className="size-3" /> Refresh
+            <button onClick={() => refetchMine()} disabled={mineFetching} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed">
+              <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} /> {mineFetching ? "Refreshing…" : "Refresh"}
             </button>
           </div>
 
