@@ -55,7 +55,7 @@ const DEFAULT: TweaksState = {
   privacy: "show",
 };
 
-const STORAGE_KEY = "nexus.tweaks.v1";
+const STORAGE_KEY = "nexus.tweaks.v2";
 
 const TweaksContext = createContext<TweaksContextValue | null>(null);
 
