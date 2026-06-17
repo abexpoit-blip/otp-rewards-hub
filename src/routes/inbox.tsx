@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
-import { MessageSquare, Wifi, WifiOff } from "lucide-react";
+import { MessageSquare, Wifi, WifiOff, RefreshCw, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/inbox")({
   head: () => ({ meta: [{ title: "OTP Inbox — Nexus SMS" }] }),
@@ -19,57 +19,103 @@ type OtpRow = {
   received_at: string;
 };
 
+type Status = "connecting" | "live" | "reconnecting" | "offline";
+
 function InboxPage() {
   const { token } = useAuth();
   const [otps, setOtps] = useState<OtpRow[]>([]);
-  const [status, setStatus] = useState<"connecting" | "live" | "reconnecting">("connecting");
+  const [status, setStatus] = useState<Status>("connecting");
+  const [attempts, setAttempts] = useState(0);
+  const [lastEventAt, setLastEventAt] = useState<number | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [retryAt, setRetryAt] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const [manualReconnect, setManualReconnect] = useState(0);
+
   const esRef = useRef<EventSource | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // tick every second to update "X s ago" labels and retry countdown
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (!token) return;
     let stopped = false;
     let backoff = 1000;
+    let attemptCount = 0;
+
+    const cleanup = () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      esRef.current?.close();
+      esRef.current = null;
+    };
 
     const connect = () => {
       if (stopped) return;
-      setStatus(esRef.current ? "reconnecting" : "connecting");
+      attemptCount += 1;
+      setAttempts(attemptCount);
+      setRetryAt(null);
+      setStatus(attemptCount === 1 ? "connecting" : "reconnecting");
+
       const es = new EventSource(`/api/inbox/stream?token=${encodeURIComponent(token)}`);
       esRef.current = es;
 
       es.addEventListener("connected", () => {
         setStatus("live");
+        setLastError(null);
+        setLastEventAt(Date.now());
         backoff = 1000;
+        attemptCount = 0;
+        setAttempts(0);
       });
 
       es.addEventListener("backlog", (e: MessageEvent) => {
+        setLastEventAt(Date.now());
         try {
           const rows = JSON.parse(e.data) as OtpRow[];
-          setOtps(rows); // newest first from server
+          setOtps(rows);
         } catch {}
       });
 
       es.addEventListener("otp", (e: MessageEvent) => {
+        setLastEventAt(Date.now());
         try {
           const rows = JSON.parse(e.data) as OtpRow[];
           setOtps((prev) => {
             const ids = new Set(prev.map((r) => r.id));
             const fresh = rows.filter((r) => !ids.has(r.id));
-            // server sends ASC; we want newest first
             return [...fresh.reverse(), ...prev].slice(0, 200);
           });
         } catch {}
       });
 
       es.addEventListener("ping", () => {
-        // keep-alive — nothing to do
+        setLastEventAt(Date.now());
       });
 
       es.onerror = () => {
         es.close();
         esRef.current = null;
         if (stopped) return;
+
+        // Give up after many attempts → require manual retry
+        if (attemptCount >= 8) {
+          setStatus("offline");
+          setLastError(`Stream offline after ${attemptCount} attempts. Click reconnect.`);
+          return;
+        }
+
         setStatus("reconnecting");
-        setTimeout(connect, backoff);
+        setLastError("Connection lost — retrying…");
+        const delay = backoff;
+        setRetryAt(Date.now() + delay);
+        retryTimerRef.current = setTimeout(connect, delay);
         backoff = Math.min(backoff * 2, 15000);
       };
     };
@@ -77,37 +123,76 @@ function InboxPage() {
     connect();
     return () => {
       stopped = true;
-      esRef.current?.close();
-      esRef.current = null;
+      cleanup();
     };
-  }, [token]);
+  }, [token, manualReconnect]);
+
+  const lastEventLabel = lastEventAt
+    ? `${Math.max(0, Math.floor((nowTick - lastEventAt) / 1000))}s ago`
+    : "—";
+  const retryInSec =
+    retryAt && retryAt > nowTick ? Math.ceil((retryAt - nowTick) / 1000) : null;
 
   return (
     <AppShell>
-      <PageHeader icon={<MessageSquare className="size-6" />} title="OTP Inbox" subtitle="Real-time stream — new OTPs appear instantly via SSE." />
+      <PageHeader
+        icon={<MessageSquare className="size-6" />}
+        title="OTP Inbox"
+        subtitle="Real-time stream — new OTPs appear instantly via SSE."
+      />
 
-      <div className="mb-4 flex items-center gap-2 text-xs">
-        {status === "live" ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-700 px-2 py-1 font-bold">
+      {/* Status bar */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+        {status === "live" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-1 font-bold text-emerald-700">
             <Wifi className="size-3" /> LIVE
           </span>
-        ) : status === "connecting" ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 px-2 py-1 font-bold">
+        )}
+        {status === "connecting" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-1 font-bold text-amber-700">
             <Wifi className="size-3 animate-pulse" /> CONNECTING…
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 text-destructive px-2 py-1 font-bold">
-            <WifiOff className="size-3" /> RECONNECTING…
+        )}
+        {status === "reconnecting" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-1 font-bold text-amber-700">
+            <RefreshCw className="size-3 animate-spin" /> RECONNECTING
+            {retryInSec !== null && ` (${retryInSec}s)`}
+            {attempts > 1 && ` · attempt ${attempts}`}
           </span>
         )}
-        <span className="text-muted-foreground">{otps.length} OTPs loaded</span>
+        {status === "offline" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-1 font-bold text-destructive">
+            <WifiOff className="size-3" /> OFFLINE
+          </span>
+        )}
+
+        <span className="text-muted-foreground">
+          Last event: <b>{lastEventLabel}</b> · {otps.length} OTPs loaded
+        </span>
+
+        <button
+          onClick={() => setManualReconnect((n) => n + 1)}
+          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-white/50"
+          title="Force reconnect"
+        >
+          <RefreshCw className="size-3" /> Reconnect
+        </button>
       </div>
+
+      {lastError && status !== "live" && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800">
+          <AlertTriangle className="size-4 shrink-0" />
+          <span>{lastError}</span>
+        </div>
+      )}
 
       <div className="glass-panel-strong p-6">
         {otps.length === 0 ? (
           <div className="py-16 text-center">
             <MessageSquare className="mx-auto size-10 text-muted-foreground/40" />
-            <p className="mt-3 text-sm text-muted-foreground">No OTPs yet. Allocate a number from <b>Get Number</b> to start receiving messages.</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              No OTPs yet. Allocate a number from <b>Get Number</b> to start receiving messages.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -124,7 +209,9 @@ function InboxPage() {
               <tbody>
                 {otps.map((o) => (
                   <tr key={o.id} className="border-t border-border">
-                    <td className="py-2 font-mono text-xs whitespace-nowrap">{new Date(o.received_at).toLocaleString()}</td>
+                    <td className="py-2 font-mono text-xs whitespace-nowrap">
+                      {new Date(o.received_at).toLocaleString()}
+                    </td>
                     <td className="py-2 font-mono text-xs">{o.number || "—"}</td>
                     <td className="py-2 font-semibold">{o.sender || "—"}</td>
                     <td className="py-2 max-w-md break-words">{o.body}</td>
