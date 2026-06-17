@@ -67,9 +67,9 @@
 :root {
   --radius: 0.875rem;
 
-  /* Accent (mint default) — HSL channels so we can compose alpha versions */
-  --accent-h: 160;
-  --accent-s: 84%;
+  /* Accent (cyan default) — HSL channels so we can compose alpha versions */
+  --accent-h: 188;
+  --accent-s: 94%;
   --accent-l: 55%;
   --accent-hsl: var(--accent-h) var(--accent-s) var(--accent-l);
 

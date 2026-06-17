@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CreditCard,
   Hash,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
 import { useTweaks } from "@/lib/tweaks";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const sections = [
@@ -34,7 +35,6 @@ const sections = [
     items: [
       { to: "/profile", icon: User, label: "Profile" },
       { to: "/payment", icon: CreditCard, label: "Payment" },
-      { to: "/logout", icon: LogOut, label: "Logout" },
     ],
   },
 ] as const;
@@ -43,6 +43,12 @@ export function AppSidebar() {
   const { sidebar } = useTweaks();
   const collapsed = sidebar === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   return (
     <aside
@@ -104,6 +110,19 @@ export function AppSidebar() {
             </ul>
           </div>
         ))}
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className={cn(
+            "group mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            collapsed && "justify-center",
+          )}
+          title={collapsed ? "Logout" : undefined}
+        >
+          <LogOut className="size-4 shrink-0" />
+          {!collapsed && <span>Logout</span>}
+        </button>
       </nav>
 
       {/* Footer */}
