@@ -51,7 +51,6 @@ function Dashboard() {
   const { user } = useAuth();
   const displayName = user?.name || user?.email?.split("@")[0] || "Operator";
   const balance = user ? Number(user.balance).toFixed(2) : "0.00";
-  const lifetime = user ? Number(user.lifetime_earning).toFixed(2) : "0.00";
 
   return (
     <AppShell>
