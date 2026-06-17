@@ -25,8 +25,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AdminWithdrawalsRouteImport } from './routes/admin.withdrawals'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminReportRouteImport } from './routes/admin.report'
 import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
+import { Route as AdminAllocationsRouteImport } from './routes/admin.allocations'
 import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
 
 const WithdrawalsRoute = WithdrawalsRouteImport.update({
@@ -109,6 +112,16 @@ const AdminWithdrawalsRoute = AdminWithdrawalsRouteImport.update({
   path: '/admin/withdrawals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminReportRoute = AdminReportRouteImport.update({
   id: '/admin/report',
   path: '/admin/report',
@@ -117,6 +130,11 @@ const AdminReportRoute = AdminReportRouteImport.update({
 const AdminPayoutsRoute = AdminPayoutsRouteImport.update({
   id: '/admin/payouts',
   path: '/admin/payouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAllocationsRoute = AdminAllocationsRouteImport.update({
+  id: '/admin/allocations',
+  path: '/admin/allocations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiInboxStreamRoute = ApiInboxStreamRouteImport.update({
@@ -139,8 +157,11 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
   '/admin/': typeof AdminIndexRoute
@@ -160,8 +181,11 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
   '/admin': typeof AdminIndexRoute
@@ -182,8 +206,11 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
   '/admin/': typeof AdminIndexRoute
@@ -205,8 +232,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/allocations'
     | '/admin/payouts'
     | '/admin/report'
+    | '/admin/settings'
+    | '/admin/users'
     | '/admin/withdrawals'
     | '/api/health'
     | '/admin/'
@@ -226,8 +256,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/allocations'
     | '/admin/payouts'
     | '/admin/report'
+    | '/admin/settings'
+    | '/admin/users'
     | '/admin/withdrawals'
     | '/api/health'
     | '/admin'
@@ -247,8 +280,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/allocations'
     | '/admin/payouts'
     | '/admin/report'
+    | '/admin/settings'
+    | '/admin/users'
     | '/admin/withdrawals'
     | '/api/health'
     | '/admin/'
@@ -269,8 +305,11 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SummaryRoute: typeof SummaryRoute
   WithdrawalsRoute: typeof WithdrawalsRoute
+  AdminAllocationsRoute: typeof AdminAllocationsRoute
   AdminPayoutsRoute: typeof AdminPayoutsRoute
   AdminReportRoute: typeof AdminReportRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminWithdrawalsRoute: typeof AdminWithdrawalsRoute
   ApiHealthRoute: typeof ApiHealthRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -391,6 +430,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminWithdrawalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/report': {
       id: '/admin/report'
       path: '/admin/report'
@@ -403,6 +456,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/payouts'
       fullPath: '/admin/payouts'
       preLoaderRoute: typeof AdminPayoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/allocations': {
+      id: '/admin/allocations'
+      path: '/admin/allocations'
+      fullPath: '/admin/allocations'
+      preLoaderRoute: typeof AdminAllocationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/inbox/stream': {
@@ -429,8 +489,11 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SummaryRoute: SummaryRoute,
   WithdrawalsRoute: WithdrawalsRoute,
+  AdminAllocationsRoute: AdminAllocationsRoute,
   AdminPayoutsRoute: AdminPayoutsRoute,
   AdminReportRoute: AdminReportRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminWithdrawalsRoute: AdminWithdrawalsRoute,
   ApiHealthRoute: ApiHealthRoute,
   AdminIndexRoute: AdminIndexRoute,

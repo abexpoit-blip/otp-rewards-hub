@@ -9,10 +9,13 @@ import {
   ListChecks,
   LogOut,
   Radio,
+  Settings,
   ShieldCheck,
   Tags,
   User,
+  Users,
   Wallet,
+  Activity,
   DollarSign,
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
@@ -56,9 +59,12 @@ const adminSection: NavSection = {
   label: "Admin",
   items: [
     { to: "/admin", icon: ShieldCheck, label: "Admin Home" },
+    { to: "/admin/users", icon: Users, label: "Users" },
+    { to: "/admin/allocations", icon: Activity, label: "Allocations" },
     { to: "/admin/withdrawals", icon: Wallet, label: "Withdrawals" },
     { to: "/admin/payouts", icon: DollarSign, label: "Payouts" },
     { to: "/admin/report", icon: LineChart, label: "Daily Report" },
+    { to: "/admin/settings", icon: Settings, label: "Settings" },
   ],
 };
 

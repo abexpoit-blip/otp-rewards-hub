@@ -6,7 +6,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const tokenSchema = z.object({ token: z.string().min(1) });
-const allocSchema = z.object({ token: z.string().min(1), rid: z.string().min(2).max(64), sid: z.string().trim().max(80).optional().nullable() });
+const allocSchema = z.object({
+  token: z.string().min(1),
+  rid: z.string().min(2).max(64),
+  sid: z.string().trim().max(80).optional().nullable(),
+  national: z.boolean().optional(),
+  no_plus: z.boolean().optional(),
+});
 
 // ---------- Live access (services + ranges from upstream) ----------
 export const liveAccessFn = createServerFn({ method: "POST" })
@@ -53,15 +59,23 @@ export const allocateNumberFn = createServerFn({ method: "POST" })
       throw new Error(r.message || "Upstream allocation failed.");
     }
     const n = r.data;
+    const flags = { national: !!data.national, no_plus: !!data.no_plus };
+    // If user asked for national/no_plus, prefer that representation in the response
+    const display =
+      data.no_plus ? n.no_plus_number :
+      data.national ? n.national_number :
+      n.full_number;
     const [row] = await sql`
-      INSERT INTO allocations (user_id, rid, sid, full_number, national_number, no_plus_number, country, operator, status, stex_response)
-      VALUES (${auth.sub}, ${data.rid}, ${data.sid ?? null}, ${n.full_number}, ${n.national_number}, ${n.no_plus_number}, ${n.country}, ${n.operator}, 'pending', ${JSON.stringify(r)}::jsonb)
-      RETURNING id, full_number, national_number, country, operator, created_at
+      INSERT INTO allocations (user_id, rid, sid, full_number, national_number, no_plus_number, country, operator, status, stex_response, flags)
+      VALUES (${auth.sub}, ${data.rid}, ${data.sid ?? null}, ${n.full_number}, ${n.national_number}, ${n.no_plus_number}, ${n.country}, ${n.operator}, 'pending', ${JSON.stringify(r)}::jsonb, ${JSON.stringify(flags)}::jsonb)
+      RETURNING id, full_number, national_number, no_plus_number, country, operator, created_at
     `;
     return {
       id: row.id,
       full_number: row.full_number,
       national_number: row.national_number,
+      no_plus_number: row.no_plus_number,
+      display_number: display,
       country: row.country,
       operator: row.operator,
       created_at: row.created_at.toISOString(),

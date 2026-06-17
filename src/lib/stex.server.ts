@@ -4,7 +4,16 @@
  */
 
 const BASE = process.env.STEX_API_BASE || "https://api.2oo9.cloud/MXS47FLFX0U/tness/@public/api";
-const KEY = process.env.STEX_API_KEY || "";
+
+async function getApiKey(): Promise<string> {
+  // Settings (DB) wins so admin can rotate without redeploy; .env is fallback.
+  try {
+    const { getSetting } = await import("./settings.server");
+    const k = await getSetting<string>("stex_api_key", "");
+    if (k && typeof k === "string" && k.length) return k;
+  } catch { /* settings table may not exist yet during first boot */ }
+  return process.env.STEX_API_KEY || "";
+}
 
 export type StexEnvelope<T> = {
   meta: { code: number; status: string };
@@ -58,12 +67,13 @@ function throttle<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 async function stexFetch<T>(path: string, init?: RequestInit): Promise<StexEnvelope<T>> {
-  if (!KEY) throw new Error("STEX_API_KEY not configured on server.");
+  const key = await getApiKey();
+  if (!key) throw new Error("STEX API key not configured. Set it in Admin → Settings.");
   return throttle(async () => {
     const res = await fetch(`${BASE}${path}`, {
       ...init,
       headers: {
-        "mauthapi": KEY,
+        "mauthapi": key,
         "Content-Type": "application/json",
         ...(init?.headers || {}),
       },
