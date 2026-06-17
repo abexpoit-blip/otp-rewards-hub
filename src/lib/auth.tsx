@@ -1,25 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { loginFn, signupFn, meFn, type AuthUserDTO } from "./auth.functions";
 
 /**
- * Nexus SMS — Auth Context
- * ------------------------
- * Backend বসবে user-এর নিজের VPS এ। API base URL `.env` থেকে আসবে:
- *   VITE_API_BASE=https://v2.nexus-x.site/api
- *
- * Endpoints (VPS এ implement করতে হবে):
- *   POST {API_BASE}/auth/login   { email, password }      -> { token, user }
- *   POST {API_BASE}/auth/signup  { name, email, phone, password } -> { token, user }
- *   POST {API_BASE}/auth/forgot  { email }                -> { ok: true }
- *
- * এই file কোনো third-party (Supabase/Cloud) ব্যবহার করে না।
+ * Nexus SMS — Auth Context (self-hosted backend on VPS)
+ * --------------------------------------------------------
+ * Uses TanStack Start server functions → Postgres (nexus_db, db: nexus_v2).
+ * JWT stored in localStorage; revalidated via meFn on mount.
  */
 
-export type AuthUser = {
-  id: string;
-  email: string;
-  name?: string;
-  phone?: string;
-};
+export type AuthUser = AuthUserDTO;
 
 type AuthState = {
   user: AuthUser | null;
@@ -31,35 +21,15 @@ type AuthState = {
 };
 
 const AuthCtx = createContext<AuthState | null>(null);
-const STORAGE_KEY = "nexus.auth.v1";
-const API_BASE =
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE) || "/api";
+const STORAGE_KEY = "nexus.auth.v2";
 
-function readStored(): { token: string; user: AuthUser } | null {
+function readStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return localStorage.getItem(STORAGE_KEY);
   } catch {
     return null;
   }
-}
-
-async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    let msg = `Request failed (${res.status})`;
-    try {
-      const j = await res.json();
-      msg = j.message || j.error || msg;
-    } catch {}
-    throw new Error(msg);
-  }
-  return res.json() as Promise<T>;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -67,28 +37,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const callLogin = useServerFn(loginFn);
+  const callSignup = useServerFn(signupFn);
+  const callMe = useServerFn(meFn);
+
+  // Bootstrap: validate stored token
   useEffect(() => {
-    const stored = readStored();
-    if (stored) {
-      setUser(stored.user);
-      setToken(stored.token);
+    const stored = readStoredToken();
+    if (!stored) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+    setToken(stored);
+    callMe({ data: { token: stored } })
+      .then((u) => setUser(u))
+      .catch(() => {
+        localStorage.removeItem(STORAGE_KEY);
+        setToken(null);
+      })
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const persist = (t: string, u: AuthUser) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: t, user: u }));
+    localStorage.setItem(STORAGE_KEY, t);
     setToken(t);
     setUser(u);
   };
 
-  const login = async (email: string, password: string) => {
-    const r = await apiPost<{ token: string; user: AuthUser }>("/auth/login", { email, password });
+  const login: AuthState["login"] = async (email, password) => {
+    const r = await callLogin({ data: { email, password } });
     persist(r.token, r.user);
   };
 
   const signup: AuthState["signup"] = async (data) => {
-    const r = await apiPost<{ token: string; user: AuthUser }>("/auth/signup", data);
+    const r = await callSignup({ data });
     persist(r.token, r.user);
   };
 
