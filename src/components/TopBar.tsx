@@ -1,5 +1,7 @@
-import { Bell, Clock, Search } from "lucide-react";
+import { Bell, Clock, Menu, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { AppSidebar } from "./AppSidebar";
 
 export function TopBar() {
   const [now, setNow] = useState<Date | null>(null);

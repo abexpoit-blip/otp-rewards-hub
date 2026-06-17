@@ -41,9 +41,9 @@ const sections = [
   },
 ] as const;
 
-export function AppSidebar() {
+export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mobile" } = {}) {
   const { sidebar } = useTweaks();
-  const collapsed = sidebar === "collapsed";
+  const collapsed = variant === "desktop" && sidebar === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -55,8 +55,11 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "glass-panel sticky top-4 flex h-[calc(100vh-2rem)] shrink-0 flex-col p-5 transition-all duration-300 lg:top-6 lg:h-[calc(100vh-3rem)]",
-        collapsed ? "w-[78px]" : "w-[240px]",
+        "flex flex-col p-5 transition-all duration-300",
+        variant === "desktop"
+          ? "glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 lg:top-6 lg:flex lg:h-[calc(100vh-3rem)]"
+          : "h-full w-full",
+        variant === "desktop" && (collapsed ? "w-[78px]" : "w-[240px]"),
       )}
     >
       {/* Logo */}
