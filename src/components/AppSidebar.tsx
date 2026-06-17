@@ -111,7 +111,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
                 return (
                   <li key={item.to}>
                     <Link
-                      to={item.to}
+                      to={item.to as any}
                       className={cn(
                         "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
                         collapsed && "justify-center",
