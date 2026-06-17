@@ -2,8 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
 /**
- * Premium auth shell (Cyan + Indigo Fintech direction).
- * Used by /login and /signup. Pure presentation — no backend coupling here.
+ * Geist Glass Bento auth shell — light, airy, frosted glass.
  */
 export function AuthShell({
   title,
@@ -17,43 +16,33 @@ export function AuthShell({
   footer: ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050608] text-slate-200">
-      {/* Ambient glow */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 size-[640px] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-0 right-0 size-[420px] rounded-full bg-indigo-600/15 blur-[120px]" />
-      {/* Grid */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.035]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-        }}
-      />
+    <div className="relative min-h-screen overflow-hidden mesh-canvas text-foreground">
+      {/* Ambient blobs */}
+      <div className="pointer-events-none absolute -top-32 -left-32 h-[520px] w-[520px] rounded-full bg-primary/20 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-[560px] w-[560px] rounded-full bg-chart-2/20 blur-[120px]" />
+      <div className="pointer-events-none absolute top-1/2 left-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-chart-3/15 blur-[100px]" />
 
       <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
         {/* Left brand panel */}
         <aside className="hidden flex-col justify-between p-12 lg:flex">
-          <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-xl border border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_24px_rgba(34,211,238,0.25)]">
-              <div className="size-3 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
+          <Link to="/" className="flex items-center gap-3">
+            <div className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold text-xl shadow-lg shadow-blue-500/30">
+              N
             </div>
             <div>
-              <p className="text-sm font-bold tracking-tight text-white">NEXUS SMS</p>
-              <p className="font-mono text-[10px] tracking-widest text-cyan-400/80">V2 PANEL</p>
+              <p className="text-sm font-bold tracking-tight text-foreground">NEXUS SMS</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">V2 Panel</p>
             </div>
-          </div>
+          </Link>
 
           <div className="space-y-6">
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white">
+            <h1 className="text-5xl font-bold leading-[1.05] tracking-tighter text-foreground">
               Real-time OTP <br />
-              <span className="bg-gradient-to-r from-cyan-300 to-indigo-400 bg-clip-text text-transparent">
-                infrastructure terminal.
-              </span>
+              <span className="accent-gradient-text">infrastructure, beautifully done.</span>
             </h1>
-            <p className="max-w-md text-sm leading-relaxed text-slate-400">
-              Allocate number ranges, watch live SMS streams, monitor carrier health and withdraw
-              earnings — all from a single high-density command surface.
+            <p className="max-w-md text-base leading-relaxed text-muted-foreground">
+              Allocate number ranges, watch live SMS streams, monitor carrier health and
+              withdraw earnings — all from a single command surface.
             </p>
 
             <div className="grid max-w-md grid-cols-3 gap-3 pt-4">
@@ -62,18 +51,17 @@ export function AuthShell({
                 ["14ms", "Latency"],
                 ["24/7", "Stream"],
               ].map(([v, l]) => (
-                <div
-                  key={l}
-                  className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
-                >
-                  <p className="font-mono text-lg font-bold text-white">{v}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-slate-500">{l}</p>
+                <div key={l} className="glass-panel p-4">
+                  <p className="text-2xl font-bold tracking-tight text-foreground">{v}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {l}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
+          <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
             <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
             ENGINE_STATUS: ONLINE · v2.4.11
           </div>
@@ -82,27 +70,23 @@ export function AuthShell({
         {/* Right form */}
         <main className="flex items-center justify-center px-6 py-12 lg:p-12">
           <div className="w-full max-w-md">
-            {/* Mobile logo */}
             <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
-              <div className="grid size-9 place-items-center rounded-lg border border-cyan-500/40 bg-cyan-500/10">
-                <div className="size-2.5 rounded-full bg-cyan-400" />
+              <div className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold shadow-md">
+                N
               </div>
-              <span className="text-sm font-bold tracking-tight text-white">NEXUS SMS</span>
+              <span className="text-sm font-bold tracking-tight text-foreground">NEXUS SMS</span>
             </Link>
 
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0a0b0e]/80 p-8 shadow-2xl backdrop-blur-xl">
-              <div className="absolute -right-16 -top-16 size-40 rounded-full bg-cyan-500/10 blur-3xl" />
-              <div className="relative">
-                <div className="mb-6 flex items-center gap-2">
-                  <span className="size-1.5 animate-pulse rounded-full bg-cyan-400" />
-                  <h2 className="text-xl font-bold text-white">{title}</h2>
-                </div>
-                <p className="mb-6 text-xs text-slate-500">{subtitle}</p>
-                {children}
+            <div className="glass-panel-strong relative p-8">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">{title}</h2>
               </div>
+              <p className="mb-7 text-sm text-muted-foreground">{subtitle}</p>
+              {children}
             </div>
 
-            <div className="mt-6 text-center text-[11px] text-slate-600">{footer}</div>
+            <div className="mt-6 text-center text-xs text-muted-foreground">{footer}</div>
           </div>
         </main>
       </div>
@@ -122,7 +106,7 @@ export function Field({
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+        <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
           {label}
         </label>
         {hint}
@@ -137,7 +121,7 @@ export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={
-        "w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-700 outline-none transition-all focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/40 " +
+        "w-full rounded-2xl border border-border bg-white/60 px-5 py-3 text-sm font-medium text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20 " +
         (props.className ?? "")
       }
     />
@@ -154,7 +138,7 @@ export function PrimaryButton({
       {...rest}
       disabled={loading || rest.disabled}
       className={
-        "relative w-full rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-400 py-3 text-sm font-bold text-black shadow-[0_8px_28px_-8px_rgba(34,211,238,0.6)] transition-all hover:from-cyan-400 hover:to-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 " +
+        "relative w-full rounded-2xl bg-foreground py-4 text-sm font-bold text-background shadow-lg shadow-foreground/10 transition-all hover:bg-foreground/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 " +
         (rest.className ?? "")
       }
     >
@@ -166,13 +150,12 @@ export function PrimaryButton({
 export function ErrorBox({ children }: { children?: ReactNode }) {
   if (!children) return null;
   return (
-    <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+    <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
       {children}
     </div>
   );
 }
 
-/** Hook to manage simple sync state for forms */
 export function useFormState<T extends Record<string, string>>(initial: T) {
   const [state, setState] = useState<T>(initial);
   const set =
