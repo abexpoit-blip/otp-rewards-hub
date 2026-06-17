@@ -4,7 +4,16 @@
  */
 
 const BASE = process.env.STEX_API_BASE || "https://api.2oo9.cloud/MXS47FLFX0U/tness/@public/api";
-const KEY = process.env.STEX_API_KEY || "";
+
+async function getApiKey(): Promise<string> {
+  // Settings (DB) wins so admin can rotate without redeploy; .env is fallback.
+  try {
+    const { getSetting } = await import("./settings.server");
+    const k = await getSetting<string>("stex_api_key", "");
+    if (k && typeof k === "string" && k.length) return k;
+  } catch { /* settings table may not exist yet during first boot */ }
+  return process.env.STEX_API_KEY || "";
+}
 
 export type StexEnvelope<T> = {
   meta: { code: number; status: string };
