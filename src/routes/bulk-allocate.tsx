@@ -238,8 +238,8 @@ function BulkAllocatePage() {
               <div className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Results — {results.filter((r) => r.ok).length}/{results.length} success
               </div>
-              <div className="max-h-[300px] overflow-y-auto">
-                <table className="w-full text-sm">
+              <div className="max-h-[300px] overflow-auto">
+                <table className="w-full min-w-[560px] text-sm">
                   <thead>
                     <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
                       <th className="py-2">Status</th>
