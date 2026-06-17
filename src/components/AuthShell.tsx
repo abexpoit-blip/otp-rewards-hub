@@ -26,8 +26,8 @@ export function AuthShell({
       <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
         {/* Left brand panel */}
         <aside className="hidden flex-col justify-between p-12 lg:flex">
-          <Link to="/" className="flex items-center">
-            <img src={nexusLogo} alt="Nexus 2.0" className="h-28 w-auto object-contain" />
+          <Link to="/" aria-label="Nexus 2.0 home" className="flex h-28 shrink-0 items-center">
+            <img src={nexusLogo} alt="" className="h-full w-auto object-contain" />
           </Link>
 
           <div className="space-y-6">
