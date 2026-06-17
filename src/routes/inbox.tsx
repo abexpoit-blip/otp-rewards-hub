@@ -5,6 +5,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { getOtpsFn } from "@/lib/inbox.functions";
+import { ingestOtpsFn } from "@/lib/stex.functions";
 import { MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/inbox")({
@@ -15,9 +16,14 @@ export const Route = createFileRoute("/inbox")({
 function InboxPage() {
   const { token } = useAuth();
   const callGet = useServerFn(getOtpsFn);
+  const callIngest = useServerFn(ingestOtpsFn);
   const { data, isLoading } = useQuery({
     queryKey: ["otps"],
-    queryFn: () => callGet({ data: { token: token! } }),
+    queryFn: async () => {
+      // Trigger server-side ingestion from STEX, then read user's inbox.
+      await callIngest({ data: { token: token! } }).catch(() => null);
+      return callGet({ data: { token: token! } });
+    },
     enabled: !!token,
     refetchInterval: 5000, // live polling
   });
