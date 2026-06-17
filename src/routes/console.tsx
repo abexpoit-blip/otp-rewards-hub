@@ -10,6 +10,7 @@ import { TerminalSquare, Search, RefreshCw, Smartphone, Radio } from "lucide-rea
 import {
   Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { SkeletonFeedRows, SkeletonRows } from "@/components/Skeleton";
 
 export const Route = createFileRoute("/console")({
   head: () => ({ meta: [{ title: "Console — Nexus SMS" }] }),
