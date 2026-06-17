@@ -97,7 +97,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
         {collapsed ? (
           <img src={nexusMark} alt="Nexus" className="size-10 object-contain" />
         ) : (
-          <img src={nexusLogo} alt="Nexus 2.0" className="h-10 w-auto object-contain" />
+          <img src={nexusLogo} alt="Nexus 2.0" className="h-14 w-auto object-contain" />
         )}
       </Link>
 
