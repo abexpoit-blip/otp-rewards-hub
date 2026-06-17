@@ -48,14 +48,14 @@ type TweaksContextValue = TweaksState & {
 };
 
 const DEFAULT: TweaksState = {
-  theme: "dark",
+  theme: "light",
   accent: "mint",
   density: "comfortable",
   sidebar: "expanded",
   privacy: "show",
 };
 
-const STORAGE_KEY = "nexus.tweaks.v1";
+const STORAGE_KEY = "nexus.tweaks.v2";
 
 const TweaksContext = createContext<TweaksContextValue | null>(null);
 
