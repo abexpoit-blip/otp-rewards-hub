@@ -52,12 +52,12 @@ function SignupPage() {
 
   return (
     <AuthShell
-      title="New Registry"
+      title="Create your account"
       subtitle="Provision a fresh operator profile on the Nexus network."
       footer={
         <>
           Already onboarded?{" "}
-          <Link to="/login" className="text-cyan-400 hover:underline">
+          <Link to="/login" className="font-semibold accent-text hover:underline">
             Sign in
           </Link>
         </>
@@ -94,26 +94,26 @@ function SignupPage() {
           </Field>
         </div>
 
-        <Field label="Set Password">
+        <Field label="Password">
           <TextInput
             type="password"
             autoComplete="new-password"
             required
             minLength={6}
-            placeholder="••••••••"
+            placeholder="At least 6 characters"
             value={form.password}
             onChange={set("password")}
           />
         </Field>
 
-        <p className="font-mono text-[10px] leading-relaxed text-slate-600">
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
           By creating an account you accept the operator terms and live-monitoring policy.
         </p>
 
         <ErrorBox>{err}</ErrorBox>
 
         <PrimaryButton type="submit" loading={loading}>
-          Initialize Account
+          Create Account
         </PrimaryButton>
       </form>
     </AuthShell>

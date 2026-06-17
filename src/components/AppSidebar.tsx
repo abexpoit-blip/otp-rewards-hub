@@ -53,35 +53,35 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
-        collapsed ? "w-[72px]" : "w-[240px]",
+        "glass-panel sticky top-4 flex h-[calc(100vh-2rem)] shrink-0 flex-col p-5 transition-all duration-300 lg:top-6 lg:h-[calc(100vh-3rem)]",
+        collapsed ? "w-[78px]" : "w-[240px]",
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2.5 px-4">
-        <div className="relative grid size-9 place-items-center rounded-xl accent-bg font-bold shadow-lg accent-glow">
+      <div className="mb-8 flex items-center gap-3 px-1">
+        <div className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold text-xl shadow-lg shadow-blue-500/30">
           N
         </div>
         {!collapsed && (
           <div className="flex flex-col leading-none">
-            <span className="text-sm font-bold tracking-wider">NEXUS SMS</span>
+            <span className="text-sm font-bold tracking-tight text-foreground">NEXUS</span>
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              v2 panel
+              v2 Panel
             </span>
           </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden -mx-1 px-1">
         {sections.map((section, i) => (
-          <div key={i} className="mb-4">
+          <div key={i} className="mb-5">
             {section.label && !collapsed && (
-              <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
                 {section.label}
               </div>
             )}
-            <ul className="flex flex-col gap-0.5">
+            <ul className="flex flex-col gap-1">
               {section.items.map((item) => {
                 const active =
                   item.to === "/"
@@ -93,15 +93,15 @@ export function AppSidebar() {
                     <Link
                       to={item.to}
                       className={cn(
-                        "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
+                        "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
                         collapsed && "justify-center",
                         active
-                          ? "accent-bg shadow-sm"
-                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                          ? "bg-white/80 text-primary shadow-sm border border-primary/15"
+                          : "text-foreground/70 hover:bg-white/50 hover:text-foreground",
                       )}
                       title={collapsed ? item.label : undefined}
                     >
-                      <Icon className="size-4 shrink-0" />
+                      <Icon className="size-[18px] shrink-0" />
                       {!collapsed && <span>{item.label}</span>}
                     </Link>
                   </li>
@@ -115,35 +115,32 @@ export function AppSidebar() {
           type="button"
           onClick={handleLogout}
           className={cn(
-            "group mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            "group mt-2 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/70 transition-all hover:bg-white/50 hover:text-destructive",
             collapsed && "justify-center",
           )}
           title={collapsed ? "Logout" : undefined}
         >
-          <LogOut className="size-4 shrink-0" />
+          <LogOut className="size-[18px] shrink-0" />
           {!collapsed && <span>Logout</span>}
         </button>
       </nav>
 
       {/* Footer */}
-      <div className="space-y-3 border-t border-sidebar-border p-3">
+      <div className="mt-auto space-y-3 pt-3">
         <TweaksPanel />
 
         {!collapsed && (
-          <div className="relative overflow-hidden rounded-xl border border-sidebar-border bg-gradient-to-br from-card to-sidebar p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="rounded-md accent-bg-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                Dev
-              </span>
-              <span className="text-muted-foreground">{"</>"}</span>
-            </div>
-            <div className="text-sm font-semibold">Are you a developer?</div>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-4 text-white shadow-xl shadow-blue-500/25">
+            <div className="absolute -right-4 -bottom-4 size-24 rounded-full bg-white/15 blur-2xl" />
+            <p className="relative text-[10px] font-bold uppercase tracking-widest opacity-80">
+              Pro API
+            </p>
+            <p className="relative mt-1 text-sm font-semibold">Ready to integrate?</p>
             <a
               href="#"
-              className="mt-2 flex items-center justify-between rounded-lg accent-bg px-2.5 py-1.5 text-xs font-semibold"
+              className="relative mt-3 flex items-center justify-center rounded-xl border border-white/30 bg-white/15 px-3 py-2 text-xs font-bold backdrop-blur-md transition-colors hover:bg-white/25"
             >
-              <span>See the API</span>
-              <span>→</span>
+              Get API Key →
             </a>
           </div>
         )}

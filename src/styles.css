@@ -5,23 +5,23 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   Nexus SMS — Design System
-   Dark-first OTP/SMS dialer panel.
-   Accent color is dynamic via --accent-h / --accent-s / --accent-l
-   so user can switch palettes from the Tweaks panel.
+   Nexus SMS — Geist Glass Bento Design System
+   Light-first airy aesthetic. Mesh-gradient backdrop +
+   frosted-glass cards + indigo/blue accent.
    ============================================================ */
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
+  --radius-3xl: calc(var(--radius) + 24px);
+  --radius-4xl: calc(var(--radius) + 32px);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -63,104 +63,85 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ---------- Light theme ---------- */
+/* ---------- Light theme (default) — Geist Glass Bento ---------- */
 :root {
-  --radius: 0.875rem;
+  --radius: 1rem;
 
-  /* Accent (cyan default) — HSL channels so we can compose alpha versions */
-  --accent-h: 188;
-  --accent-s: 94%;
-  --accent-l: 55%;
+  /* Primary accent — vibrant indigo-blue */
+  --accent-h: 221;
+  --accent-s: 83%;
+  --accent-l: 53%;
   --accent-hsl: var(--accent-h) var(--accent-s) var(--accent-l);
 
-  --background: oklch(0.985 0.002 240);
-  --foreground: oklch(0.18 0.02 250);
+  /* Slate-50 canvas */
+  --background: oklch(0.984 0.003 247);
+  --foreground: oklch(0.21 0.034 264);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 250);
+  --card-foreground: oklch(0.21 0.034 264);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 250);
+  --popover-foreground: oklch(0.21 0.034 264);
 
   --primary: hsl(var(--accent-hsl));
-  --primary-foreground: oklch(0.15 0.02 250);
+  --primary-foreground: oklch(0.98 0 0);
 
-  --secondary: oklch(0.96 0.005 250);
-  --secondary-foreground: oklch(0.2 0.02 250);
+  --secondary: oklch(0.968 0.007 247);
+  --secondary-foreground: oklch(0.21 0.034 264);
 
-  --muted: oklch(0.96 0.005 250);
-  --muted-foreground: oklch(0.5 0.02 250);
+  --muted: oklch(0.968 0.007 247);
+  --muted-foreground: oklch(0.55 0.022 257);
 
-  --accent: oklch(0.94 0.01 250);
-  --accent-foreground: oklch(0.2 0.02 250);
+  --accent: oklch(0.95 0.025 240);
+  --accent-foreground: oklch(0.21 0.034 264);
 
   --destructive: oklch(0.62 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
 
-  --success: hsl(var(--accent-hsl));
+  --success: oklch(0.65 0.18 155);
   --warning: oklch(0.78 0.16 75);
-  --info: oklch(0.68 0.15 240);
+  --info: hsl(var(--accent-hsl));
 
-  --border: oklch(0.9 0.008 250);
-  --input: oklch(0.94 0.008 250);
+  --border: oklch(0.929 0.013 255);
+  --input: oklch(0.929 0.013 255);
   --ring: hsl(var(--accent-hsl));
 
   --chart-1: hsl(var(--accent-hsl));
-  --chart-2: oklch(0.68 0.18 240);
-  --chart-3: oklch(0.7 0.2 295);
+  --chart-2: oklch(0.65 0.2 277);
+  --chart-3: oklch(0.7 0.18 195);
   --chart-4: oklch(0.78 0.17 75);
   --chart-5: oklch(0.65 0.22 25);
 
-  --sidebar: oklch(0.97 0.003 250);
-  --sidebar-foreground: oklch(0.25 0.02 250);
+  /* Sidebar = translucent glass on mesh canvas */
+  --sidebar: oklch(1 0 0 / 0.6);
+  --sidebar-foreground: oklch(0.3 0.03 264);
   --sidebar-primary: hsl(var(--accent-hsl));
-  --sidebar-primary-foreground: oklch(0.15 0.02 250);
-  --sidebar-accent: oklch(0.94 0.01 250);
-  --sidebar-accent-foreground: oklch(0.2 0.02 250);
-  --sidebar-border: oklch(0.9 0.008 250);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(1 0 0 / 0.8);
+  --sidebar-accent-foreground: oklch(0.21 0.034 264);
+  --sidebar-border: oklch(1 0 0 / 0.5);
   --sidebar-ring: hsl(var(--accent-hsl));
 }
 
-/* ---------- Dark theme (default) ---------- */
+/* ---------- Dark theme (optional, kept available) ---------- */
 .dark {
   --background: oklch(0.16 0.012 250);
   --foreground: oklch(0.96 0.003 250);
-
   --card: oklch(0.21 0.015 250);
   --card-foreground: oklch(0.96 0.003 250);
-
   --popover: oklch(0.22 0.015 250);
   --popover-foreground: oklch(0.96 0.003 250);
-
   --primary: hsl(var(--accent-hsl));
   --primary-foreground: oklch(0.15 0.02 250);
-
   --secondary: oklch(0.26 0.018 250);
   --secondary-foreground: oklch(0.96 0.003 250);
-
   --muted: oklch(0.24 0.015 250);
   --muted-foreground: oklch(0.65 0.015 250);
-
   --accent: oklch(0.28 0.02 250);
   --accent-foreground: oklch(0.96 0.003 250);
-
-  --destructive: oklch(0.65 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-
-  --success: hsl(var(--accent-hsl));
-  --warning: oklch(0.78 0.16 75);
-  --info: oklch(0.68 0.16 240);
-
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 10%);
   --ring: hsl(var(--accent-hsl));
-
-  --chart-1: hsl(var(--accent-hsl));
-  --chart-2: oklch(0.68 0.18 240);
-  --chart-3: oklch(0.72 0.2 295);
-  --chart-4: oklch(0.8 0.17 75);
-  --chart-5: oklch(0.68 0.22 25);
-
   --sidebar: oklch(0.18 0.013 250);
   --sidebar-foreground: oklch(0.85 0.005 250);
   --sidebar-primary: hsl(var(--accent-hsl));
@@ -171,12 +152,7 @@
   --sidebar-ring: hsl(var(--accent-hsl));
 }
 
-/* ---------- Density modes ---------- */
-:root[data-density="compact"] {
-  --radius: 0.625rem;
-}
-
-/* ---------- Privacy mode: mask all digits ---------- */
+:root[data-density="compact"] { --radius: 0.625rem; }
 :root[data-privacy="hide"] .mask-target,
 :root[data-privacy="hide"] [data-mask] {
   filter: blur(6px);
@@ -184,82 +160,85 @@
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
-  html,
-  body {
+  * { border-color: var(--color-border); }
+  html, body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-
-  code,
-  kbd,
-  pre,
-  samp,
-  .font-mono {
-    font-family: var(--font-mono);
-  }
+  code, kbd, pre, samp, .font-mono { font-family: var(--font-mono); }
 }
 
 /* ---------- Custom utilities ---------- */
-@utility glass-card {
-  background: color-mix(in oklab, var(--color-card) 92%, transparent);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+
+/* Frosted glass card — the signature surface */
+@utility glass-panel {
+  background: color-mix(in oklab, white 55%, transparent);
+  backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid color-mix(in oklab, white 70%, transparent);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, white 90%, transparent) inset,
+    0 24px 60px -20px color-mix(in oklab, hsl(var(--accent-hsl)) 8%, transparent);
 }
 
-@utility accent-glow {
-  box-shadow: 0 0 0 1px hsl(var(--accent-hsl) / 0.25),
-    0 10px 40px -10px hsl(var(--accent-hsl) / 0.35);
+@utility glass-panel-strong {
+  background: color-mix(in oklab, white 80%, transparent);
+  backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid color-mix(in oklab, white 90%, transparent);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 32px 64px -16px color-mix(in oklab, hsl(var(--accent-hsl)) 15%, transparent);
 }
 
-@utility accent-text {
-  color: hsl(var(--accent-hsl));
+/* The signature mesh-gradient backdrop */
+@utility mesh-canvas {
+  background-color: oklch(0.984 0.003 247);
+  background-image:
+    radial-gradient(at 12% 8%, color-mix(in oklab, hsl(var(--accent-hsl)) 22%, transparent) 0px, transparent 50%),
+    radial-gradient(at 88% 92%, oklch(0.85 0.18 277 / 0.35) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, oklch(0.92 0.08 200 / 0.3) 0px, transparent 60%);
 }
 
+@utility accent-text { color: hsl(var(--accent-hsl)); }
 @utility accent-bg {
   background: hsl(var(--accent-hsl));
-  color: oklch(0.15 0.02 250);
+  color: oklch(0.98 0 0);
 }
-
 @utility accent-bg-soft {
-  background: hsl(var(--accent-hsl) / 0.12);
+  background: hsl(var(--accent-hsl) / 0.10);
   color: hsl(var(--accent-hsl));
 }
-
+@utility accent-gradient-text {
+  background: linear-gradient(135deg, hsl(var(--accent-hsl)), oklch(0.6 0.22 277));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility accent-glow {
+  box-shadow: 0 8px 28px -8px hsl(var(--accent-hsl) / 0.45);
+}
 @utility section-title {
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   font-size: 1.875rem;
   line-height: 1.15;
 }
-
 @utility section-sub {
   color: var(--color-muted-foreground);
   font-size: 0.875rem;
 }
 
-/* Subtle scrollbar */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: oklch(1 0 0 / 0.1) transparent;
-}
+/* Soft scrollbar for light theme */
+* { scrollbar-width: thin; scrollbar-color: oklch(0.7 0.02 257 / 0.3) transparent; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-thumb {
-  background: oklch(1 0 0 / 0.08);
+  background: oklch(0.7 0.02 257 / 0.25);
   border-radius: 10px;
 }
-*::-webkit-scrollbar-thumb:hover {
-  background: oklch(1 0 0 / 0.18);
-}
+*::-webkit-scrollbar-thumb:hover { background: oklch(0.6 0.02 257 / 0.4); }
 
-/* Animated live pulse */
 @keyframes nx-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.6); }
