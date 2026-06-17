@@ -27,7 +27,7 @@ export function AuthShell({
         {/* Left brand panel */}
         <aside className="hidden flex-col justify-between p-12 lg:flex">
           <Link to="/" className="flex items-center">
-            <img src={nexusLogo} alt="Nexus 2.0" className="h-20 w-auto object-contain" />
+            <img src={nexusLogo} alt="Nexus 2.0" className="h-28 w-auto object-contain" />
           </Link>
 
           <div className="space-y-6">
@@ -66,7 +66,7 @@ export function AuthShell({
         <main className="flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:p-12">
           <div className="w-full max-w-md">
             <Link to="/" className="mb-6 flex justify-center sm:mb-8 sm:justify-start lg:hidden">
-              <img src={nexusLogo} alt="Nexus 2.0" className="h-12 w-auto object-contain sm:h-14" />
+              <img src={nexusLogo} alt="Nexus 2.0" className="h-16 w-auto object-contain sm:h-20" />
             </Link>
 
             <div className="glass-panel-strong relative p-5 sm:p-8">
