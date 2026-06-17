@@ -43,13 +43,13 @@ function LoginPage() {
 
   return (
     <AuthShell
-      title="Operator Access"
-      subtitle="Secure gateway to Nexus SMS V2 infrastructure."
+      title="Welcome back"
+      subtitle="Enter your credentials to access the Nexus dialer."
       footer={
         <>
           New operator?{" "}
-          <Link to="/signup" className="text-cyan-400 hover:underline">
-            Request uplink
+          <Link to="/signup" className="font-semibold accent-text hover:underline">
+            Create an account
           </Link>
         </>
       }
@@ -67,9 +67,9 @@ function LoginPage() {
         </Field>
 
         <Field
-          label="Passkey"
+          label="Password"
           hint={
-            <Link to="/login" className="text-[10px] text-cyan-400/80 hover:text-cyan-300">
+            <Link to="/login" className="text-[11px] accent-text/80 hover:underline">
               Forgot?
             </Link>
           }
@@ -84,19 +84,15 @@ function LoginPage() {
           />
         </Field>
 
-        <label className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
-          <input
-            type="checkbox"
-            className="accent-cyan-500"
-            defaultChecked
-          />
-          Remember_Me
+        <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <input type="checkbox" className="accent-primary size-3.5" defaultChecked />
+          Keep me signed in
         </label>
 
         <ErrorBox>{err}</ErrorBox>
 
         <PrimaryButton type="submit" loading={loading}>
-          Initialize Session
+          Sign In
         </PrimaryButton>
       </form>
     </AuthShell>
