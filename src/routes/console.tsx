@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { consoleFeedFn } from "@/lib/stex.functions";
-import { TerminalSquare, Search } from "lucide-react";
+import { TerminalSquare, Search, RefreshCw, Smartphone, Radio } from "lucide-react";
 import {
   Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
@@ -16,21 +16,29 @@ export const Route = createFileRoute("/console")({
   component: () => (<Protected><ConsolePage /></Protected>),
 });
 
-const DONUT_COLORS = ["#2563eb", "#16a34a", "#a855f7", "#f59e0b", "#ec4899", "#0ea5e9", "#64748b", "#dc2626"];
+const PALETTE = ["#10b981", "#3b82f6", "#a855f7", "#f59e0b", "#ec4899", "#0ea5e9", "#64748b", "#dc2626"];
+const REFRESH_MS = 5000;
 
 function ConsolePage() {
   const { token } = useAuth();
   const callConsole = useServerFn(consoleFeedFn);
   const [q, setQ] = useState("");
-  const { data, isLoading, dataUpdatedAt } = useQuery({
+  const [tick, setTick] = useState(0);
+
+  const { data, isLoading, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["stex-console"],
     queryFn: () => callConsole({ data: { token: token! } }),
     enabled: !!token,
-    refetchInterval: 5000,
+    refetchInterval: REFRESH_MS,
   });
 
-  const hits = data?.hits || [];
+  // 1-second tick for countdown
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
+  const hits = data?.hits || [];
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return hits;
@@ -41,15 +49,17 @@ function ConsolePage() {
     );
   }, [hits, q]);
 
-  // Top Apps (by sid)
   const topApps = useMemo(() => {
     const m = new Map<string, number>();
     for (const h of hits) m.set(h.sid, (m.get(h.sid) || 0) + 1);
-    return Array.from(m.entries()).map(([sid, count]) => ({ sid, count }))
-      .sort((a, b) => b.count - a.count).slice(0, 8);
+    const total = hits.length || 1;
+    return Array.from(m.entries())
+      .map(([sid, count]) => ({ sid, count, pct: (count / total) * 100 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
   }, [hits]);
 
-  // Carrier distribution: take first 2-3 digit prefix as carrier proxy
+  // Carrier proxy: use the country-code prefix from the range
   const carriers = useMemo(() => {
     const m = new Map<string, number>();
     for (const h of hits) {
@@ -57,87 +67,149 @@ function ConsolePage() {
       const key = m1 ? `+${m1[1]}` : "other";
       m.set(key, (m.get(key) || 0) + 1);
     }
-    return Array.from(m.entries()).map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value).slice(0, 8);
+    const total = hits.length || 1;
+    return Array.from(m.entries())
+      .map(([name, value]) => ({ name, value, pct: (value / total) * 100 }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
   }, [hits]);
+
+  const totalHits = hits.length;
+  const secsSinceUpdate = dataUpdatedAt ? Math.max(0, Math.round((Date.now() - dataUpdatedAt) / 1000)) : 0;
+  const nextUpdateIn = Math.max(0, Math.ceil(REFRESH_MS / 1000) - secsSinceUpdate);
 
   return (
     <AppShell>
-      <PageHeader icon={<TerminalSquare className="size-6" />} title="Live Console" subtitle="Global OTP feed (last 15 min). Refreshes every 5s." />
+      <PageHeader icon={<TerminalSquare className="size-6" />} title="Live Console" subtitle="Streaming OTP messages with carrier and app distribution charts." />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <div className="glass-panel-strong p-5 lg:col-span-2">
-          <h3 className="text-sm font-bold mb-2">Top Apps</h3>
+      {/* ===== Stats grid ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        {/* Top Apps */}
+        <div className="glass-panel-strong p-5">
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Smartphone className="size-4 text-emerald-500" /> Top Apps</h3>
           <div className="h-[200px]">
             {topApps.length === 0 ? <p className="text-xs text-muted-foreground">No data yet.</p> : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topApps} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <BarChart data={topApps} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <XAxis dataKey="sid" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip contentStyle={{ background: "white", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }} />
-                  <Bar dataKey="count" fill="hsl(var(--accent-hsl))" radius={[6, 6, 0, 0]} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                    {topApps.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
+          <div className="mt-3 space-y-1.5">
+            {topApps.map((a, i) => (
+              <div key={a.sid} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="size-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />
+                  <span className="font-medium truncate">{a.sid}</span>
+                </div>
+                <div className="flex items-center gap-3 tabular-nums">
+                  <span className="font-mono font-semibold">{a.count}</span>
+                  <span className="text-muted-foreground w-10 text-right">{a.pct.toFixed(0)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Carrier distribution */}
         <div className="glass-panel-strong p-5">
-          <h3 className="text-sm font-bold mb-2">Carrier Distribution</h3>
-          <div className="h-[200px]">
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Radio className="size-4 text-emerald-500" /> Carrier Distribution</h3>
+          <div className="h-[200px] relative">
             {carriers.length === 0 ? <p className="text-xs text-muted-foreground">No data yet.</p> : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={carriers} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} paddingAngle={2}>
-                    {carriers.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "white", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={carriers} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2} stroke="none">
+                      {carriers.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div className="text-2xl font-bold tabular-nums">{totalHits}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
+                </div>
+              </>
             )}
+          </div>
+          <div className="mt-3 space-y-1.5">
+            {carriers.map((c, i) => (
+              <div key={c.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />
+                  <span className="font-medium">{c.name}</span>
+                </div>
+                <div className="flex items-center gap-3 tabular-nums">
+                  <span className="font-mono font-semibold">{c.value}</span>
+                  <span className="text-muted-foreground w-10 text-right">{c.pct.toFixed(0)}%</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="glass-panel-strong p-4 mb-4 flex items-center gap-2">
-        <Search className="size-4 text-muted-foreground" />
-        <input
-          placeholder="Filter feed (sid, range, message)"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-        />
-        <span className="text-[10px] text-muted-foreground">
-          {dataUpdatedAt ? `updated ${Math.max(1, Math.round((Date.now() - dataUpdatedAt) / 1000))}s ago` : "—"}
-        </span>
+      {/* ===== Feed header bar ===== */}
+      <div className="glass-panel-strong p-3 mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold flex items-center gap-2"><TerminalSquare className="size-4 text-emerald-500" /> Live Console</span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[10px] font-bold">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
+          </span>
+          <span className="text-[10px] text-muted-foreground">Logs: {filtered.length} (Max 50)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2 py-1.5 text-xs">
+            <Search className="size-3 text-muted-foreground" />
+            <input
+              placeholder="Filter logs (sender, range, msg)"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="bg-transparent outline-none w-48"
+            />
+          </div>
+          <button onClick={() => refetch()} className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2.5 py-1.5 text-xs hover:bg-accent">
+            <RefreshCw className="size-3" /> Next update: <span className="font-mono font-semibold">{nextUpdateIn}s</span>
+          </button>
+        </div>
       </div>
 
-      <div className="glass-panel-strong p-6">
+      {/* ===== Feed rows ===== */}
+      <div className="glass-panel-strong p-4">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-12 text-center">No hits match.</p>
+          <p className="text-sm text-muted-foreground py-16 text-center">No hits match.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
-                  <th className="py-2">Time</th>
-                  <th className="py-2">Service</th>
-                  <th className="py-2">Range</th>
-                  <th className="py-2">Message</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((h, i) => (
-                  <tr key={i} className="border-t border-border">
-                    <td className="py-2 font-mono text-xs whitespace-nowrap">{new Date(h.time).toLocaleTimeString()}</td>
-                    <td className="py-2 font-semibold accent-text">{h.sid}</td>
-                    <td className="py-2 font-mono text-xs">{h.range}</td>
-                    <td className="py-2 max-w-md break-words">{h.message}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            {filtered.map((h, i) => {
+              const m = h.range.match(/^(\d{1,3})/);
+              const cc = m ? `+${m[1]}` : "—";
+              return (
+                <div key={i} className="border border-border rounded-lg p-3 bg-background/40 hover:bg-accent/20">
+                  <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+                    <span className="font-mono text-foreground/70">{new Date(h.time).toLocaleTimeString()}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 font-bold">{cc}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-bold accent-text">{h.sid}</span>
+                    <span className="text-muted-foreground">::</span>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-muted">{h.range}</span>
+                  </div>
+                  <div className="mt-1.5 text-sm break-words text-foreground/80">
+                    <span className="text-emerald-500 font-bold mr-1">➜</span>{h.message}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
