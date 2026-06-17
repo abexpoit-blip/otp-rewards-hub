@@ -1,165 +1,92 @@
 
-# Nexus SMS v2 — Full Panel Build Plan
+# Phase 1 — Backend Foundation (Auth + Database)
 
-Stex SMS v4 এর সব feature নিয়ে একটা production-ready OTP/SMS dialer panel বানাব। তোমার নিজের site, তাই design + flow ১:১ match করব, কিন্তু code পুরো নিজের লেখা — তোমার own brand হিসেবে।
+ভালো খবর: আপনার TanStack Start app ই backend handle করতে পারবে — আলাদা API container লাগবে না। এতে deployment অনেক simple, existing nginx config পরিবর্তন লাগবে না।
 
----
+## Architecture (simple)
 
-## Phase 1 — Foundation & Design System
-
-**Goal:** Stex এর exact look & feel + theme switcher
-
-- Dark theme (default) + Light mode
-- 7 accent colors: Mint (default), Purple, Pink, Orange, Blue, Yellow, Rainbow
-- Monospace font for numbers/codes, clean sans for body
-- Glassmorphism dark cards, soft glow, rounded corners
-- Sidebar (expandable/collapsible) + top search bar + clock (UTC+0)
-- Density toggle (Comfortable/Compact)
-- Privacy mode (mask numbers with •••)
-- All settings persist in localStorage
-
-**Files:** `src/styles.css` (tokens), `src/components/AppSidebar.tsx`, `src/components/TopBar.tsx`, `src/components/TweaksPanel.tsx`, `src/routes/__root.tsx`
-
----
-
-## Phase 2 — Authentication
-
-- **Login** — Email + Password, Remember me, Forgot password link
-- **Register** — Create Account (email/password/name/phone)
-- **Forgot Password** — Email reset flow
-- **Reset Password** — `/reset-password` page
-- **2-Step (OTP)** — Optional for Login + Payment (toggle in Profile)
-- Session tracking (last 4 sessions: time, IP, device)
-
-**Backend:** Lovable Cloud auth + `profiles` table + `user_roles` table (user/teamlead/admin)
-
----
-
-## Phase 3 — Dialer Panel (6 pages)
-
-### 1. Dashboard
-- Welcome banner with user name
-- Announcement banner (admin-editable)
-- 4 stat cards: Today Revenue, Today OTPs, Yesterday Revenue, Yesterday OTPs
-- Hourly Traffic live line chart (24h)
-- Top Performers table (service/volume/earnings)
-- Global Trending apps list (Top 10 with sparklines)
-
-### 2. Get Number
-- 3 modes: **Range** / **Search** / **Access**
-- Prefix input (e.g. `88017XXX`), National Format + Remove (+) toggle
-- Sync Mode switch
-- Allocated numbers list with Success/Failed/Pending tabs + counter
-- Success rate %, refresh button
-- Number info, country/operator, activity columns
-
-### 3. Live Console
-- Top Apps bar chart (real-time top 4)
-- Carrier Distribution donut chart
-- Live streaming OTP feed (max 50 messages):
-  - Timestamp, carrier badge, country, sender, masked number, full SMS body
-- Filter logs by sender/operator
-- Auto-refresh countdown ("Next update: 2s")
-
-### 4. Summary
-- Date range picker (Last 7/30/90 days, custom)
-- 4 cards: Total Allocation, Success Rate, Total Earnings, Total Success
-- Success vs Failed trend chart (line)
-- Earnings Overview chart (area)
-- Detailed daily report table + CSV download
-
-### 5. Access List
-- "Coming Soon" page (Team Lead contact CTA) — same as original
-
-### 6. Sender / Range
-- Searchable table (Sender ID + Range like `12Go → 2011XXX`)
-- Pagination (First / Prev / Next / Last)
-- Result counter
-- Admin can bulk-import via CSV
-
----
-
-## Phase 4 — Account (3 pages)
-
-### 7. Profile
-- Welcome card (name, last login, member since, public UID, lifetime earning)
-- Personal info form: First/Last name, Bio, Country, City, Birth date, Timezone, Address, Telegram username
-- Email + Phone (read-only, verified badges)
-- Notification channel (Email/Telegram/SMS) + enable toggle
-- Security: 2-Step Login toggle, 2-Step Payment toggle
-- API Keys: Generate/Revoke (gated by Team Lead approval)
-- Sessions log (last 4)
-- Save Changes requires OTP confirm
-
-### 8. Payment
-- Payment notices & limits (admin-editable cards e.g. "USDT SOL Network — Min $0.5, Max $500")
-- Available Balance (large display)
-- Payment Addresses: Add new (gateway dropdown — USDT/Binance Pay/bKash/Nagad etc.) + saved list
-- Withdraw form: Address picker + Amount (multiples of $0.50) + "Use max" + Withdraw Now button
-- History table: Date, Method, Details, Amount, TX ID, Status (Pending/Approved/Rejected)
-
-### 9. Logout — clear session + redirect
-
----
-
-## Phase 5 — Admin Panel (separate `/admin` routes, role-gated)
-
-- **Users:** List, search, block/unblock, approve API key, assign Team Lead, balance adjust
-- **Ranges:** Upload CSV (Sender ID + Range), edit, delete, assign to user/group
-- **Withdrawals:** Approve/Reject queue, TX ID input
-- **Announcements:** Edit dashboard banner
-- **Payment Gateways:** Add/edit gateways and limits
-- **Analytics:** Platform-wide stats
-
----
-
-## Phase 6 — Backend (Lovable Cloud)
-
-**Tables (all with RLS + GRANTs):**
-- `profiles` — user info, settings, balance, lifetime_earning
-- `user_roles` — separate roles table (user/teamlead/admin) with `has_role()` function
-- `ranges` — sender_id, range pattern, country, operator, status
-- `range_assignments` — user_id ↔ range_id
-- `allocations` — user requested ranges (active/expired)
-- `otp_messages` — incoming SMS stream (number, sender, body, carrier, country, timestamp)
-- `payment_addresses` — user wallets/accounts
-- `withdrawals` — request, amount, status, tx_id, admin_note
-- `announcements` — global banner
-- `payment_gateways` — admin config
-- `sessions_log` — login history
-- `api_keys` — hashed, per-user
-
-**Realtime:** OTP stream (Live Console) + Withdrawal status
-
-**Edge function / Server route:** Public webhook endpoint at `/api/public/otp-ingest` for the SMS gateway to POST incoming messages (HMAC-signed)
-
----
-
-## Phase 7 — Deploy (VPS)
-
-প্রতি phase শেষে exact deploy command দেব। Final flow:
-
-```bash
-cd /opt/nexus-v2 && \
-git stash && git pull && \
-docker compose -f deployment/docker-compose.yml up -d --build nexus_v2_app && \
-docker logs -f --tail 50 nexus_v2_app
+```
+Browser → nginx (v2.nexus-x.site) → nexus_v2_app (TanStack Start)
+                                       ├─ React UI
+                                       └─ /api/* server routes  ─→ nexus_db (Postgres, nexus_v2 database)
+                                                                  └─ stex API (Phase 2)
 ```
 
+- ✅ Existing `nexus_db` Postgres reuse (DB `nexus_v2` already init-db.sql এ define করা)
+- ✅ Existing nginx route already correct
+- ✅ শুধু `nexus_v2_app` rebuild + push — no new container
+
+## এই Phase এ যা হবে
+
+### 1. Database schema (`deployment/migrations/001_init.sql`)
+
+8টা table grants + RLS-free (we control access in code):
+- `users` — id, email, password_hash, name, phone, balance, lifetime_earning, status (active/blocked), created_at, last_login_at
+- `user_roles` — separate table, enum `app_role` (user/teamlead/admin), `has_role()` helper
+- `sessions` — login history (id, user_id, ip, ua, created_at)
+- `announcements` — admin global banner (id, message, severity, active, created_at)
+- `ranges` — cached from stex liveaccess (sender_id, range_pattern, country, operator, last_seen_at)
+- `allocations` — number requests (id, user_id, rid, full_number, country, operator, status: pending/success/failed/expired, stex_response, created_at)
+- `otp_messages` — incoming OTPs (id, allocation_id, sender, body, received_at)
+- `withdrawals` — id, user_id, amount, gateway, address, status (pending/approved/rejected), tx_id, admin_note, created_at, processed_at
+- `api_keys` — id, user_id, key_hash, label, last_used_at, revoked_at
+
+Plus migration runner: `deployment/migrations/run.sh`
+
+### 2. Backend packages
+```
+bun add postgres bcryptjs jsonwebtoken zod
+bun add -D @types/bcryptjs @types/jsonwebtoken
+```
+
+### 3. Server-side files
+- `src/lib/db.server.ts` — postgres-js client (singleton, reads `DATABASE_URL`)
+- `src/lib/jwt.server.ts` — sign/verify JWT (reads `JWT_SECRET`)
+- `src/lib/password.server.ts` — bcrypt hash/compare
+- `src/lib/auth.functions.ts` — `signupFn`, `loginFn`, `meFn`, `logoutFn` (createServerFn)
+- `src/routes/api/health.ts` — `GET /api/health` (DB ping)
+
+### 4. Frontend rewrite
+- `src/lib/auth.tsx` — REST fetch বাদ দিয়ে `useServerFn(loginFn)` etc use করব
+- `src/routes/login.tsx` / `signup.tsx` — existing form behaviour same থাকবে, just calls change
+
+### 5. Deployment files
+- `.env.example` — `DATABASE_URL`, `JWT_SECRET`, `SESSION_SECRET` (stex API key Phase 2 এ add হবে)
+- `deployment/migrations/run.sh` — script that runs all `*.sql` in order against `nexus_db`
+- `Dockerfile` — ensure env vars passed at runtime
+
+### 6. First-admin seed
+`deployment/seed-admin.sql` — আপনার email কে admin role দেওয়ার জন্য একটা manual SQL (signup করার পর run করবেন)
+
+## Phase 1 শেষে যা কাজ করবে
+
+- ✅ `/signup` real account create করবে (Postgres এ user row)
+- ✅ `/login` JWT issue করবে, localStorage এ save হবে
+- ✅ Dashboard load হলে `meFn` call → token validate → user info show
+- ✅ Logout → token clear
+- ✅ Admin role check function ready (Phase 3 admin panel এর জন্য)
+- ✅ Database প্রস্তুত — Phase 2 এ stex integration বসবে
+
+## যা Phase 1 এ হবে না (পরের phase)
+
+- Phase 2: stex API integration, Get Number page (real numbers), Live Console (real OTPs), Summary stats
+- Phase 3: Withdrawal flow, Payment addresses, API key generation
+- Phase 4: Admin panel (user/range/withdrawal/announcement management)
+
+## Deploy commands (Phase 1 শেষে যা চালাবেন)
+
+```bash
+# এক বার: migration apply
+cd /opt/nexus-v2 && git pull
+docker exec -i nexus_db sh -c 'psql -U "$POSTGRES_USER" -d nexus_v2' < deployment/migrations/001_init.sql
+
+# তারপর প্রতি bার:
+docker compose -f deployment/docker-compose.yml up -d --build nexus_v2_app
+docker logs --tail 80 nexus_v2_app
+```
+
+প্রতিটা backend change এর সাথে আমি exact command দিব।
+
 ---
 
-## Build Order (recommendation)
-
-আমি **Phase 1 → 2 → 3 → 4 → 5 → 6** এই order এ যাব। প্রতিটা phase শেষে preview দেখতে পারবে + VPS এ push command পাবে।
-
-**Total estimate:** ~6-8 build rounds (প্রতি phase = 1-2 round)
-
----
-
-## Questions before starting:
-
-1. **Brand name** — "Nexus SMS" / "Nexus Panel" / অন্য কিছু? (Stex SMS logo replace করতে হবে)
-2. **Default accent** — Mint green রাখব নাকি অন্য?
-3. **Webhook source** — কোন SMS gateway থেকে OTP আসবে? (এটা Phase 6 এ লাগবে, এখন না বললেও চলবে)
-
-Approve করলে **Phase 1 (Foundation + Design System + Sidebar + Tweaks panel)** দিয়ে শুরু করব।
+**Approve করলে এখনই Phase 1 build শুরু করছি।** Stex API key Phase 2 এ লাগবে — তখন আপনাকে VPS এর `.env` এ add করতে বলব।
