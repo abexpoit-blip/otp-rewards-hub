@@ -49,7 +49,7 @@ type TweaksContextValue = TweaksState & {
 
 const DEFAULT: TweaksState = {
   theme: "light",
-  accent: "mint",
+  accent: "indigo",
   density: "comfortable",
   sidebar: "expanded",
   privacy: "show",
