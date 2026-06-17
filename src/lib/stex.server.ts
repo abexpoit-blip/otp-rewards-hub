@@ -41,18 +41,35 @@ export type StexHit = {
   time: number;
 };
 
+// Throttle: enforce a min gap between STEX calls to stay under upstream
+// rate limits during traffic spikes. Single shared queue per container.
+const MIN_GAP_MS = Number(process.env.STEX_MIN_GAP_MS || 200);
+let lastCall = 0;
+let chain: Promise<unknown> = Promise.resolve();
+function throttle<T>(fn: () => Promise<T>): Promise<T> {
+  const run = chain.then(async () => {
+    const wait = MIN_GAP_MS - (Date.now() - lastCall);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastCall = Date.now();
+    return fn();
+  });
+  chain = run.catch(() => undefined);
+  return run as Promise<T>;
+}
+
 async function stexFetch<T>(path: string, init?: RequestInit): Promise<StexEnvelope<T>> {
   if (!KEY) throw new Error("STEX_API_KEY not configured on server.");
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      "mauthapi": KEY,
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
+  return throttle(async () => {
+    const res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: {
+        "mauthapi": KEY,
+        "Content-Type": "application/json",
+        ...(init?.headers || {}),
+      },
+    });
+    return (await res.json()) as StexEnvelope<T>;
   });
-  const json = (await res.json()) as StexEnvelope<T>;
-  return json;
 }
 
 export function stexGetNum(rid: string) {
