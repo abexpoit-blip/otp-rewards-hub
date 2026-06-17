@@ -3,6 +3,7 @@ import {
   Hash,
   Inbox,
   Key,
+  Layers,
   LayoutDashboard,
   LineChart,
   ListChecks,
@@ -33,6 +34,7 @@ const baseSections: NavSection[] = [
     label: "Dialer Panel",
     items: [
       { to: "/get-number", icon: Hash, label: "Get Number" },
+      { to: "/bulk-allocate", icon: Layers, label: "Bulk Allocate" },
       { to: "/inbox", icon: Inbox, label: "OTP Inbox" },
       { to: "/console", icon: Radio, label: "Console" },
       { to: "/summary", icon: LineChart, label: "Summary" },

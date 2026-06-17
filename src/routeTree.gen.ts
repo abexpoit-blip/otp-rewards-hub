@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as GetNumberRouteImport } from './routes/get-number'
 import { Route as ConsoleRouteImport } from './routes/console'
+import { Route as BulkAllocateRouteImport } from './routes/bulk-allocate'
 import { Route as ApiKeysRouteImport } from './routes/api-keys'
 import { Route as AccessListRouteImport } from './routes/access-list'
 import { Route as IndexRouteImport } from './routes/index'
@@ -72,6 +73,11 @@ const ConsoleRoute = ConsoleRouteImport.update({
   path: '/console',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BulkAllocateRoute = BulkAllocateRouteImport.update({
+  id: '/bulk-allocate',
+  path: '/bulk-allocate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiKeysRoute = ApiKeysRouteImport.update({
   id: '/api-keys',
   path: '/api-keys',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access-list': typeof AccessListRoute
   '/api-keys': typeof ApiKeysRoute
+  '/bulk-allocate': typeof BulkAllocateRoute
   '/console': typeof ConsoleRoute
   '/get-number': typeof GetNumberRoute
   '/inbox': typeof InboxRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-list': typeof AccessListRoute
   '/api-keys': typeof ApiKeysRoute
+  '/bulk-allocate': typeof BulkAllocateRoute
   '/console': typeof ConsoleRoute
   '/get-number': typeof GetNumberRoute
   '/inbox': typeof InboxRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/access-list': typeof AccessListRoute
   '/api-keys': typeof ApiKeysRoute
+  '/bulk-allocate': typeof BulkAllocateRoute
   '/console': typeof ConsoleRoute
   '/get-number': typeof GetNumberRoute
   '/inbox': typeof InboxRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/access-list'
     | '/api-keys'
+    | '/bulk-allocate'
     | '/console'
     | '/get-number'
     | '/inbox'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/access-list'
     | '/api-keys'
+    | '/bulk-allocate'
     | '/console'
     | '/get-number'
     | '/inbox'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/access-list'
     | '/api-keys'
+    | '/bulk-allocate'
     | '/console'
     | '/get-number'
     | '/inbox'
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessListRoute: typeof AccessListRoute
   ApiKeysRoute: typeof ApiKeysRoute
+  BulkAllocateRoute: typeof BulkAllocateRoute
   ConsoleRoute: typeof ConsoleRoute
   GetNumberRoute: typeof GetNumberRoute
   InboxRoute: typeof InboxRoute
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsoleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bulk-allocate': {
+      id: '/bulk-allocate'
+      path: '/bulk-allocate'
+      fullPath: '/bulk-allocate'
+      preLoaderRoute: typeof BulkAllocateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api-keys': {
       id: '/api-keys'
       path: '/api-keys'
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessListRoute: AccessListRoute,
   ApiKeysRoute: ApiKeysRoute,
+  BulkAllocateRoute: BulkAllocateRoute,
   ConsoleRoute: ConsoleRoute,
   GetNumberRoute: GetNumberRoute,
   InboxRoute: InboxRoute,
