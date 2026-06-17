@@ -35,7 +35,6 @@ const sections = [
     items: [
       { to: "/profile", icon: User, label: "Profile" },
       { to: "/payment", icon: CreditCard, label: "Payment" },
-      { to: "/logout", icon: LogOut, label: "Logout" },
     ],
   },
 ] as const;
