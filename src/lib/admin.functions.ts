@@ -177,3 +177,191 @@ export const adminDeletePayoutFn = createServerFn({ method: "POST" })
     await sql`DELETE FROM service_payouts WHERE id = ${data.id}`;
     return { ok: true as const };
   });
+
+// =====================================================================
+// Users — list / ban / credit / role
+// =====================================================================
+export type AdminUserRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  status: string;
+  balance: string;
+  lifetime_earning: string;
+  roles: string[];
+  created_at: string;
+  last_login_at: string | null;
+  total_allocations: number;
+  success_allocations: number;
+};
+
+export const adminListUsersFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(1), search: z.string().optional() }).parse(d))
+  .handler(async ({ data }): Promise<AdminUserRow[]> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const q = `%${(data.search ?? "").trim().toLowerCase()}%`;
+    const rows = await sql<any[]>`
+      SELECT u.id, u.email::text AS email, u.name, u.status::text AS status,
+             u.balance::text AS balance, u.lifetime_earning::text AS lifetime_earning,
+             u.created_at, u.last_login_at,
+             COALESCE(ARRAY_AGG(ur.role::text) FILTER (WHERE ur.role IS NOT NULL), '{}') AS roles,
+             (SELECT COUNT(*)::int FROM allocations a WHERE a.user_id = u.id) AS total_allocations,
+             (SELECT COUNT(*)::int FROM allocations a WHERE a.user_id = u.id AND a.status='success') AS success_allocations
+      FROM users u
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
+      WHERE (${data.search ?? ""} = '' OR lower(u.email::text) LIKE ${q} OR lower(COALESCE(u.name,'')) LIKE ${q})
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+      LIMIT 200
+    `;
+    return rows.map((r) => ({
+      ...r,
+      created_at: r.created_at.toISOString(),
+      last_login_at: r.last_login_at ? r.last_login_at.toISOString() : null,
+    })) as AdminUserRow[];
+  });
+
+const userActionSchema = z.object({
+  token: z.string().min(1),
+  user_id: z.string().uuid(),
+  action: z.enum(["block", "unblock", "credit", "debit", "grant_admin", "revoke_admin"]),
+  amount: z.number().optional(),
+  note: z.string().max(300).optional(),
+});
+
+export const adminUserActionFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => userActionSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+
+    if (data.action === "block" || data.action === "unblock") {
+      const status = data.action === "block" ? "blocked" : "active";
+      await sql`UPDATE users SET status = ${status}::user_status WHERE id = ${data.user_id}`;
+    } else if (data.action === "credit" || data.action === "debit") {
+      const amt = Number(data.amount ?? 0);
+      if (!isFinite(amt) || amt <= 0) throw new Error("Invalid amount");
+      const delta = data.action === "credit" ? amt : -amt;
+      await sql`UPDATE users SET balance = GREATEST(balance + ${delta}, 0) WHERE id = ${data.user_id}`;
+    } else if (data.action === "grant_admin") {
+      await sql`INSERT INTO user_roles (user_id, role) VALUES (${data.user_id}, 'admin') ON CONFLICT DO NOTHING`;
+    } else if (data.action === "revoke_admin") {
+      if (data.user_id === admin.sub) throw new Error("You cannot revoke your own admin role");
+      await sql`DELETE FROM user_roles WHERE user_id = ${data.user_id} AND role = 'admin'`;
+    }
+    await audit(admin.sub, `user.${data.action}`, { type: "user", id: data.user_id }, { amount: data.amount, note: data.note });
+    return { ok: true as const };
+  });
+
+// =====================================================================
+// Settings — get / set (secrets are masked on read)
+// =====================================================================
+export const adminGetSettingsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => tokenSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const rows = await sql<any[]>`
+      SELECT key, value, is_secret, description, updated_at
+      FROM app_settings ORDER BY key ASC
+    `;
+    return rows.map((r) => ({
+      key: r.key as string,
+      value: r.is_secret ? (r.value && r.value !== "" ? "********" : "") : r.value,
+      is_secret: r.is_secret as boolean,
+      description: r.description as string | null,
+      updated_at: r.updated_at.toISOString(),
+    }));
+  });
+
+const setSettingSchema = z.object({
+  token: z.string().min(1),
+  key: z.string().min(1).max(80),
+  value: z.any(),
+});
+
+export const adminSetSettingFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => setSettingSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { setSetting } = await import("./settings.server");
+    const { audit } = await import("./audit.server");
+    const { sql } = await import("./db.server");
+    const [meta] = await sql<any[]>`SELECT is_secret FROM app_settings WHERE key = ${data.key}`;
+    if (!meta) throw new Error(`Unknown setting: ${data.key}`);
+    await setSetting(data.key, data.value, admin.sub);
+    await audit(admin.sub, "settings.update", { type: "setting", id: data.key },
+      meta.is_secret ? { masked: true } : { value: data.value });
+    return { ok: true as const };
+  });
+
+// =====================================================================
+// Allocations — admin view + force expire
+// =====================================================================
+export type AdminAllocRow = {
+  id: string;
+  user_id: string;
+  user_email: string;
+  full_number: string;
+  country: string | null;
+  operator: string | null;
+  sid: string | null;
+  status: string;
+  payout_amount: string;
+  created_at: string;
+  expires_at: string;
+  completed_at: string | null;
+};
+
+export const adminListAllocationsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().min(1),
+    status: z.enum(["all", "pending", "success", "expired", "failed"]).optional(),
+    search: z.string().optional(),
+    limit: z.number().int().min(10).max(500).optional(),
+  }).parse(d))
+  .handler(async ({ data }): Promise<AdminAllocRow[]> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const status = data.status ?? "all";
+    const q = `%${(data.search ?? "").trim().toLowerCase()}%`;
+    const limit = data.limit ?? 100;
+    const rows = await sql<any[]>`
+      SELECT a.id, a.user_id, u.email::text AS user_email,
+             a.full_number, a.country, a.operator, a.sid, a.status::text AS status,
+             a.payout_amount::text AS payout_amount,
+             a.created_at, a.expires_at, a.completed_at
+      FROM allocations a JOIN users u ON u.id = a.user_id
+      WHERE (${status} = 'all' OR a.status::text = ${status})
+        AND (${data.search ?? ""} = '' OR lower(u.email::text) LIKE ${q}
+             OR a.full_number LIKE ${q} OR COALESCE(a.sid,'') ILIKE ${q})
+      ORDER BY a.created_at DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((r) => ({
+      ...r,
+      created_at: r.created_at.toISOString(),
+      expires_at: r.expires_at.toISOString(),
+      completed_at: r.completed_at ? r.completed_at.toISOString() : null,
+    })) as AdminAllocRow[];
+  });
+
+export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(1), id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+    await sql`UPDATE allocations SET status = 'expired', completed_at = now()
+              WHERE id = ${data.id} AND status = 'pending'`;
+    await audit(admin.sub, "allocation.force_expire", { type: "allocation", id: data.id });
+    return { ok: true as const };
+  });
