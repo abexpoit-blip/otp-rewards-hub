@@ -39,14 +39,14 @@ function GetNumberPage() {
   const [listSearch, setListSearch] = useState("");
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: live, isLoading: liveLoading, refetch: refetchLive } = useQuery({
+  const { data: live, isFetching: liveFetching, isLoading: liveLoading, refetch: refetchLive } = useQuery({
     queryKey: ["stex-live"],
     queryFn: () => callLive({ data: { token: token! } }),
     enabled: !!token,
     refetchInterval: 30000,
   });
 
-  const { data: mine, refetch: refetchMine } = useQuery({
+  const { data: mine, isFetching: mineFetching, refetch: refetchMine } = useQuery({
     queryKey: ["my-allocations", statusTab, listSearch],
     queryFn: () => callMine({ data: { token: token!, status: statusTab, search: listSearch || undefined, limit: 100 } }),
     enabled: !!token,
