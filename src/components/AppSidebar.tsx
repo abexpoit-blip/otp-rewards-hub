@@ -93,7 +93,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
       )}
     >
       {/* Logo */}
-      <Link to="/" className="mb-8 flex items-center gap-2 px-1">
+      <Link to="/" className={cn("mb-8 flex items-center px-1", collapsed ? "justify-center" : "justify-start")}>
         {collapsed ? (
           <img src={nexusMark} alt="Nexus" className="size-10 object-contain" />
         ) : (

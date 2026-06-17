@@ -39,14 +39,14 @@ function GetNumberPage() {
   const [listSearch, setListSearch] = useState("");
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: live, isLoading: liveLoading, refetch: refetchLive } = useQuery({
+  const { data: live, isFetching: liveFetching, isLoading: liveLoading, refetch: refetchLive } = useQuery({
     queryKey: ["stex-live"],
     queryFn: () => callLive({ data: { token: token! } }),
     enabled: !!token,
     refetchInterval: 30000,
   });
 
-  const { data: mine, refetch: refetchMine } = useQuery({
+  const { data: mine, isFetching: mineFetching, refetch: refetchMine } = useQuery({
     queryKey: ["my-allocations", statusTab, listSearch],
     queryFn: () => callMine({ data: { token: token!, status: statusTab, search: listSearch || undefined, limit: 100 } }),
     enabled: !!token,
@@ -265,8 +265,8 @@ function GetNumberPage() {
             <span className="text-xs text-muted-foreground">
               {mine?.rows?.length ? `1 – ${mine.rows.length} of ${counts.total}` : "0 of 0"}
             </span>
-            <button onClick={() => refetchMine()} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent">
-              <RefreshCw className="size-3" /> Refresh
+            <button onClick={() => refetchMine()} disabled={mineFetching} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed">
+              <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} /> {mineFetching ? "Refreshing…" : "Refresh"}
             </button>
           </div>
 
@@ -370,8 +370,8 @@ function GetNumberPage() {
           <h3 className="text-sm font-bold flex items-center gap-2">
             <Globe2 className="size-4" /> Live access ({filteredServices.length} services)
           </h3>
-          <button onClick={() => refetchLive()} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            <RefreshCw className="size-3" /> Refresh
+          <button onClick={() => refetchLive()} disabled={liveFetching} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
+            <RefreshCw className={`size-3 ${liveFetching ? "animate-spin" : ""}`} /> {liveFetching ? "Refreshing…" : "Refresh"}
           </button>
         </div>
         {liveLoading ? (
