@@ -270,7 +270,9 @@ function GetNumberPage() {
             </button>
           </div>
 
-          {!mine?.rows?.length ? (
+          {!mine ? (
+            <SkeletonRows rows={6} />
+          ) : !mine.rows?.length ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
               No allocations yet. Enter a range above and hit <span className="font-semibold text-emerald-600">Get Number</span>.
             </div>
