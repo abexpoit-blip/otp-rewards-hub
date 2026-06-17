@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CreditCard,
   Hash,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
 import { useTweaks } from "@/lib/tweaks";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const sections = [
