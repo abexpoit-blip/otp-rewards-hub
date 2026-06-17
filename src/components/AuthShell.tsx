@@ -65,8 +65,8 @@ export function AuthShell({
         {/* Right form */}
         <main className="flex items-center justify-center px-6 py-12 lg:p-12">
           <div className="w-full max-w-md">
-            <Link to="/" className="mb-8 flex items-center lg:hidden">
-              <img src={nexusLogo} alt="Nexus 2.0" className="h-14 w-auto object-contain" />
+            <Link to="/" className="mb-6 flex justify-center sm:mb-8 sm:justify-start lg:hidden">
+              <img src={nexusLogo} alt="Nexus 2.0" className="h-12 w-auto object-contain sm:h-14" />
             </Link>
 
             <div className="glass-panel-strong relative p-8">
