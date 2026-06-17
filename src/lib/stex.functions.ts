@@ -322,7 +322,7 @@ export const myAllocationsFn = createServerFn({ method: "POST" })
              sid, status, payout_amount::text AS payout_amount, created_at, completed_at, flags
       FROM allocations
       WHERE user_id = ${auth.sub}
-        AND (${statusFilter}::text[] IS NULL OR status = ANY(${statusFilter}::text[]))
+        AND (${statusFilter}::text[] IS NULL OR status::text = ANY(${statusFilter}::text[]))
         AND (${search}::text IS NULL OR full_number ILIKE ${search} OR no_plus_number ILIKE ${search}
              OR national_number ILIKE ${search} OR COALESCE(sid,'') ILIKE ${search}
              OR COALESCE(country,'') ILIKE ${search})
