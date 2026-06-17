@@ -25,7 +25,7 @@ function ConsolePage() {
   const [q, setQ] = useState("");
   const [tick, setTick] = useState(0);
 
-  const { data, isLoading, dataUpdatedAt, refetch } = useQuery({
+  const { data, isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["stex-console"],
     queryFn: () => callConsole({ data: { token: token! } }),
     enabled: !!token,
