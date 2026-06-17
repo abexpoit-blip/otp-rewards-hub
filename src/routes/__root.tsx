@@ -104,6 +104,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/png", href: "/nexus-favicon.png" },
+      { rel: "apple-touch-icon", href: "/nexus-favicon.png" },
     ],
   }),
   shellComponent: RootShell,
