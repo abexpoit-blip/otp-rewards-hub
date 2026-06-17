@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import nexusLogo from "@/assets/nexus-logo.png";
 import nexusMark from "@/assets/nexus-favicon.png";
+import { SkeletonNavItems } from "./Skeleton";
 
 type NavItem = { to: string; icon: any; label: string };
 type NavSection = { label: string | null; items: NavItem[] };
