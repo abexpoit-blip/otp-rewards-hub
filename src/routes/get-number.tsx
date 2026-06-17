@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { liveAccessFn, allocateNumberFn, myAllocationsFn } from "@/lib/stex.functions";
 import { Hash, Copy, Loader2, Search, Globe2, ListFilter, Play, Pause, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { SkeletonRows } from "@/components/Skeleton";
 
 export const Route = createFileRoute("/get-number")({
   head: () => ({ meta: [{ title: "Get Number — Nexus SMS" }] }),
@@ -270,7 +271,9 @@ function GetNumberPage() {
             </button>
           </div>
 
-          {!mine?.rows?.length ? (
+          {!mine ? (
+            <SkeletonRows rows={6} />
+          ) : !mine.rows?.length ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
               No allocations yet. Enter a range above and hit <span className="font-semibold text-emerald-600">Get Number</span>.
             </div>
@@ -375,7 +378,7 @@ function GetNumberPage() {
           </button>
         </div>
         {liveLoading ? (
-          <p className="text-sm text-muted-foreground">Loading live ranges…</p>
+          <SkeletonRows rows={4} />
         ) : filteredServices.length === 0 ? (
           <p className="text-sm text-muted-foreground py-12 text-center">No services match your filter.</p>
         ) : (
