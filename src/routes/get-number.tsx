@@ -57,6 +57,37 @@ function GetNumberPage() {
     refetchInterval: 5000,
   });
 
+  // Detect status transitions: pending → success/failed for user's allocations.
+  // On success, fire a success toast and auto-advance to the OTP Inbox.
+  useEffect(() => {
+    const rows = mine?.rows as Array<{ id: string; status: string; full_number?: string; national_number?: string; no_plus_number?: string }> | undefined;
+    if (!rows) return;
+    const map = seenStatusRef.current;
+    // First load: seed without firing toasts.
+    if (!initializedRef.current) {
+      for (const r of rows) map.set(r.id, r.status);
+      initializedRef.current = true;
+      return;
+    }
+    let advanced = false;
+    for (const r of rows) {
+      const prev = map.get(r.id);
+      if (prev && prev !== r.status) {
+        const shown = r.full_number || r.national_number || r.no_plus_number || "number";
+        if (r.status === "success") {
+          toast.success(`OTP received for ${shown} — opening inbox…`, { duration: 3500 });
+          if (!advanced) {
+            advanced = true;
+            setTimeout(() => navigate({ to: "/inbox" }), 800);
+          }
+        } else if (r.status === "failed" || r.status === "expired") {
+          toast.error(`Allocation ${shown} ${r.status}`);
+        }
+      }
+      map.set(r.id, r.status);
+    }
+  }, [mine, navigate]);
+
   const services = live?.services ?? [];
   const counts = mine?.counts ?? { total: 0, success: 0, failed: 0, pending: 0 };
   const successRate = counts.total ? (counts.success / counts.total) * 100 : 0;
