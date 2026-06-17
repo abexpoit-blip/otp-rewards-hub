@@ -58,6 +58,7 @@ const adminSection: NavSection = {
     { to: "/admin", icon: ShieldCheck, label: "Admin Home" },
     { to: "/admin/withdrawals", icon: Wallet, label: "Withdrawals" },
     { to: "/admin/payouts", icon: DollarSign, label: "Payouts" },
+    { to: "/admin/report", icon: LineChart, label: "Daily Report" },
   ],
 };
 
