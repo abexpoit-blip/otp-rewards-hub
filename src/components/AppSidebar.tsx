@@ -73,7 +73,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
   const { sidebar } = useTweaks();
   const collapsed = variant === "desktop" && sidebar === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { logout, user } = useAuth();
+  const { logout, user, loading } = useAuth();
   const navigate = useNavigate();
   const handleLogout = () => {
     logout();
@@ -82,6 +82,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
   const sections = user?.roles?.includes("admin")
     ? [...baseSections, adminSection]
     : baseSections;
+  const authLoading = loading || !user;
 
   return (
     <aside
