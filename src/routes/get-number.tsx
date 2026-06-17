@@ -378,7 +378,7 @@ function GetNumberPage() {
           </button>
         </div>
         {liveLoading ? (
-          <p className="text-sm text-muted-foreground">Loading live ranges…</p>
+          <SkeletonRows rows={4} />
         ) : filteredServices.length === 0 ? (
           <p className="text-sm text-muted-foreground py-12 text-center">No services match your filter.</p>
         ) : (
