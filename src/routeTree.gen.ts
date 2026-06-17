@@ -9,19 +9,73 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WithdrawalsRouteImport } from './routes/withdrawals'
+import { Route as SummaryRouteImport } from './routes/summary'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SenderRangeRouteImport } from './routes/sender-range'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as GetNumberRouteImport } from './routes/get-number'
+import { Route as ConsoleRouteImport } from './routes/console'
+import { Route as ApiKeysRouteImport } from './routes/api-keys'
+import { Route as AccessListRouteImport } from './routes/access-list'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 
+const WithdrawalsRoute = WithdrawalsRouteImport.update({
+  id: '/withdrawals',
+  path: '/withdrawals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SummaryRoute = SummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SenderRangeRoute = SenderRangeRouteImport.update({
+  id: '/sender-range',
+  path: '/sender-range',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GetNumberRoute = GetNumberRouteImport.update({
+  id: '/get-number',
+  path: '/get-number',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConsoleRoute = ConsoleRouteImport.update({
+  id: '/console',
+  path: '/console',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKeysRoute = ApiKeysRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessListRoute = AccessListRouteImport.update({
+  id: '/access-list',
+  path: '/access-list',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -37,40 +91,130 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/access-list': typeof AccessListRoute
+  '/api-keys': typeof ApiKeysRoute
+  '/console': typeof ConsoleRoute
+  '/get-number': typeof GetNumberRoute
+  '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/sender-range': typeof SenderRangeRoute
   '/signup': typeof SignupRoute
+  '/summary': typeof SummaryRoute
+  '/withdrawals': typeof WithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/access-list': typeof AccessListRoute
+  '/api-keys': typeof ApiKeysRoute
+  '/console': typeof ConsoleRoute
+  '/get-number': typeof GetNumberRoute
+  '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/sender-range': typeof SenderRangeRoute
   '/signup': typeof SignupRoute
+  '/summary': typeof SummaryRoute
+  '/withdrawals': typeof WithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/access-list': typeof AccessListRoute
+  '/api-keys': typeof ApiKeysRoute
+  '/console': typeof ConsoleRoute
+  '/get-number': typeof GetNumberRoute
+  '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
+  '/sender-range': typeof SenderRangeRoute
   '/signup': typeof SignupRoute
+  '/summary': typeof SummaryRoute
+  '/withdrawals': typeof WithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/signup' | '/api/health'
+  fullPaths:
+    | '/'
+    | '/access-list'
+    | '/api-keys'
+    | '/console'
+    | '/get-number'
+    | '/inbox'
+    | '/login'
+    | '/profile'
+    | '/sender-range'
+    | '/signup'
+    | '/summary'
+    | '/withdrawals'
+    | '/api/health'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/signup' | '/api/health'
-  id: '__root__' | '/' | '/login' | '/signup' | '/api/health'
+  to:
+    | '/'
+    | '/access-list'
+    | '/api-keys'
+    | '/console'
+    | '/get-number'
+    | '/inbox'
+    | '/login'
+    | '/profile'
+    | '/sender-range'
+    | '/signup'
+    | '/summary'
+    | '/withdrawals'
+    | '/api/health'
+  id:
+    | '__root__'
+    | '/'
+    | '/access-list'
+    | '/api-keys'
+    | '/console'
+    | '/get-number'
+    | '/inbox'
+    | '/login'
+    | '/profile'
+    | '/sender-range'
+    | '/signup'
+    | '/summary'
+    | '/withdrawals'
+    | '/api/health'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccessListRoute: typeof AccessListRoute
+  ApiKeysRoute: typeof ApiKeysRoute
+  ConsoleRoute: typeof ConsoleRoute
+  GetNumberRoute: typeof GetNumberRoute
+  InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
+  ProfileRoute: typeof ProfileRoute
+  SenderRangeRoute: typeof SenderRangeRoute
   SignupRoute: typeof SignupRoute
+  SummaryRoute: typeof SummaryRoute
+  WithdrawalsRoute: typeof WithdrawalsRoute
   ApiHealthRoute: typeof ApiHealthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/withdrawals': {
+      id: '/withdrawals'
+      path: '/withdrawals'
+      fullPath: '/withdrawals'
+      preLoaderRoute: typeof WithdrawalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/summary': {
+      id: '/summary'
+      path: '/summary'
+      fullPath: '/summary'
+      preLoaderRoute: typeof SummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -78,11 +222,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sender-range': {
+      id: '/sender-range'
+      path: '/sender-range'
+      fullPath: '/sender-range'
+      preLoaderRoute: typeof SenderRangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/get-number': {
+      id: '/get-number'
+      path: '/get-number'
+      fullPath: '/get-number'
+      preLoaderRoute: typeof GetNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/console': {
+      id: '/console'
+      path: '/console'
+      fullPath: '/console'
+      preLoaderRoute: typeof ConsoleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api-keys': {
+      id: '/api-keys'
+      path: '/api-keys'
+      fullPath: '/api-keys'
+      preLoaderRoute: typeof ApiKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/access-list': {
+      id: '/access-list'
+      path: '/access-list'
+      fullPath: '/access-list'
+      preLoaderRoute: typeof AccessListRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -104,8 +297,17 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccessListRoute: AccessListRoute,
+  ApiKeysRoute: ApiKeysRoute,
+  ConsoleRoute: ConsoleRoute,
+  GetNumberRoute: GetNumberRoute,
+  InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
+  ProfileRoute: ProfileRoute,
+  SenderRangeRoute: SenderRangeRoute,
   SignupRoute: SignupRoute,
+  SummaryRoute: SummaryRoute,
+  WithdrawalsRoute: WithdrawalsRoute,
   ApiHealthRoute: ApiHealthRoute,
 }
 export const routeTree = rootRouteImport

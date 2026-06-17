@@ -186,7 +186,9 @@ function WithdrawalsPage() {
   );
 }
 
-function Field({ label, type = "text", value, onChange }: any) {
+function Field({ label, type = "text", value, onChange }: {
+  label: string; type?: string; value: string; onChange: (v: string) => void;
+}) {
   return (
     <div>
       <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</label>
@@ -196,13 +198,15 @@ function Field({ label, type = "text", value, onChange }: any) {
   );
 }
 
-function Select({ label, value, onChange, options }: any) {
+function Select({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: readonly string[];
+}) {
   return (
     <div>
       <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-xl border border-input bg-white/70 px-3 py-2 text-sm focus:border-primary focus:outline-none">
-        {options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
   );
