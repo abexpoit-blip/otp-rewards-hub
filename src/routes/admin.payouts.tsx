@@ -92,7 +92,8 @@ function AdminPayouts() {
         {!data?.length ? (
           <p className="p-12 text-center text-sm text-muted-foreground">No payout rules yet — the default applies to every OTP.</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground bg-background/30">
                 <th className="px-4 py-2">Service</th>
@@ -122,6 +123,7 @@ function AdminPayouts() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </AppShell>
