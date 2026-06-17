@@ -185,7 +185,7 @@ function ConsolePage() {
       {/* ===== Feed rows ===== */}
       <div className="glass-panel-strong p-4">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <SkeletonFeedRows rows={6} />
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-16 text-center">No hits match.</p>
         ) : (
