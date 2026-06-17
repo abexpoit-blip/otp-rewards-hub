@@ -242,3 +242,101 @@ export const summaryDailyFn = createServerFn({ method: "POST" })
     `;
     return { daily };
   });
+
+// ---------- Summary detailed report (STEX-parity: per-day + totals + vs-prev) ----------
+export const summaryReportFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(1), days: z.number().min(1).max(90).default(7) }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAuth } = await import("./auth-guard.server");
+    const auth = requireAuth(data.token);
+    const { sql } = await import("./db.server");
+    const days = data.days;
+
+    const rows = await sql<any[]>`
+      WITH series AS (
+        SELECT generate_series(current_date - (${days - 1}::int), current_date, '1 day'::interval)::date AS day
+      ),
+      agg AS (
+        SELECT created_at::date AS day,
+               COUNT(*)::int AS allocation,
+               COUNT(*) FILTER (WHERE status='success')::int AS success,
+               COUNT(*) FILTER (WHERE status IN ('failed','expired'))::int AS failed,
+               COALESCE(SUM(payout_amount) FILTER (WHERE status='success'),0)::text AS amount
+        FROM allocations
+        WHERE user_id = ${auth.sub}
+          AND created_at >= current_date - (${days - 1}::int)
+        GROUP BY day
+      )
+      SELECT s.day,
+             COALESCE(a.allocation,0) AS allocation,
+             COALESCE(a.success,0)    AS success,
+             COALESCE(a.failed,0)     AS failed,
+             COALESCE(a.amount,'0')   AS amount
+      FROM series s LEFT JOIN agg a USING (day)
+      ORDER BY s.day ASC
+    `;
+
+    const [curr] = await sql<any[]>`
+      SELECT COUNT(*)::int AS allocation,
+             COUNT(*) FILTER (WHERE status='success')::int AS success,
+             COUNT(*) FILTER (WHERE status IN ('failed','expired'))::int AS failed,
+             COALESCE(SUM(payout_amount) FILTER (WHERE status='success'),0)::text AS amount
+      FROM allocations
+      WHERE user_id = ${auth.sub}
+        AND created_at >= current_date - (${days - 1}::int)
+    `;
+    const [prev] = await sql<any[]>`
+      SELECT COUNT(*)::int AS allocation,
+             COUNT(*) FILTER (WHERE status='success')::int AS success,
+             COUNT(*) FILTER (WHERE status IN ('failed','expired'))::int AS failed,
+             COALESCE(SUM(payout_amount) FILTER (WHERE status='success'),0)::text AS amount
+      FROM allocations
+      WHERE user_id = ${auth.sub}
+        AND created_at >= current_date - (${(days * 2 - 1)}::int)
+        AND created_at <  current_date - (${days - 1}::int)
+    `;
+
+    return { rows, totals: curr, prevTotals: prev, days };
+  });
+
+// ---------- User's own allocations (persistent list with status filter) ----------
+export const myAllocationsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().min(1),
+    status: z.enum(["all", "success", "failed", "pending"]).default("all"),
+    search: z.string().trim().max(64).optional(),
+    limit: z.number().min(1).max(200).default(50),
+  }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAuth } = await import("./auth-guard.server");
+    const auth = requireAuth(data.token);
+    const { sql } = await import("./db.server");
+
+    const statusFilter = data.status === "all" ? null
+      : data.status === "failed" ? ["failed", "expired"]
+      : [data.status];
+    const search = data.search?.length ? `%${data.search}%` : null;
+
+    const rows = await sql<any[]>`
+      SELECT id, full_number, national_number, no_plus_number, country, operator,
+             sid, status, payout_amount::text AS payout_amount, created_at, completed_at, flags
+      FROM allocations
+      WHERE user_id = ${auth.sub}
+        AND (${statusFilter}::text[] IS NULL OR status = ANY(${statusFilter}::text[]))
+        AND (${search}::text IS NULL OR full_number ILIKE ${search} OR no_plus_number ILIKE ${search}
+             OR national_number ILIKE ${search} OR COALESCE(sid,'') ILIKE ${search}
+             OR COALESCE(country,'') ILIKE ${search})
+      ORDER BY created_at DESC
+      LIMIT ${data.limit}
+    `;
+
+    const [counts] = await sql<any[]>`
+      SELECT COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE status='success')::int AS success,
+             COUNT(*) FILTER (WHERE status IN ('failed','expired'))::int AS failed,
+             COUNT(*) FILTER (WHERE status='pending')::int AS pending
+      FROM allocations WHERE user_id = ${auth.sub}
+    `;
+
+    return { rows, counts };
+  });
