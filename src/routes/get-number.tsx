@@ -33,6 +33,8 @@ function GetNumberPage() {
   const [sync, setSync] = useState(false);
   const [syncRid, setSyncRid] = useState<string>("");
   const [syncSid, setSyncSid] = useState<string>("");
+  const [national, setNational] = useState(false);
+  const [noPlus, setNoPlus] = useState(false);
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
