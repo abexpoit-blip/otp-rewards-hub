@@ -83,8 +83,8 @@ export function TweaksProvider({ children }: { children: ReactNode }) {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
 
-    if (state.theme === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
+    // Theme is locked to light by design — never apply `.dark`.
+    root.classList.remove("dark");
 
     const a = ACCENTS[state.accent];
     root.style.setProperty("--accent-h", String(a.h));

@@ -1,4 +1,4 @@
-import { Moon, Settings2, Sun, X } from "lucide-react";
+import { Settings2, X } from "lucide-react";
 import { useState } from "react";
 import { ACCENTS, useTweaks, type AccentKey } from "@/lib/tweaks";
 import { cn } from "@/lib/utils";
@@ -39,17 +39,10 @@ export function TweaksPanel() {
               </button>
             </div>
 
-            {/* Theme */}
-            <Group label="Theme">
-              <Segmented
-                value={t.theme}
-                onChange={(v) => t.setTheme(v as "dark" | "light")}
-                options={[
-                  { value: "dark", label: "Dark", icon: <Moon className="size-3.5" /> },
-                  { value: "light", label: "Light", icon: <Sun className="size-3.5" /> },
-                ]}
-              />
-            </Group>
+            {/* Theme is locked to light — this design (Geist Glass Bento) is
+                light-first. A dark variant would require reworking every
+                white-fixed glass surface. Keeping it out prevents washed-out
+                contrast regressions. */}
 
             {/* Accent */}
             <Group label="Accent color">
