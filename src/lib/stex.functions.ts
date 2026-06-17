@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const tokenSchema = z.object({ token: z.string().min(1) });
-const allocSchema = z.object({ token: z.string().min(1), rid: z.string().min(2).max(64) });
+const allocSchema = z.object({ token: z.string().min(1), rid: z.string().min(2).max(64), sid: z.string().trim().max(80).optional().nullable() });
 
 // ---------- Live access (services + ranges from upstream) ----------
 export const liveAccessFn = createServerFn({ method: "POST" })
@@ -54,8 +54,8 @@ export const allocateNumberFn = createServerFn({ method: "POST" })
     }
     const n = r.data;
     const [row] = await sql`
-      INSERT INTO allocations (user_id, rid, full_number, national_number, no_plus_number, country, operator, status, stex_response)
-      VALUES (${auth.sub}, ${data.rid}, ${n.full_number}, ${n.national_number}, ${n.no_plus_number}, ${n.country}, ${n.operator}, 'pending', ${JSON.stringify(r)}::jsonb)
+      INSERT INTO allocations (user_id, rid, sid, full_number, national_number, no_plus_number, country, operator, status, stex_response)
+      VALUES (${auth.sub}, ${data.rid}, ${data.sid ?? null}, ${n.full_number}, ${n.national_number}, ${n.no_plus_number}, ${n.country}, ${n.operator}, 'pending', ${JSON.stringify(r)}::jsonb)
       RETURNING id, full_number, national_number, country, operator, created_at
     `;
     return {
@@ -80,7 +80,7 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { stexSuccessOtp } = await import("./stex.server");
 
-    const payout = Number(process.env.STEX_DEFAULT_PAYOUT || "0.10");
+    const defaultPayout = Number(process.env.STEX_DEFAULT_PAYOUT || "0.10");
     const r = await stexSuccessOtp();
     if (r.meta.code !== 200 || !r.data) return { processed: 0, credited: 0 };
 
@@ -88,10 +88,8 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
     let credited = 0;
 
     for (const otp of r.data.otps) {
-      // Match: any pending allocation whose no_plus_number or national_number
-      // appears in this OTP's "number" (upstream returns no-plus international form).
       const matches = await sql<any[]>`
-        SELECT id, user_id FROM allocations
+        SELECT id, user_id, sid, country FROM allocations
         WHERE status = 'pending'
           AND (no_plus_number = ${otp.number} OR national_number = ${otp.number} OR full_number = ${"+" + otp.number})
         ORDER BY created_at DESC LIMIT 1
@@ -99,27 +97,29 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
       if (matches.length === 0) continue;
       const alloc = matches[0];
 
-      // Insert OTP (ON CONFLICT skip if already ingested)
       const inserted = await sql<any[]>`
         INSERT INTO otp_messages (allocation_id, user_id, number, body, stex_otp_id, received_at)
         VALUES (${alloc.id}, ${alloc.user_id}, ${otp.number}, ${otp.message}, ${otp.otp_id}, to_timestamp(${otp.time / 1000}))
         ON CONFLICT (stex_otp_id) DO NOTHING
         RETURNING id
       `;
-      if (inserted.length === 0) continue; // already processed
+      if (inserted.length === 0) continue;
       processed += 1;
 
-      // Mark allocation success + credit balance
-      await sql`
-        UPDATE allocations
-        SET status = 'success', payout_amount = ${payout}, completed_at = now()
-        WHERE id = ${alloc.id}
-      `;
-      await sql`
-        UPDATE users
-        SET balance = balance + ${payout}, lifetime_earning = lifetime_earning + ${payout}
-        WHERE id = ${alloc.user_id}
-      `;
+      // Payout lookup: (sid,country) → (sid,NULL) → default
+      let payout = defaultPayout;
+      if (alloc.sid) {
+        const p = await sql<any[]>`
+          SELECT amount::numeric AS amount FROM service_payouts
+          WHERE active = true AND sid = ${alloc.sid}
+            AND (country = ${alloc.country} OR country IS NULL)
+          ORDER BY country NULLS LAST LIMIT 1
+        `;
+        if (p.length) payout = Number(p[0].amount);
+      }
+
+      await sql`UPDATE allocations SET status='success', payout_amount=${payout}, completed_at=now() WHERE id=${alloc.id}`;
+      await sql`UPDATE users SET balance=balance+${payout}, lifetime_earning=lifetime_earning+${payout} WHERE id=${alloc.user_id}`;
       credited += 1;
     }
     return { processed, credited };

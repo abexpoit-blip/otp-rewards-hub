@@ -38,13 +38,12 @@ function GetNumberPage() {
       .filter((s) => s.ranges.length > 0 || s.sid.toLowerCase().includes(q));
   }, [data, query]);
 
-  const handleAllocate = async (rangePattern: string) => {
+  const handleAllocate = async (rangePattern: string, sid: string) => {
     if (!token) return;
-    // Strip trailing "XXX" / "X..." to get rid digits
     const rid = rangePattern.replace(/X+$/i, "");
     setBusy(rangePattern);
     try {
-      const r = await callAlloc({ data: { token, rid } });
+      const r = await callAlloc({ data: { token, rid, sid } });
       setLastAlloc({ full: r.full_number, country: r.country || "", operator: r.operator || "" });
       toast.success(`Number allocated: ${r.full_number}`);
     } catch (e: any) {
@@ -103,7 +102,7 @@ function GetNumberPage() {
                     <button
                       key={r}
                       disabled={busy === r}
-                      onClick={() => handleAllocate(r)}
+                      onClick={() => handleAllocate(r, s.sid)}
                       className="rounded-md border border-border bg-background/40 px-3 py-1.5 font-mono text-xs hover:bg-primary/10 hover:border-primary disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {busy === r && <Loader2 className="size-3 animate-spin" />}

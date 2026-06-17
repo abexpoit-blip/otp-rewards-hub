@@ -21,7 +21,11 @@ import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as ApiKeysRouteImport } from './routes/api-keys'
 import { Route as AccessListRouteImport } from './routes/access-list'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as AdminWithdrawalsRouteImport } from './routes/admin.withdrawals'
+import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
+import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
 
 const WithdrawalsRoute = WithdrawalsRouteImport.update({
   id: '/withdrawals',
@@ -83,9 +87,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminWithdrawalsRoute = AdminWithdrawalsRouteImport.update({
+  id: '/admin/withdrawals',
+  path: '/admin/withdrawals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPayoutsRoute = AdminPayoutsRouteImport.update({
+  id: '/admin/payouts',
+  path: '/admin/payouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInboxStreamRoute = ApiInboxStreamRouteImport.update({
+  id: '/api/inbox/stream',
+  path: '/api/inbox/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -102,7 +126,11 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/payouts': typeof AdminPayoutsRoute
+  '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
+  '/admin/': typeof AdminIndexRoute
+  '/api/inbox/stream': typeof ApiInboxStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -117,7 +145,11 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/payouts': typeof AdminPayoutsRoute
+  '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
+  '/admin': typeof AdminIndexRoute
+  '/api/inbox/stream': typeof ApiInboxStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,7 +165,11 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/payouts': typeof AdminPayoutsRoute
+  '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
+  '/admin/': typeof AdminIndexRoute
+  '/api/inbox/stream': typeof ApiInboxStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,7 +186,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/payouts'
+    | '/admin/withdrawals'
     | '/api/health'
+    | '/admin/'
+    | '/api/inbox/stream'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -165,7 +205,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/payouts'
+    | '/admin/withdrawals'
     | '/api/health'
+    | '/admin'
+    | '/api/inbox/stream'
   id:
     | '__root__'
     | '/'
@@ -180,7 +224,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/payouts'
+    | '/admin/withdrawals'
     | '/api/health'
+    | '/admin/'
+    | '/api/inbox/stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -196,7 +244,11 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SummaryRoute: typeof SummaryRoute
   WithdrawalsRoute: typeof WithdrawalsRoute
+  AdminPayoutsRoute: typeof AdminPayoutsRoute
+  AdminWithdrawalsRoute: typeof AdminWithdrawalsRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  ApiInboxStreamRoute: typeof ApiInboxStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -285,11 +337,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/withdrawals': {
+      id: '/admin/withdrawals'
+      path: '/admin/withdrawals'
+      fullPath: '/admin/withdrawals'
+      preLoaderRoute: typeof AdminWithdrawalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/payouts': {
+      id: '/admin/payouts'
+      path: '/admin/payouts'
+      fullPath: '/admin/payouts'
+      preLoaderRoute: typeof AdminPayoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/inbox/stream': {
+      id: '/api/inbox/stream'
+      path: '/api/inbox/stream'
+      fullPath: '/api/inbox/stream'
+      preLoaderRoute: typeof ApiInboxStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -308,7 +388,11 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SummaryRoute: SummaryRoute,
   WithdrawalsRoute: WithdrawalsRoute,
+  AdminPayoutsRoute: AdminPayoutsRoute,
+  AdminWithdrawalsRoute: AdminWithdrawalsRoute,
   ApiHealthRoute: ApiHealthRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  ApiInboxStreamRoute: ApiInboxStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
