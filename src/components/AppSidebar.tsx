@@ -110,6 +110,19 @@ export function AppSidebar() {
             </ul>
           </div>
         ))}
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className={cn(
+            "group mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            collapsed && "justify-center",
+          )}
+          title={collapsed ? "Logout" : undefined}
+        >
+          <LogOut className="size-4 shrink-0" />
+          {!collapsed && <span>Logout</span>}
+        </button>
       </nav>
 
       {/* Footer */}
