@@ -67,12 +67,13 @@ function throttle<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 async function stexFetch<T>(path: string, init?: RequestInit): Promise<StexEnvelope<T>> {
-  if (!KEY) throw new Error("STEX_API_KEY not configured on server.");
+  const key = await getApiKey();
+  if (!key) throw new Error("STEX API key not configured. Set it in Admin → Settings.");
   return throttle(async () => {
     const res = await fetch(`${BASE}${path}`, {
       ...init,
       headers: {
-        "mauthapi": KEY,
+        "mauthapi": key,
         "Content-Type": "application/json",
         ...(init?.headers || {}),
       },
