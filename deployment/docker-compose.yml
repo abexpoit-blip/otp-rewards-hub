@@ -1,0 +1,31 @@
+# Nexus V2 — Number Panel
+# Existing nexus stack-er sathe same network e join kore.
+# Existing nexus_db (Postgres) + nexus_nginx + nexus_certbot share kore.
+
+services:
+  nexus_v2_app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: nexus-v2-app:latest
+    container_name: nexus_v2_app
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOST: "0.0.0.0"
+    expose:
+      - "3000"
+    networks:
+      - deployment_nexus_network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  deployment_nexus_network:
+    external: true
