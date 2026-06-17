@@ -123,6 +123,7 @@ function AdminPayouts() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </AppShell>
