@@ -251,3 +251,11 @@
   background: currentColor;
   animation: nx-pulse 1.4s ease-in-out infinite;
 }
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[shimmer_1\.6s_infinite\] { animation: none !important; }
+}
