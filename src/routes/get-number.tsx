@@ -179,24 +179,36 @@ function GetNumberPage() {
         )}
       </div>
 
-      {/* SYNC MODE */}
-      <div className="glass-panel-strong p-4 mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold flex items-center gap-2">
-            {sync ? <Play className="size-4 text-emerald-600 animate-pulse" /> : <Pause className="size-4 text-muted-foreground" />}
-            SYNC MODE
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {sync ? `Auto-allocating rid=${syncRid} every 6s` : "Allocate one number, then toggle ON to keep pulling that range automatically."}
-          </div>
+      {/* Format toggles + SYNC MODE */}
+      <div className="glass-panel-strong p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-4 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={national} onChange={(e) => setNational(e.target.checked)} />
+            <span>National format</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={noPlus} onChange={(e) => setNoPlus(e.target.checked)} />
+            <span>Remove (+)</span>
+          </label>
         </div>
-        <button
-          disabled={!syncRid && !sync}
-          onClick={() => setSync((v) => !v)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${sync ? "bg-rose-500 text-white" : "bg-emerald-500 text-white disabled:opacity-40"}`}
-        >
-          {sync ? "Stop" : "Start"}
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-sm font-semibold flex items-center gap-2 justify-end">
+              {sync ? <Play className="size-4 text-emerald-600 animate-pulse" /> : <Pause className="size-4 text-muted-foreground" />}
+              SYNC MODE
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {sync ? `Auto rid=${syncRid} / 6s` : "Allocate once, then start to auto-loop."}
+            </div>
+          </div>
+          <button
+            disabled={!syncRid && !sync}
+            onClick={() => setSync((v) => !v)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${sync ? "bg-rose-500 text-white" : "bg-emerald-500 text-white disabled:opacity-40"}`}
+          >
+            {sync ? "Stop" : "Start"}
+          </button>
+        </div>
       </div>
 
       {/* Recent allocations */}
