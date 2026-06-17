@@ -95,11 +95,15 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
       )}
     >
       {/* Logo */}
-      <Link to="/" className={cn("mb-8 flex items-center px-1", collapsed ? "justify-center" : "justify-start")}>
+      <Link
+        to="/"
+        aria-label="Nexus 2.0 home"
+        className="mb-8 flex h-20 shrink-0 items-center justify-center px-1"
+      >
         {collapsed ? (
-          <img src={nexusMark} alt="Nexus" className="size-11 object-contain" />
+          <img src={nexusMark} alt="" className="h-11 w-11 object-contain" />
         ) : (
-          <img src={nexusLogo} alt="Nexus 2.0" className="h-20 w-auto object-contain" />
+          <img src={nexusLogo} alt="" className="h-full w-auto max-w-full object-contain" />
         )}
       </Link>
 
