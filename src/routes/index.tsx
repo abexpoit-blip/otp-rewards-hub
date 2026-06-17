@@ -30,10 +30,10 @@ export const Route = createFileRoute("/")({
 });
 
 const stats = [
-  { label: "Today Revenue", value: "$0.00", hint: "Earnings from successful OTPs", icon: Zap, tone: "accent" },
-  { label: "Today OTPs", value: "0", hint: "Total successful verifications", icon: MessageSquare, tone: "info" },
-  { label: "Yesterday Revenue", value: "$0.00", hint: "Previous day performance", icon: Wallet, tone: "purple" },
-  { label: "Yesterday OTPs", value: "0", hint: "Completed verifications", icon: ShieldCheck, tone: "accent" },
+  { label: "Today Revenue", value: "$0.00", hint: "Earnings from successful OTPs", icon: Zap, tone: "accent" as const },
+  { label: "Today OTPs", value: "0", hint: "Total successful verifications", icon: MessageSquare, tone: "info" as const },
+  { label: "Yesterday Revenue", value: "$0.00", hint: "Previous day performance", icon: Wallet, tone: "purple" as const },
+  { label: "Yesterday OTPs", value: "0", hint: "Completed verifications", icon: ShieldCheck, tone: "accent" as const },
 ];
 
 const hourlyData = Array.from({ length: 24 }, (_, i) => ({
