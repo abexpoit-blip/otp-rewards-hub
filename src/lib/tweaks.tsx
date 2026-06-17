@@ -22,13 +22,13 @@ export type AccentKey =
   | "rainbow";
 
 export const ACCENTS: Record<AccentKey, { label: string; h: number; s: number; l: number; swatch: string }> = {
-  mint:    { label: "Mint",    h: 160, s: 84, l: 55, swatch: "linear-gradient(135deg,#34e0a8,#10b981)" },
-  purple:  { label: "Purple",  h: 265, s: 78, l: 65, swatch: "linear-gradient(135deg,#a78bfa,#8b5cf6)" },
-  pink:    { label: "Pink",    h: 340, s: 82, l: 65, swatch: "linear-gradient(135deg,#f472b6,#ec4899)" },
-  orange:  { label: "Orange",  h: 28,  s: 92, l: 60, swatch: "linear-gradient(135deg,#fb923c,#f97316)" },
-  blue:    { label: "Blue",    h: 215, s: 90, l: 62, swatch: "linear-gradient(135deg,#60a5fa,#3b82f6)" },
-  yellow:  { label: "Yellow",  h: 50,  s: 95, l: 60, swatch: "linear-gradient(135deg,#fde047,#facc15)" },
-  rainbow: { label: "Rainbow", h: 280, s: 80, l: 62, swatch: "conic-gradient(from 0deg,#f43f5e,#f97316,#facc15,#10b981,#3b82f6,#8b5cf6,#f43f5e)" },
+  mint:    { label: "Mint",    h: 160, s: 84, l: 38, swatch: "linear-gradient(135deg,#34e0a8,#0a9469)" },
+  purple:  { label: "Purple",  h: 265, s: 78, l: 55, swatch: "linear-gradient(135deg,#a78bfa,#7c3aed)" },
+  pink:    { label: "Pink",    h: 340, s: 82, l: 50, swatch: "linear-gradient(135deg,#f472b6,#db2777)" },
+  orange:  { label: "Orange",  h: 22,  s: 92, l: 50, swatch: "linear-gradient(135deg,#fb923c,#ea580c)" },
+  blue:    { label: "Blue",    h: 221, s: 83, l: 50, swatch: "linear-gradient(135deg,#60a5fa,#2563eb)" },
+  yellow:  { label: "Yellow",  h: 38,  s: 92, l: 45, swatch: "linear-gradient(135deg,#fde047,#b45309)" },
+  rainbow: { label: "Rainbow", h: 280, s: 80, l: 50, swatch: "conic-gradient(from 0deg,#f43f5e,#f97316,#facc15,#10b981,#3b82f6,#8b5cf6,#f43f5e)" },
 };
 
 type TweaksState = {
@@ -49,13 +49,13 @@ type TweaksContextValue = TweaksState & {
 
 const DEFAULT: TweaksState = {
   theme: "light",
-  accent: "mint",
+  accent: "blue",
   density: "comfortable",
   sidebar: "expanded",
   privacy: "show",
 };
 
-const STORAGE_KEY = "nexus.tweaks.v2";
+const STORAGE_KEY = "nexus.tweaks.v3";
 
 const TweaksContext = createContext<TweaksContextValue | null>(null);
 
@@ -83,8 +83,8 @@ export function TweaksProvider({ children }: { children: ReactNode }) {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
 
-    if (state.theme === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
+    // Theme is locked to light by design — never apply `.dark`.
+    root.classList.remove("dark");
 
     const a = ACCENTS[state.accent];
     root.style.setProperty("--accent-h", String(a.h));

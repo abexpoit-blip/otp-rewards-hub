@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { TweaksProvider } from "../lib/tweaks";
 import { AuthProvider } from "../lib/auth";
+import { ContrastAuditor } from "../lib/contrast-auditor";
 
 function NotFoundComponent() {
   return (
@@ -137,6 +138,7 @@ function RootComponent() {
         <TweaksProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
+          <ContrastAuditor />
         </TweaksProvider>
       </AuthProvider>
     </QueryClientProvider>
