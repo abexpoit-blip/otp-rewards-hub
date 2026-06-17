@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
+import { Protected } from "@/components/Protected";
+import { useAuth } from "@/lib/auth";
 import {
   Activity,
   ArrowUpRight,
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Live OTP traffic, top performers and earnings at a glance." },
     ],
   }),
-  component: Dashboard,
+  component: () => (<Protected><Dashboard /></Protected>),
 });
 
 const hourlyData = Array.from({ length: 24 }, (_, i) => ({
@@ -46,26 +48,27 @@ const trending = [
 ];
 
 function Dashboard() {
+  const { user } = useAuth();
+  const displayName = user?.name || user?.email?.split("@")[0] || "Operator";
+  const balance = user ? Number(user.balance).toFixed(2) : "0.00";
+  const lifetime = user ? Number(user.lifetime_earning).toFixed(2) : "0.00";
+
   return (
     <AppShell>
       {/* Header */}
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-foreground">
-            Welcome back, <span className="accent-gradient-text">User</span>
+            Welcome back, <span className="accent-gradient-text">{displayName}</span>
           </h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">
             Everything is running smoothly today.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex -space-x-2">
-            <div className="grid size-10 place-items-center rounded-full border-2 border-white bg-blue-100 text-xs font-bold text-blue-700">
-              JD
-            </div>
-            <div className="grid size-10 place-items-center rounded-full border-2 border-white bg-purple-100 text-xs font-bold text-purple-700">
-              AS
-            </div>
+          <div className="rounded-2xl bg-white/70 px-4 py-2 text-right shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Balance</p>
+            <p className="text-lg font-bold tracking-tight accent-text" data-mask>${balance}</p>
           </div>
         </div>
       </header>
