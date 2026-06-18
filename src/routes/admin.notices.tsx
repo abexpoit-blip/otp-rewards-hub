@@ -153,19 +153,50 @@ function AdminNotices() {
                 </label>
               </div>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> Active</label>
+
+              {/* Audience targeting */}
+              <div className="rounded-lg border border-border p-3 bg-muted/20">
+                <div className="text-xs font-bold uppercase tracking-wider mb-2">Audience</div>
+                <div className="flex gap-3 mb-2">
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input type="radio" checked={(edit._targetMode ?? "all") === "all"} onChange={() => setEdit({ ...edit, _targetMode: "all" })} /> All users
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input type="radio" checked={edit._targetMode === "custom"} onChange={() => setEdit({ ...edit, _targetMode: "custom" })} /> Custom users (by email)
+                  </label>
+                </div>
+                {edit._targetMode === "custom" && (
+                  <textarea
+                    rows={3}
+                    value={edit._targetEmailsText || ""}
+                    onChange={(e) => setEdit({ ...edit, _targetEmailsText: e.target.value })}
+                    placeholder="alice@example.com, bob@example.com"
+                    className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono"
+                  />
+                )}
+                {edit._targetMode === "custom" && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Comma or newline separated. Unknown emails cause the save to fail.</p>
+                )}
+              </div>
             </div>
             <div className="flex justify-end gap-2 mt-5">
               <button onClick={() => setEdit(null)} className="text-xs font-semibold px-3 py-2 text-muted-foreground hover:text-foreground">Cancel</button>
               <button
-                onClick={() => upsert.mutate({
-                  id: edit.id ?? undefined,
-                  type: edit.type, priority: edit.priority,
-                  title: (edit.title || "").trim(),
-                  body: edit.body || "",
-                  active: !!edit.active,
-                  starts_at: edit.starts_at ?? undefined,
-                  ends_at: edit.ends_at ?? undefined,
-                })}
+                onClick={() => {
+                  const emails = (edit._targetMode === "custom")
+                    ? (edit._targetEmailsText || "").split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
+                    : [];
+                  upsert.mutate({
+                    id: edit.id ?? undefined,
+                    type: edit.type, priority: edit.priority,
+                    title: (edit.title || "").trim(),
+                    body: edit.body || "",
+                    active: !!edit.active,
+                    starts_at: edit.starts_at ?? undefined,
+                    ends_at: edit.ends_at ?? undefined,
+                    target_emails: emails,
+                  });
+                }}
                 disabled={!edit.title?.trim() || upsert.isPending}
                 className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-bold shadow-md shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
               >{upsert.isPending ? "Saving…" : "Save"}</button>
