@@ -69,7 +69,7 @@ export function ensurePollerStarted() {
 }
 
 async function ingestOnce() {
-  const defaultPayout = Number(process.env.STEX_DEFAULT_PAYOUT || "0.10");
+  const defaultPayout = Number(process.env.STEX_DEFAULT_PAYOUT || "0.04");
   const r = await stexSuccessOtp();
   if (r.meta.code !== 200 || !r.data) return;
 

@@ -150,7 +150,7 @@ function AdminUsers() {
             {(modal.kind === "credit" || modal.kind === "debit") && (<>
               <h3 className="font-bold text-lg mb-1 capitalize">{modal.kind} balance</h3>
               <p className="text-sm text-muted-foreground mb-4">{modal.user.email}</p>
-              <input autoFocus type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount (USD)" className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm mb-3" />
+              <input autoFocus type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount (BDT)" className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm mb-3" />
               <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional, shown in audit log)" className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm mb-3" />
               <div className="flex justify-end gap-2">
                 <button onClick={() => setModal(null)} className="px-4 py-2 rounded-lg text-sm hover:bg-accent">Cancel</button>

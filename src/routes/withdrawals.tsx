@@ -34,7 +34,7 @@ function WithdrawalsPage() {
   const wds = useQuery({ queryKey: ["withdrawals"], queryFn: () => callWds({ data: { token: token! } }), enabled: !!token });
   const gateways = useQuery({ queryKey: ["gateways"], queryFn: () => callGateways({ data: { token: token! } }), enabled: !!token });
   const gwOptions = (gateways.data ?? []).map((g) => g.code);
-  const gwOptionsSafe = gwOptions.length ? gwOptions : ["USDT-TRC20"];
+  const gwOptionsSafe = gwOptions.length ? gwOptions : ["bKash"];
 
   const addAddrMut = useMutation({
     mutationFn: (v: any) => callAddAddr({ data: { token: token!, ...v } }),
@@ -52,8 +52,8 @@ function WithdrawalsPage() {
     },
   });
 
-  const [newAddr, setNewAddr] = useState({ gateway: "USDT-TRC20", address: "", label: "" });
-  const [newWd, setNewWd] = useState({ gateway: "USDT-TRC20", address: "", amount: "" });
+  const [newAddr, setNewAddr] = useState({ gateway: "bKash", address: "", label: "" });
+  const [newWd, setNewWd] = useState({ gateway: "bKash", address: "", amount: "" });
   const [wdMsg, setWdMsg] = useState<string | null>(null);
   const selectedGw = (gateways.data ?? []).find((g) => g.code === newWd.gateway);
 
@@ -64,7 +64,7 @@ function WithdrawalsPage() {
       const amt = parseFloat(newWd.amount);
       if (!amt || amt <= 0) throw new Error("Enter a valid amount");
       await createWdMut.mutateAsync({ ...newWd, amount: amt });
-      setNewWd({ gateway: "USDT-TRC20", address: "", amount: "" });
+      setNewWd({ gateway: "bKash", address: "", amount: "" });
       setWdMsg("Withdrawal request submitted ✓");
     } catch (e: any) {
       setWdMsg(e?.message || "Failed");
@@ -91,14 +91,14 @@ function WithdrawalsPage() {
           <h3 className="mb-3 text-lg font-bold tracking-tight">New withdrawal</h3>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Select label="Gateway" value={newWd.gateway} onChange={(v) => setNewWd({ ...newWd, gateway: v })} options={gwOptionsSafe} />
-            <Field label="Amount (USD)" type="number" value={newWd.amount} onChange={(v) => setNewWd({ ...newWd, amount: v })} />
+            <Field label="Amount (BDT)" type="number" value={newWd.amount} onChange={(v) => setNewWd({ ...newWd, amount: v })} />
             <Field label="Payout address" value={newWd.address} onChange={(v) => setNewWd({ ...newWd, address: v })} />
           </div>
           {selectedGw && (
             <p className="mt-2 text-[11px] text-muted-foreground font-mono">
               Min ${Number(selectedGw.min_amount).toFixed(2)} · Max ${Number(selectedGw.max_amount).toFixed(2)}
-              {Number(selectedGw.fee_percent) > 0 || Number(selectedGw.fee_flat) > 0 ? ` · Fee ${selectedGw.fee_percent}% + $${selectedGw.fee_flat}` : ""}
-              {selectedGw.auto_approve_under ? ` · Auto-approve ≤ $${Number(selectedGw.auto_approve_under).toFixed(2)}` : ""}
+              {Number(selectedGw.fee_percent) > 0 || Number(selectedGw.fee_flat) > 0 ? ` · Fee ${selectedGw.fee_percent}% + ৳${selectedGw.fee_flat}` : ""}
+              {selectedGw.auto_approve_under ? ` · Auto-approve ≤ ৳${Number(selectedGw.auto_approve_under).toFixed(2)}` : ""}
             </p>
           )}
           {selectedGw?.instructions && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{selectedGw.instructions}</p>}
@@ -120,7 +120,7 @@ function WithdrawalsPage() {
           onSubmit={(e) => {
             e.preventDefault();
             addAddrMut.mutate(newAddr);
-            setNewAddr({ gateway: "USDT-TRC20", address: "", label: "" });
+            setNewAddr({ gateway: "bKash", address: "", label: "" });
           }}
           className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4"
         >

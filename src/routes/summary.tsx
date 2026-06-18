@@ -141,7 +141,7 @@ function SummaryPage() {
             />
             <StatCard
               label="Total Earnings"
-              value={`$${tAmount.toFixed(2)}`}
+              value={`৳${tAmount.toFixed(2)}`}
               deltaLabel="vs prev."
               delta={pctDelta(tAmount, pAmount)}
               Icon={DollarSign}
