@@ -1,21 +1,8 @@
--- 003: Allocation expiry + daily report view
+-- 008: Fix daily_report view — remove Supabase-only GRANTs that crash on self-hosted Postgres.
+-- Migration 003 had `GRANT ... TO authenticated` / `service_role` which don't exist here.
+-- This migration recreates the view cleanly. Idempotent.
 BEGIN;
 
--- Add expiry column (default 15 min from creation)
-ALTER TABLE allocations
-  ADD COLUMN IF NOT EXISTS expires_at timestamptz NOT NULL
-  DEFAULT (now() + interval '15 minutes');
-
--- Backfill any existing rows with NULL-ish defaults (no-op if already populated)
-UPDATE allocations
-SET expires_at = created_at + interval '15 minutes'
-WHERE expires_at IS NULL;
-
--- Partial index so the expiry sweep is fast
-CREATE INDEX IF NOT EXISTS idx_alloc_expires_pending
-  ON allocations(expires_at) WHERE status = 'pending';
-
--- Daily aggregated report (read-only view for admin)
 CREATE OR REPLACE VIEW daily_report AS
 SELECT
   created_at::date                                                AS day,
@@ -30,7 +17,5 @@ SELECT
 FROM allocations
 GROUP BY created_at::date
 ORDER BY day DESC;
-
--- (No GRANTs — this is self-hosted Postgres, accessed only by the `nexus_v2` owner.)
 
 COMMIT;

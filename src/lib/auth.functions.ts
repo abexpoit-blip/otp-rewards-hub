@@ -32,6 +32,13 @@ export const signupFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { hashPassword } = await import("./password.server");
     const { signToken } = await import("./jwt.server");
+    const { getSetting } = await import("./settings.server");
+
+    // Respect admin's signup_enabled toggle (set from /admin/settings)
+    const signupEnabled = await getSetting<boolean>("signup_enabled", true);
+    if (!signupEnabled) {
+      throw new Error("Signups are currently disabled. Please contact admin.");
+    }
 
     const existing = await sql`SELECT id FROM users WHERE email = ${data.email}`;
     if (existing.length > 0) {
@@ -83,13 +90,20 @@ export const loginFn = createServerFn({ method: "POST" })
     const { signToken } = await import("./jwt.server");
 
     const rows = await sql`
-      SELECT id, email, password_hash, name, phone, balance, lifetime_earning, status
+      SELECT id, email, password_hash, name, phone, balance, lifetime_earning,
+             status::text AS status, banned_until, ban_reason
       FROM users WHERE email = ${data.email}
     `;
     if (rows.length === 0) throw new Error("Invalid email or password.");
     const user = rows[0];
 
-    if (user.status === "blocked") throw new Error("This account is blocked.");
+    if (user.status === "blocked") {
+      throw new Error(user.ban_reason ? `Account blocked: ${user.ban_reason}` : "This account is blocked.");
+    }
+    if (user.banned_until && new Date(user.banned_until).getTime() > Date.now()) {
+      const until = new Date(user.banned_until).toLocaleString();
+      throw new Error(`Account suspended until ${until}${user.ban_reason ? ` — ${user.ban_reason}` : ""}`);
+    }
 
     const ok = await verifyPassword(data.password, user.password_hash);
     if (!ok) throw new Error("Invalid email or password.");
@@ -127,16 +141,17 @@ export const meFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => meSchema.parse(d))
   .handler(async ({ data }): Promise<AuthUserDTO> => {
     const { sql } = await import("./db.server");
-    const { verifyToken } = await import("./jwt.server");
+    const { requireAuth } = await import("./auth-guard.server");
 
-    const payload = verifyToken(data.token);
+    // Full guard: blocks suspended / force-logged-out / maintenance-blocked users
+    const payload = await requireAuth(data.token);
+
     const rows = await sql`
-      SELECT id, email, name, phone, balance, lifetime_earning, status
+      SELECT id, email, name, phone, balance, lifetime_earning
       FROM users WHERE id = ${payload.sub}
     `;
     if (rows.length === 0) throw new Error("User not found.");
     const user = rows[0];
-    if (user.status === "blocked") throw new Error("Account blocked.");
 
     const roleRows = await sql<{ role: string }[]>`
       SELECT role FROM user_roles WHERE user_id = ${user.id}

@@ -91,7 +91,7 @@ function AdminGateways() {
                   <td className="p-3 font-mono text-xs font-bold">{g.code}</td>
                   <td className="p-3">{g.name}</td>
                   <td className="p-3 font-mono text-xs">৳{Number(g.min_amount).toFixed(2)} – ৳{Number(g.max_amount).toFixed(2)}</td>
-                  <td className="p-3 font-mono text-xs">{Number(g.fee_percent).toFixed(2)}% + ${Number(g.fee_flat).toFixed(2)}</td>
+                  <td className="p-3 font-mono text-xs">{Number(g.fee_percent).toFixed(2)}% + ৳{Number(g.fee_flat).toFixed(2)}</td>
                   <td className="p-3 font-mono text-xs">{g.auto_approve_under == null ? "—" : `≤ ৳${Number(g.auto_approve_under).toFixed(2)}`}</td>
                   <td className="p-3">
                     <button onClick={() => toggle.mutate({ id: g.id, enabled: !g.enabled })} title="Toggle">
@@ -115,11 +115,11 @@ function AdminGateways() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Code (unique)" value={edit.code || ""} onChange={(v) => setEdit({ ...edit, code: v.toUpperCase() })} placeholder="bKash" />
               <Field label="Display Name" value={edit.name || ""} onChange={(v) => setEdit({ ...edit, name: v })} placeholder="bKash (BDT)" />
-              <Field label="Min Amount ($)" value={String(edit.min_amount ?? "")} onChange={(v) => setEdit({ ...edit, min_amount: v })} type="number" />
-              <Field label="Max Amount ($)" value={String(edit.max_amount ?? "")} onChange={(v) => setEdit({ ...edit, max_amount: v })} type="number" />
+              <Field label="Min Amount (৳ BDT)" value={String(edit.min_amount ?? "")} onChange={(v) => setEdit({ ...edit, min_amount: v })} type="number" />
+              <Field label="Max Amount (৳ BDT)" value={String(edit.max_amount ?? "")} onChange={(v) => setEdit({ ...edit, max_amount: v })} type="number" />
               <Field label="Fee %" value={String(edit.fee_percent ?? "")} onChange={(v) => setEdit({ ...edit, fee_percent: v })} type="number" />
-              <Field label="Fee Flat ($)" value={String(edit.fee_flat ?? "")} onChange={(v) => setEdit({ ...edit, fee_flat: v })} type="number" />
-              <Field label="Auto-Approve under ($, optional)" value={edit.auto_approve_under == null ? "" : String(edit.auto_approve_under)} onChange={(v) => setEdit({ ...edit, auto_approve_under: v as any })} type="number" placeholder="leave blank to disable" />
+              <Field label="Fee Flat (৳ BDT)" value={String(edit.fee_flat ?? "")} onChange={(v) => setEdit({ ...edit, fee_flat: v })} type="number" />
+              <Field label="Auto-Approve under (৳ BDT, optional)" value={edit.auto_approve_under == null ? "" : String(edit.auto_approve_under)} onChange={(v) => setEdit({ ...edit, auto_approve_under: v as any })} type="number" placeholder="leave blank to disable" />
               <Field label="Sort order" value={String(edit.sort_order ?? 100)} onChange={(v) => setEdit({ ...edit, sort_order: Number(v) as any })} type="number" />
             </div>
             <label className="block text-xs mt-3"><span className="font-bold mb-1 block">Instructions (optional, shown to user)</span>

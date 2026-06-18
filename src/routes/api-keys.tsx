@@ -7,6 +7,7 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { listApiKeysFn, createApiKeyFn, revokeApiKeyFn } from "@/lib/api-keys.functions";
 import { Key, Plus, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/api-keys")({
   head: () => ({ meta: [{ title: "API Keys — Nexus SMS" }] }),
@@ -23,11 +24,13 @@ function ApiKeysPage() {
   const keys = useQuery({ queryKey: ["api-keys"], queryFn: () => callList({ data: { token: token! } }), enabled: !!token });
   const createMut = useMutation({
     mutationFn: (label: string) => callCreate({ data: { token: token!, label: label || null } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+    onSuccess: () => { toast.success("API key created"); qc.invalidateQueries({ queryKey: ["api-keys"] }); },
+    onError: (e: any) => toast.error(e?.message || "Failed to create key"),
   });
   const revokeMut = useMutation({
     mutationFn: (id: string) => callRevoke({ data: { token: token!, id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+    onSuccess: () => { toast.success("API key revoked"); qc.invalidateQueries({ queryKey: ["api-keys"] }); },
+    onError: (e: any) => toast.error(e?.message || "Failed to revoke key"),
   });
 
   const [label, setLabel] = useState("");
