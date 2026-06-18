@@ -336,74 +336,120 @@ function GetNumberPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[560px]">
-                  <thead>
-                    <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <th className="py-2.5 px-4">Number Info</th>
-                      <th className="py-2.5 px-4">Country / Operator</th>
-                      <th className="py-2.5 px-4">OTP</th>
-                      <th className="py-2.5 px-4 text-right">Activity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mine.rows.map((r: any) => {
-                      const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
-                      const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
-                      return (
-                        <tr key={r.id} className="border-t border-border hover:bg-accent/30 align-top">
-                          <td className="py-3 px-4">
-                            <div className="font-mono font-semibold flex items-center gap-2">
-                              {shown}
-                              <button
-                                onClick={() => { navigator.clipboard.writeText(shown); toast.success("Copied"); }}
-                                className="opacity-50 hover:opacity-100"
-                                title="Copy"
-                              >
-                                <Copy className="size-3" />
-                              </button>
-                            </div>
-                            <div className="mt-1">{statusBadge(r.status)}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="text-foreground">{r.country || "—"}</div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <Globe2 className="size-3" /> {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 max-w-[320px]">
-                            {otp ? (
-                              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
-                                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1">
-                                  <MessageSquare className="size-3" /> OTP
-                                  <button
-                                    onClick={() => { navigator.clipboard.writeText(otp.body); toast.success("OTP copied"); }}
-                                    className="ml-auto opacity-60 hover:opacity-100"
-                                    title="Copy OTP"
-                                  >
-                                    <Copy className="size-3" />
-                                  </button>
-                                </div>
-                                <div className="text-xs font-mono break-words whitespace-pre-wrap">{otp.body}</div>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[560px]">
+                    <thead>
+                      <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <th className="py-2.5 px-4">Number Info</th>
+                        <th className="py-2.5 px-4">Country / Operator</th>
+                        <th className="py-2.5 px-4">OTP</th>
+                        <th className="py-2.5 px-4 text-right">Activity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageRows.map((r: any) => {
+                        const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
+                        const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
+                        return (
+                          <tr key={r.id} className="border-t border-border hover:bg-accent/30 align-top">
+                            <td className="py-3 px-4">
+                              <div className="font-mono font-semibold flex items-center gap-2">
+                                {shown}
+                                <button
+                                  onClick={() => { navigator.clipboard.writeText(shown); toast.success("Copied"); }}
+                                  className="opacity-50 hover:opacity-100"
+                                  title="Copy"
+                                >
+                                  <Copy className="size-3" />
+                                </button>
                               </div>
-                            ) : r.status === "pending" ? (
-                              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                                <Loader2 className="size-3 animate-spin" /> Waiting…
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
-                            {timeAgo(r.created_at)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              <div className="mt-1">{statusBadge(r.status)}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="text-foreground">{r.country || "—"}</div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Globe2 className="size-3" /> {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 max-w-[320px]">
+                              {otp ? (
+                                <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
+                                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1">
+                                    <MessageSquare className="size-3" /> OTP
+                                    <button
+                                      onClick={() => { navigator.clipboard.writeText(otp.body); toast.success("OTP copied"); }}
+                                      className="ml-auto opacity-60 hover:opacity-100"
+                                      title="Copy OTP"
+                                    >
+                                      <Copy className="size-3" />
+                                    </button>
+                                  </div>
+                                  <div className="text-xs font-mono break-words whitespace-pre-wrap">{otp.body}</div>
+                                </div>
+                              ) : r.status === "pending" ? (
+                                <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                                  <Loader2 className="size-3 animate-spin" /> Waiting…
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
+                              {timeAgo(r.created_at)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between gap-2 p-3 border-t border-border">
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                      Page {safePage} of {totalPages}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={safePage === 1}
+                        className="px-2.5 py-1 rounded-md border border-border text-xs font-semibold hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Prev
+                      </button>
+                      {pageNumbers.map((n, i) =>
+                        n === "…" ? (
+                          <span key={`e${i}`} className="px-2 text-xs text-muted-foreground">…</span>
+                        ) : (
+                          <button
+                            key={n}
+                            onClick={() => setPage(n as number)}
+                            className={`min-w-[28px] px-2 py-1 rounded-md text-xs font-semibold border ${
+                              n === safePage
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "border-border hover:bg-accent"
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        )
+                      )}
+                      <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={safePage === totalPages}
+                        className="px-2.5 py-1 rounded-md border border-border text-xs font-semibold hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
