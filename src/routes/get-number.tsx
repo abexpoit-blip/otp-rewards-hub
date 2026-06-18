@@ -211,6 +211,35 @@ function GetNumberPage() {
           </div>
         </div>
 
+        {/* Live balance + earnings strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="glass-panel p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-primary/15 p-2"><Wallet className="size-5 text-primary" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Balance</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums" data-mask>
+                ৳{profile.data ? Number(profile.data.balance).toFixed(2) : "—"}
+              </p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-emerald-500/15 p-2"><TrendingUp className="size-5 text-emerald-500" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Lifetime Earned</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums" data-mask>
+                ৳{profile.data ? Number(profile.data.lifetime_earning).toFixed(2) : "—"}
+              </p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-chart-2/15 p-2"><MessageSquare className="size-5 text-chart-2" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Per-OTP Rate</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums">৳{otpRate.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Main Control Card */}
         <div className="glass-panel-strong rounded-2xl p-6 shadow-xl shadow-primary/5">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
