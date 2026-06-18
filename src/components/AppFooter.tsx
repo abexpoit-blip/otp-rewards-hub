@@ -4,14 +4,12 @@ export function AppFooter() {
       <p className="text-xs text-muted-foreground tracking-wide">
         Developed by{" "}
         <span
-          className="font-display font-bold text-base align-middle"
+          className="sam-glow font-display font-bold text-base align-middle"
           style={{
-            background: "linear-gradient(135deg, var(--color-primary, #6366f1), #a855f7, #ec4899)",
+            background: "linear-gradient(135deg, #6366f1, #a855f7, #ec4899)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            textShadow: "0 0 18px rgba(168,85,247,0.55)",
-            filter: "drop-shadow(0 0 10px rgba(99,102,241,0.55))",
           }}
         >
           Sam
