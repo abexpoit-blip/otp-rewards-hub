@@ -300,23 +300,33 @@ function GetNumberPage() {
 
           {/* Allocations */}
           <div className="lg:col-span-9 glass-panel-strong rounded-2xl shadow-lg shadow-primary/5 flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground">
-                {mine?.rows?.length ? `1 – ${mine.rows.length} of ${counts.total}` : "0 of 0"}
-              </span>
-              <button
-                onClick={() => refetchMine()}
-                disabled={mineFetching}
-                className="text-[10px] font-bold text-primary flex items-center gap-1.5 hover:underline disabled:opacity-60"
-              >
-                <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} />
-                {mineFetching ? "REFRESHING…" : "REFRESH"}
-              </button>
-            </div>
+            {(() => {
+              const allRows = mine?.rows ?? [];
+              const totalRows = allRows.length;
+              const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+              const safePage = Math.min(page, totalPages);
+              const startIdx = (safePage - 1) * pageSize;
+              const pageRows = allRows.slice(startIdx, startIdx + pageSize);
+              const pageNumbers = buildPageNumbers(safePage, totalPages);
+              return (
+                <>
+                  <div className="p-4 border-b border-border flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {totalRows ? `${startIdx + 1} – ${startIdx + pageRows.length} of ${totalRows}` : "0 of 0"}
+                    </span>
+                    <button
+                      onClick={() => refetchMine()}
+                      disabled={mineFetching}
+                      className="text-[10px] font-bold text-primary flex items-center gap-1.5 hover:underline disabled:opacity-60"
+                    >
+                      <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} />
+                      {mineFetching ? "REFRESHING…" : "REFRESH"}
+                    </button>
+                  </div>
 
-            {!mine ? (
-              <div className="p-5"><SkeletonRows rows={6} /></div>
-            ) : !mine.rows?.length ? (
+                  {!mine ? (
+                    <div className="p-5"><SkeletonRows rows={6} /></div>
+                  ) : !totalRows ? (
               <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
                 <div className="size-16 bg-muted rounded-full flex items-center justify-center mb-4">
                   <Inbox className="size-8 text-muted-foreground/40" />
