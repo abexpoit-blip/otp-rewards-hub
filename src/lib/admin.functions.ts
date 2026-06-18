@@ -428,6 +428,7 @@ export type AdminDashboardStats = {
     id: string; user_email: string; full_number: string;
     sid: string | null; status: string; payout_amount: string; created_at: string;
   }>;
+  trend_7d: Array<{ day: string; total: number; success: number; earned: number }>;
 };
 
 export const adminDashboardStatsFn = createServerFn({ method: "POST" })
