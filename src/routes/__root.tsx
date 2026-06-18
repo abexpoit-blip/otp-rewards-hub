@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { TweaksProvider } from "../lib/tweaks";
 import { AuthProvider } from "../lib/auth";
 import { ContrastAuditor } from "../lib/contrast-auditor";
+import { Toaster } from "sonner";
 
 function NotFoundComponent() {
   return (
@@ -139,6 +140,7 @@ function RootComponent() {
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
           <ContrastAuditor />
+          <Toaster position="top-right" richColors closeButton theme="dark" />
         </TweaksProvider>
       </AuthProvider>
     </QueryClientProvider>
