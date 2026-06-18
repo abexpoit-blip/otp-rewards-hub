@@ -428,6 +428,7 @@ export type AdminDashboardStats = {
     id: string; user_email: string; full_number: string;
     sid: string | null; status: string; payout_amount: string; created_at: string;
   }>;
+  trend_7d: Array<{ day: string; total: number; success: number; earned: number }>;
 };
 
 export const adminDashboardStatsFn = createServerFn({ method: "POST" })
@@ -516,6 +517,25 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
       LIMIT 20
     `;
 
+    const trendRows = await sql<any[]>`
+      WITH days AS (
+        SELECT generate_series(
+          date_trunc('day', now()) - interval '6 days',
+          date_trunc('day', now()),
+          interval '1 day'
+        ) AS day
+      )
+      SELECT
+        to_char(d.day, 'YYYY-MM-DD') AS day,
+        COALESCE(COUNT(a.id),0)::int AS total,
+        COALESCE(COUNT(a.id) FILTER (WHERE a.status='success'),0)::int AS success,
+        COALESCE(SUM(a.payout_amount) FILTER (WHERE a.status='success'),0)::text AS earned
+      FROM days d
+      LEFT JOIN allocations a ON date_trunc('day', a.created_at) = d.day
+      GROUP BY d.day
+      ORDER BY d.day ASC
+    `;
+
     return {
       users: {
         total: u.total, active: u.active, blocked: u.blocked,
@@ -551,6 +571,12 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
         sid: r.sid, status: r.status,
         payout_amount: String(r.payout_amount),
         created_at: r.created_at.toISOString(),
+      })),
+      trend_7d: trendRows.map((r) => ({
+        day: r.day,
+        total: r.total,
+        success: r.success,
+        earned: Number(r.earned ?? 0),
       })),
     };
   });
