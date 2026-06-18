@@ -18,6 +18,8 @@ export type NoticeRow = {
   active: boolean;
   starts_at: string | null;
   ends_at: string | null;
+  target_user_ids: string[] | null;     // NULL/empty = all users
+  target_emails?: string[];             // admin-list convenience
   created_at: string;
   updated_at: string;
 };
