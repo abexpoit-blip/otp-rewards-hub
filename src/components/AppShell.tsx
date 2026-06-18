@@ -20,6 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NoticeBanner />
             {children}
           </main>
+          <AppFooter />
         </div>
       </div>
     </div>
