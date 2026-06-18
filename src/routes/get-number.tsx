@@ -36,7 +36,12 @@ function GetNumberPage() {
   const [statusTab, setStatusTab] = useState<StatusTab>("all");
   const [listSearch, setListSearch] = useState("");
   const [now, setNow] = useState(() => new Date());
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset to first page when filter or search changes
+  useEffect(() => { setPage(1); }, [statusTab, listSearch]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
