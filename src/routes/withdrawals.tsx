@@ -34,7 +34,7 @@ function WithdrawalsPage() {
   const wds = useQuery({ queryKey: ["withdrawals"], queryFn: () => callWds({ data: { token: token! } }), enabled: !!token });
   const gateways = useQuery({ queryKey: ["gateways"], queryFn: () => callGateways({ data: { token: token! } }), enabled: !!token });
   const gwOptions = (gateways.data ?? []).map((g) => g.code);
-  const gwOptionsSafe = gwOptions.length ? gwOptions : ["USDT-TRC20"];
+  const gwOptionsSafe = gwOptions.length ? gwOptions : ["bKash"];
 
   const addAddrMut = useMutation({
     mutationFn: (v: any) => callAddAddr({ data: { token: token!, ...v } }),
@@ -52,8 +52,8 @@ function WithdrawalsPage() {
     },
   });
 
-  const [newAddr, setNewAddr] = useState({ gateway: "USDT-TRC20", address: "", label: "" });
-  const [newWd, setNewWd] = useState({ gateway: "USDT-TRC20", address: "", amount: "" });
+  const [newAddr, setNewAddr] = useState({ gateway: "bKash", address: "", label: "" });
+  const [newWd, setNewWd] = useState({ gateway: "bKash", address: "", amount: "" });
   const [wdMsg, setWdMsg] = useState<string | null>(null);
   const selectedGw = (gateways.data ?? []).find((g) => g.code === newWd.gateway);
 
@@ -64,7 +64,7 @@ function WithdrawalsPage() {
       const amt = parseFloat(newWd.amount);
       if (!amt || amt <= 0) throw new Error("Enter a valid amount");
       await createWdMut.mutateAsync({ ...newWd, amount: amt });
-      setNewWd({ gateway: "USDT-TRC20", address: "", amount: "" });
+      setNewWd({ gateway: "bKash", address: "", amount: "" });
       setWdMsg("Withdrawal request submitted ✓");
     } catch (e: any) {
       setWdMsg(e?.message || "Failed");
@@ -120,7 +120,7 @@ function WithdrawalsPage() {
           onSubmit={(e) => {
             e.preventDefault();
             addAddrMut.mutate(newAddr);
-            setNewAddr({ gateway: "USDT-TRC20", address: "", label: "" });
+            setNewAddr({ gateway: "bKash", address: "", label: "" });
           }}
           className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4"
         >
