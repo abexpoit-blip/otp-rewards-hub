@@ -83,26 +83,32 @@ function AdminNotices() {
               <th className="text-left p-3">Type</th>
               <th className="text-left p-3">Priority</th>
               <th className="text-left p-3">Active</th>
+              <th className="text-left p-3">Audience</th>
               <th className="text-left p-3">Window</th>
               <th className="text-right p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {isLoading ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr> :
-              (data ?? []).length === 0 ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No notices yet.</td></tr> :
+            {isLoading ? <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr> :
+              (data ?? []).length === 0 ? <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No notices yet.</td></tr> :
               data!.map((n) => {
                 const Icon = n.priority === "critical" ? AlertTriangle : n.priority === "warning" ? Megaphone : Info;
+                const isAll = !n.target_user_ids || n.target_user_ids.length === 0;
                 return (
                   <tr key={n.id} className="border-t border-border">
                     <td className="p-3"><div className="font-semibold">{n.title}</div>{n.body && <div className="text-xs text-muted-foreground line-clamp-1 max-w-md">{n.body}</div>}</td>
                     <td className="p-3"><span className="text-[10px] uppercase font-bold tracking-widest">{n.type}</span></td>
                     <td className="p-3"><span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest"><Icon className="size-3" /> {n.priority}</span></td>
                     <td className="p-3">{n.active ? <Check className="size-4 text-emerald-600" /> : <X className="size-4 text-muted-foreground" />}</td>
+                    <td className="p-3 text-xs">
+                      {isAll ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-bold uppercase text-[10px]">All</span> :
+                        <span className="px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-700 font-bold text-[10px]" title={(n.target_emails ?? []).join(", ")}>{n.target_user_ids!.length} user{n.target_user_ids!.length > 1 ? "s" : ""}</span>}
+                    </td>
                     <td className="p-3 text-xs text-muted-foreground font-mono">
                       {n.starts_at ? new Date(n.starts_at).toLocaleDateString() : "—"} → {n.ends_at ? new Date(n.ends_at).toLocaleDateString() : "∞"}
                     </td>
                     <td className="p-3 text-right">
-                      <button onClick={() => setEdit({ ...n, _editing: true })} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-muted mr-1"><Pencil className="size-3" /> Edit</button>
+                      <button onClick={() => setEdit({ ...n, _editing: true, _targetMode: isAll ? "all" : "custom", _targetEmailsText: (n.target_emails ?? []).join(", ") })} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-muted mr-1"><Pencil className="size-3" /> Edit</button>
                       <button onClick={() => { if (confirm("Delete this notice?")) del.mutate(n.id); }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10"><Trash2 className="size-3" /></button>
                     </td>
                   </tr>
