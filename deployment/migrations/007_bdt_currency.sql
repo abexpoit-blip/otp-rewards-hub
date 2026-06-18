@@ -35,3 +35,8 @@ INSERT INTO payment_gateways (code, name, enabled, min_amount, max_amount, fee_p
 SELECT 'Nagad', 'Nagad (BDT)', true, 500, 100000, 0, 0, 0,
        'Send Nagad Personal number. Payouts processed within 24 hours.'
 WHERE NOT EXISTS (SELECT 1 FROM payment_gateways WHERE code = 'Nagad');
+
+-- 5) Global minimum withdrawal (BDT) — admin-editable from /admin/settings
+INSERT INTO app_settings (key, value, is_secret, description)
+SELECT 'min_withdraw', '500'::jsonb, false, 'Global minimum withdrawal amount (BDT)'
+WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'min_withdraw');
