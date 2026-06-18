@@ -98,7 +98,12 @@ function GetNumberPage() {
     try {
       const r = await callAlloc({ data: { token, rid, sid, national, no_plus: noPlus } });
       const shown = (r as any).display_number || r.full_number;
-      toast.success(`Allocated ${shown}`);
+      try {
+        await navigator.clipboard.writeText(shown);
+        toast.success(`Allocated ${shown} — copied to clipboard`);
+      } catch {
+        toast.success(`Allocated ${shown}`);
+      }
       refetchMine();
       return r;
     } catch (e: any) {
