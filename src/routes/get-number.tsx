@@ -36,7 +36,12 @@ function GetNumberPage() {
   const [statusTab, setStatusTab] = useState<StatusTab>("all");
   const [listSearch, setListSearch] = useState("");
   const [now, setNow] = useState(() => new Date());
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset to first page when filter or search changes
+  useEffect(() => { setPage(1); }, [statusTab, listSearch]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -98,7 +103,12 @@ function GetNumberPage() {
     try {
       const r = await callAlloc({ data: { token, rid, sid, national, no_plus: noPlus } });
       const shown = (r as any).display_number || r.full_number;
-      toast.success(`Allocated ${shown}`);
+      try {
+        await navigator.clipboard.writeText(shown);
+        toast.success(`Allocated ${shown} — copied to clipboard`);
+      } catch {
+        toast.success(`Allocated ${shown}`);
+      }
       refetchMine();
       return r;
     } catch (e: any) {
@@ -290,23 +300,33 @@ function GetNumberPage() {
 
           {/* Allocations */}
           <div className="lg:col-span-9 glass-panel-strong rounded-2xl shadow-lg shadow-primary/5 flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground">
-                {mine?.rows?.length ? `1 – ${mine.rows.length} of ${counts.total}` : "0 of 0"}
-              </span>
-              <button
-                onClick={() => refetchMine()}
-                disabled={mineFetching}
-                className="text-[10px] font-bold text-primary flex items-center gap-1.5 hover:underline disabled:opacity-60"
-              >
-                <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} />
-                {mineFetching ? "REFRESHING…" : "REFRESH"}
-              </button>
-            </div>
+            {(() => {
+              const allRows = mine?.rows ?? [];
+              const totalRows = allRows.length;
+              const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+              const safePage = Math.min(page, totalPages);
+              const startIdx = (safePage - 1) * pageSize;
+              const pageRows = allRows.slice(startIdx, startIdx + pageSize);
+              const pageNumbers = buildPageNumbers(safePage, totalPages);
+              return (
+                <>
+                  <div className="p-4 border-b border-border flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {totalRows ? `${startIdx + 1} – ${startIdx + pageRows.length} of ${totalRows}` : "0 of 0"}
+                    </span>
+                    <button
+                      onClick={() => refetchMine()}
+                      disabled={mineFetching}
+                      className="text-[10px] font-bold text-primary flex items-center gap-1.5 hover:underline disabled:opacity-60"
+                    >
+                      <RefreshCw className={`size-3 ${mineFetching ? "animate-spin" : ""}`} />
+                      {mineFetching ? "REFRESHING…" : "REFRESH"}
+                    </button>
+                  </div>
 
-            {!mine ? (
-              <div className="p-5"><SkeletonRows rows={6} /></div>
-            ) : !mine.rows?.length ? (
+                  {!mine ? (
+                    <div className="p-5"><SkeletonRows rows={6} /></div>
+                  ) : !totalRows ? (
               <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
                 <div className="size-16 bg-muted rounded-full flex items-center justify-center mb-4">
                   <Inbox className="size-8 text-muted-foreground/40" />
@@ -316,79 +336,137 @@ function GetNumberPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[560px]">
-                  <thead>
-                    <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <th className="py-2.5 px-4">Number Info</th>
-                      <th className="py-2.5 px-4">Country / Operator</th>
-                      <th className="py-2.5 px-4">OTP</th>
-                      <th className="py-2.5 px-4 text-right">Activity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mine.rows.map((r: any) => {
-                      const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
-                      const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
-                      return (
-                        <tr key={r.id} className="border-t border-border hover:bg-accent/30 align-top">
-                          <td className="py-3 px-4">
-                            <div className="font-mono font-semibold flex items-center gap-2">
-                              {shown}
-                              <button
-                                onClick={() => { navigator.clipboard.writeText(shown); toast.success("Copied"); }}
-                                className="opacity-50 hover:opacity-100"
-                                title="Copy"
-                              >
-                                <Copy className="size-3" />
-                              </button>
-                            </div>
-                            <div className="mt-1">{statusBadge(r.status)}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="text-foreground">{r.country || "—"}</div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <Globe2 className="size-3" /> {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 max-w-[320px]">
-                            {otp ? (
-                              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
-                                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1">
-                                  <MessageSquare className="size-3" /> OTP
-                                  <button
-                                    onClick={() => { navigator.clipboard.writeText(otp.body); toast.success("OTP copied"); }}
-                                    className="ml-auto opacity-60 hover:opacity-100"
-                                    title="Copy OTP"
-                                  >
-                                    <Copy className="size-3" />
-                                  </button>
-                                </div>
-                                <div className="text-xs font-mono break-words whitespace-pre-wrap">{otp.body}</div>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[560px]">
+                    <thead>
+                      <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <th className="py-2.5 px-4">Number Info</th>
+                        <th className="py-2.5 px-4">Country / Operator</th>
+                        <th className="py-2.5 px-4">OTP</th>
+                        <th className="py-2.5 px-4 text-right">Activity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageRows.map((r: any) => {
+                        const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
+                        const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
+                        return (
+                          <tr key={r.id} className="border-t border-border hover:bg-accent/30 align-top">
+                            <td className="py-3 px-4">
+                              <div className="font-mono font-semibold flex items-center gap-2">
+                                {shown}
+                                <button
+                                  onClick={() => { navigator.clipboard.writeText(shown); toast.success("Copied"); }}
+                                  className="opacity-50 hover:opacity-100"
+                                  title="Copy"
+                                >
+                                  <Copy className="size-3" />
+                                </button>
                               </div>
-                            ) : r.status === "pending" ? (
-                              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                                <Loader2 className="size-3 animate-spin" /> Waiting…
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
-                            {timeAgo(r.created_at)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              <div className="mt-1">{statusBadge(r.status)}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="text-foreground">{r.country || "—"}</div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Globe2 className="size-3" /> {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 max-w-[320px]">
+                              {otp ? (
+                                <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
+                                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1">
+                                    <MessageSquare className="size-3" /> OTP
+                                    <button
+                                      onClick={() => { navigator.clipboard.writeText(otp.body); toast.success("OTP copied"); }}
+                                      className="ml-auto opacity-60 hover:opacity-100"
+                                      title="Copy OTP"
+                                    >
+                                      <Copy className="size-3" />
+                                    </button>
+                                  </div>
+                                  <div className="text-xs font-mono break-words whitespace-pre-wrap">{otp.body}</div>
+                                </div>
+                              ) : r.status === "pending" ? (
+                                <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                                  <Loader2 className="size-3 animate-spin" /> Waiting…
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
+                              {timeAgo(r.created_at)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between gap-2 p-3 border-t border-border">
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                      Page {safePage} of {totalPages}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={safePage === 1}
+                        className="px-2.5 py-1 rounded-md border border-border text-xs font-semibold hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Prev
+                      </button>
+                      {pageNumbers.map((n: number | "…", i: number) =>
+                        n === "…" ? (
+                          <span key={`e${i}`} className="px-2 text-xs text-muted-foreground">…</span>
+                        ) : (
+                          <button
+                            key={n}
+                            onClick={() => setPage(n as number)}
+                            className={`min-w-[28px] px-2 py-1 rounded-md text-xs font-semibold border ${
+                              n === safePage
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "border-border hover:bg-accent"
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        )
+                      )}
+                      <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={safePage === totalPages}
+                        className="px-2.5 py-1 rounded-md border border-border text-xs font-semibold hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
     </AppShell>
   );
+}
+
+function buildPageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "…")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push("…");
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
 }
 
 function StatRow({ color, label, value }: { color: "emerald" | "rose" | "amber"; label: string; value: number }) {
