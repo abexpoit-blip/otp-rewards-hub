@@ -418,7 +418,7 @@ function GetNumberPage() {
                       >
                         Prev
                       </button>
-                      {pageNumbers.map((n, i) =>
+                      {pageNumbers.map((n: number | "…", i: number) =>
                         n === "…" ? (
                           <span key={`e${i}`} className="px-2 text-xs text-muted-foreground">…</span>
                         ) : (
