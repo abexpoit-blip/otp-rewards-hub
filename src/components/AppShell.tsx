@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { NoticeBanner } from "./NoticeBanner";
+import { ImpersonationBanner } from "./ImpersonationBanner";
 import { AppFooter } from "./AppFooter";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -18,6 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <TopBar />
           <main className="flex-1">
             <NoticeBanner />
+            <ImpersonationBanner />
             {children}
           </main>
           <AppFooter />
