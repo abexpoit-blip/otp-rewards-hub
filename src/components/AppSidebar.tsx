@@ -83,9 +83,13 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
     logout();
     navigate({ to: "/login" });
   };
-  const sections = user?.roles?.includes("admin")
-    ? [...baseSections, adminSection]
-    : baseSections;
+  const isAdminUser = !!user?.roles?.includes("admin");
+  const inAdminArea = pathname.startsWith("/admin");
+  const sections = isAdminUser
+    ? inAdminArea
+      ? [adminSection]                          // admin viewing admin → admin only
+      : [...baseSections, adminSection]         // admin viewing user pages → both
+    : baseSections;                             // regular user → user only
   const authLoading = loading || !user;
 
   return (
