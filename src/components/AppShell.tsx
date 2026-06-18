@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { NoticeBanner } from "./NoticeBanner";
+import { AppFooter } from "./AppFooter";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NoticeBanner />
             {children}
           </main>
+          <AppFooter />
         </div>
       </div>
     </div>

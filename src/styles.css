@@ -262,3 +262,10 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-\[shimmer_1\.6s_infinite\] { animation: none !important; }
 }
+
+@keyframes sam-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(99,102,241,0.55)) drop-shadow(0 0 14px rgba(168,85,247,0.35)); }
+  50%      { filter: drop-shadow(0 0 14px rgba(236,72,153,0.75)) drop-shadow(0 0 26px rgba(168,85,247,0.65)); }
+}
+.sam-glow { animation: sam-glow 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sam-glow { animation: none !important; } }
