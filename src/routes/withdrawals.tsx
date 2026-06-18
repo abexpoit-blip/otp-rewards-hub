@@ -35,7 +35,6 @@ function WithdrawalsPage() {
   const gateways = useQuery({ queryKey: ["gateways"], queryFn: () => callGateways({ data: { token: token! } }), enabled: !!token });
   const gwOptions = (gateways.data ?? []).map((g) => g.code);
   const gwOptionsSafe = gwOptions.length ? gwOptions : ["USDT-TRC20"];
-  const selectedGw = (gateways.data ?? []).find((g) => g.code === newWd.gateway);
 
   const addAddrMut = useMutation({
     mutationFn: (v: any) => callAddAddr({ data: { token: token!, ...v } }),
@@ -56,6 +55,7 @@ function WithdrawalsPage() {
   const [newAddr, setNewAddr] = useState({ gateway: "USDT-TRC20", address: "", label: "" });
   const [newWd, setNewWd] = useState({ gateway: "USDT-TRC20", address: "", amount: "" });
   const [wdMsg, setWdMsg] = useState<string | null>(null);
+  const selectedGw = (gateways.data ?? []).find((g) => g.code === newWd.gateway);
 
   const onCreateWd = async (e: React.FormEvent) => {
     e.preventDefault();
