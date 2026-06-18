@@ -98,7 +98,7 @@ function Row({ w, onAction, busy }: { w: any; onAction: (v: any) => void; busy: 
         <div className="font-semibold">{w.user_name || "—"}</div>
         <div className="text-xs text-muted-foreground">{w.user_email}</div>
       </td>
-      <td className="px-4 py-3 font-bold">${Number(w.amount).toFixed(2)}</td>
+      <td className="px-4 py-3 font-bold">৳{Number(w.amount).toFixed(2)}</td>
       <td className="px-4 py-3">{w.gateway}</td>
       <td className="px-4 py-3 font-mono text-xs break-all max-w-[180px]">{w.address}</td>
       <td className="px-4 py-3"><StatusBadge status={w.status} /></td>

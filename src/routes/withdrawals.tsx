@@ -205,7 +205,7 @@ function WithdrawalsPage() {
                 {wds.data.map((w) => (
                   <tr key={w.id} className="border-t border-border">
                     <td className="py-2 font-mono text-xs whitespace-nowrap">{new Date(w.created_at).toLocaleString()}</td>
-                    <td className="py-2 font-bold">${Number(w.amount).toFixed(2)}</td>
+                    <td className="py-2 font-bold">৳{Number(w.amount).toFixed(2)}</td>
                     <td className="py-2">{w.gateway}</td>
                     <td className="py-2 truncate font-mono text-xs" style={{ maxWidth: 200 }}>{w.address}</td>
                     <td className="py-2">

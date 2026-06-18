@@ -141,7 +141,7 @@ function ReportPage() {
                     <td className="py-2 text-right text-destructive">{r.failed}</td>
                     <td className="py-2 text-right text-muted-foreground">{r.pending}</td>
                     <td className="py-2 text-right">{r.active_users}</td>
-                    <td className="py-2 text-right font-bold">${Number(r.payout_total).toFixed(2)}</td>
+                    <td className="py-2 text-right font-bold">৳{Number(r.payout_total).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

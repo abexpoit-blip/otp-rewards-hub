@@ -110,8 +110,8 @@ function AdminUsers() {
                     )}
                     {u.ban_reason && <div title={u.ban_reason} className="text-[10px] text-muted-foreground mt-1 line-clamp-1 max-w-[160px]">{u.ban_reason}</div>}
                   </td>
-                  <td className="p-3 text-right font-mono">${Number(u.balance).toFixed(4)}</td>
-                  <td className="p-3 text-right font-mono text-muted-foreground">${Number(u.lifetime_earning).toFixed(2)}</td>
+                  <td className="p-3 text-right font-mono">৳{Number(u.balance).toFixed(4)}</td>
+                  <td className="p-3 text-right font-mono text-muted-foreground">৳{Number(u.lifetime_earning).toFixed(2)}</td>
                   <td className="p-3 text-right text-xs">{u.success_allocations}/{u.total_allocations}</td>
                   <td className="p-3 text-xs">{u.roles.length ? u.roles.join(", ") : <span className="text-muted-foreground">user</span>}</td>
                   <td className="p-3">
