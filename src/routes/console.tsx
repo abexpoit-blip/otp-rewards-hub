@@ -51,19 +51,11 @@ function ConsolePage() {
   }, [hits, q]);
 
   const topApps = useMemo(() => {
-    // Group case-insensitively so "FACEBOOK" and "Facebook" merge into one bucket.
-    const m = new Map<string, { label: string; count: number }>();
-    for (const h of hits) {
-      const raw = (h.sid || "").trim();
-      if (!raw) continue;
-      const key = raw.toLowerCase();
-      const existing = m.get(key);
-      if (existing) existing.count += 1;
-      else m.set(key, { label: raw, count: 1 });
-    }
+    const m = new Map<string, number>();
+    for (const h of hits) m.set(h.sid, (m.get(h.sid) || 0) + 1);
     const total = hits.length || 1;
-    return Array.from(m.values())
-      .map(({ label, count }) => ({ sid: label, count, pct: (count / total) * 100 }))
+    return Array.from(m.entries())
+      .map(([sid, count]) => ({ sid, count, pct: (count / total) * 100 }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
   }, [hits]);
