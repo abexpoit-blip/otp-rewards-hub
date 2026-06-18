@@ -90,10 +90,18 @@ function WithdrawalsPage() {
         <form onSubmit={onCreateWd} className="glass-panel p-6 xl:col-span-2">
           <h3 className="mb-3 text-lg font-bold tracking-tight">New withdrawal</h3>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Select label="Gateway" value={newWd.gateway} onChange={(v) => setNewWd({ ...newWd, gateway: v })} options={GATEWAYS} />
+            <Select label="Gateway" value={newWd.gateway} onChange={(v) => setNewWd({ ...newWd, gateway: v })} options={gwOptionsSafe} />
             <Field label="Amount (USD)" type="number" value={newWd.amount} onChange={(v) => setNewWd({ ...newWd, amount: v })} />
             <Field label="Payout address" value={newWd.address} onChange={(v) => setNewWd({ ...newWd, address: v })} />
           </div>
+          {selectedGw && (
+            <p className="mt-2 text-[11px] text-muted-foreground font-mono">
+              Min ${Number(selectedGw.min_amount).toFixed(2)} · Max ${Number(selectedGw.max_amount).toFixed(2)}
+              {Number(selectedGw.fee_percent) > 0 || Number(selectedGw.fee_flat) > 0 ? ` · Fee ${selectedGw.fee_percent}% + $${selectedGw.fee_flat}` : ""}
+              {selectedGw.auto_approve_under ? ` · Auto-approve ≤ $${Number(selectedGw.auto_approve_under).toFixed(2)}` : ""}
+            </p>
+          )}
+          {selectedGw?.instructions && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{selectedGw.instructions}</p>}
           {wdMsg && <p className={`mt-3 text-xs ${wdMsg.includes("✓") ? "text-emerald-600" : "text-destructive"}`}>{wdMsg}</p>}
           <button
             type="submit"
