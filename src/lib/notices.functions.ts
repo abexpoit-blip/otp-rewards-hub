@@ -79,15 +79,27 @@ const upsertNoticeSchema = z.object({
   active: z.boolean().default(true),
   starts_at: z.string().datetime().optional().nullable(),
   ends_at: z.string().datetime().optional().nullable(),
+  target_emails: z.array(z.string().trim().email()).max(5000).optional().nullable(),
 });
 
 export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => upsertNoticeSchema.parse(d))
-  .handler(async ({ data }): Promise<{ ok: true; id: string }> => {
+  .handler(async ({ data }): Promise<{ ok: true; id: string; matched_users: number }> => {
     const { requireAdmin } = await import("./admin-guard.server");
     const admin = await requireAdmin(data.token);
     const { sql } = await import("./db.server");
     const { audit } = await import("./audit.server");
+
+    // Resolve emails -> user_ids (NULL when empty = broadcast to all)
+    let target_user_ids: string[] | null = null;
+    const emails = (data.target_emails ?? []).map((e) => e.toLowerCase().trim()).filter(Boolean);
+    if (emails.length) {
+      const rows = await sql<any[]>`SELECT id FROM users WHERE lower(email::text) = ANY(${emails})`;
+      target_user_ids = rows.map((r) => r.id);
+      if (!target_user_ids.length) {
+        throw new Error("No matching users found for the provided emails");
+      }
+    }
 
     let id: string;
     if (data.id) {
@@ -99,6 +111,7 @@ export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
           active = ${data.active},
           starts_at = ${data.starts_at ?? null},
           ends_at = ${data.ends_at ?? null},
+          target_user_ids = ${target_user_ids as any},
           updated_at = now()
         WHERE id = ${data.id}
         RETURNING id
@@ -107,16 +120,17 @@ export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
       id = row.id;
     } else {
       const [row] = await sql<any[]>`
-        INSERT INTO notices (type, priority, title, body, active, starts_at, ends_at, created_by)
+        INSERT INTO notices (type, priority, title, body, active, starts_at, ends_at, target_user_ids, created_by)
         VALUES (${data.type}::notice_type, ${data.priority}::notice_priority,
                 ${data.title}, ${data.body}, ${data.active},
-                ${data.starts_at ?? null}, ${data.ends_at ?? null}, ${admin.sub})
+                ${data.starts_at ?? null}, ${data.ends_at ?? null},
+                ${target_user_ids as any}, ${admin.sub})
         RETURNING id
       `;
       id = row.id;
     }
-    await audit(admin.sub, data.id ? "notice.update" : "notice.create", { type: "notice", id }, { title: data.title, type: data.type });
-    return { ok: true as const, id };
+    await audit(admin.sub, data.id ? "notice.update" : "notice.create", { type: "notice", id }, { title: data.title, type: data.type, targets: target_user_ids?.length ?? "all" });
+    return { ok: true as const, id, matched_users: target_user_ids?.length ?? 0 };
   });
 
 // =====================================================================
