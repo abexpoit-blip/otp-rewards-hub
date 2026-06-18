@@ -103,7 +103,7 @@ function Dashboard() {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Today's Revenue</p>
               <h2 className="mt-1 text-5xl font-bold tracking-tighter text-foreground" data-mask>
-                ${todayEarn.toFixed(2)}
+                ৳{todayEarn.toFixed(2)}
               </h2>
               <div className={`mt-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${pct >= 0 ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600" : "border-rose-500/20 bg-rose-500/10 text-rose-600"}`}>
                 {pct >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
