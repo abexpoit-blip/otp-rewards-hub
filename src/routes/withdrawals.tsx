@@ -97,10 +97,14 @@ function WithdrawalsPage() {
         <div className="glass-panel-strong p-6">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Available Balance</p>
           <p className="mt-2 text-4xl font-bold tracking-tight" data-mask>
-            ${profile.data ? Number(profile.data.balance).toFixed(2) : "—"}
+            ৳{profile.data ? Number(profile.data.balance).toFixed(2) : "—"}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            Lifetime: ${profile.data ? Number(profile.data.lifetime_earning).toFixed(2) : "—"}
+            Lifetime: ৳{profile.data ? Number(profile.data.lifetime_earning).toFixed(2) : "—"}
+          </p>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Per-OTP rate: <span className="text-foreground font-semibold">৳{(settings.data?.otp_rate ?? 0.04).toFixed(2)}</span>
+            {" · "}Min withdraw: <span className="text-foreground font-semibold">৳{globalMin.toFixed(2)}</span>
           </p>
         </div>
 
@@ -108,22 +112,28 @@ function WithdrawalsPage() {
           <h3 className="mb-3 text-lg font-bold tracking-tight">New withdrawal</h3>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Select label="Gateway" value={newWd.gateway} onChange={(v) => setNewWd({ ...newWd, gateway: v })} options={gwOptionsSafe} />
-            <Field label="Amount (BDT)" type="number" value={newWd.amount} onChange={(v) => setNewWd({ ...newWd, amount: v })} />
+            <Field label={`Amount (BDT, min ৳${effectiveMin.toFixed(0)})`} type="number" value={newWd.amount} onChange={(v) => setNewWd({ ...newWd, amount: v })} />
             <Field label="Payout address" value={newWd.address} onChange={(v) => setNewWd({ ...newWd, address: v })} />
           </div>
           {selectedGw && (
             <p className="mt-2 text-[11px] text-muted-foreground font-mono">
-              Min ${Number(selectedGw.min_amount).toFixed(2)} · Max ${Number(selectedGw.max_amount).toFixed(2)}
+              Min ৳{Number(selectedGw.min_amount).toFixed(2)} · Max ৳{Number(selectedGw.max_amount).toFixed(2)}
               {Number(selectedGw.fee_percent) > 0 || Number(selectedGw.fee_flat) > 0 ? ` · Fee ${selectedGw.fee_percent}% + ৳${selectedGw.fee_flat}` : ""}
               {selectedGw.auto_approve_under ? ` · Auto-approve ≤ ৳${Number(selectedGw.auto_approve_under).toFixed(2)}` : ""}
             </p>
           )}
           {selectedGw?.instructions && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{selectedGw.instructions}</p>}
+          {amountError && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <AlertCircle className="size-4 shrink-0 mt-0.5" />
+              <span>{amountError}</span>
+            </div>
+          )}
           {wdMsg && <p className={`mt-3 text-xs ${wdMsg.includes("✓") ? "text-emerald-600" : "text-destructive"}`}>{wdMsg}</p>}
           <button
             type="submit"
-            disabled={createWdMut.isPending}
-            className="accent-bg mt-4 rounded-xl px-4 py-2 text-sm font-semibold accent-glow disabled:opacity-60"
+            disabled={!canSubmit}
+            className="accent-bg mt-4 rounded-xl px-4 py-2 text-sm font-semibold accent-glow disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {createWdMut.isPending ? "Submitting…" : "Request payout"}
           </button>
