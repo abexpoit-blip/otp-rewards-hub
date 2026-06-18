@@ -457,6 +457,18 @@ function GetNumberPage() {
   );
 }
 
+function buildPageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "…")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push("…");
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
+}
+
 function StatRow({ color, label, value }: { color: "emerald" | "rose" | "amber"; label: string; value: number }) {
   const dot = color === "emerald" ? "bg-emerald-500"
             : color === "rose" ? "bg-rose-500"
