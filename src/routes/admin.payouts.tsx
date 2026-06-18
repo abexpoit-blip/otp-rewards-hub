@@ -38,7 +38,7 @@ function AdminPayouts() {
     onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["admin-payouts"] }); },
   });
 
-  const [form, setForm] = useState({ sid: "", country: "", amount: "0.04", note: "" });
+  const [form, setForm] = useState({ sid: "", country: "", amount: "0.40", note: "" });
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,10 +67,10 @@ function AdminPayouts() {
     );
   }
 
-  const defaultPayout = "৳0.04 (STEX_DEFAULT_PAYOUT env)";
+  const defaultPayout = "৳0.40 (flat rate — set in Admin → Settings → OTP rate)";
   return (
     <AppShell>
-      <PageHeader icon={<DollarSign className="size-6" />} title="Payout Pricing" subtitle="Per-service & per-country payout overrides. Order: (sid, country) → (sid, any) → default." />
+      <PageHeader icon={<DollarSign className="size-6" />} title="Payout Pricing" subtitle="Flat OTP rate is active for every service. Per-service overrides below are inactive — change the flat rate in Admin → Settings." />
 
       <form onSubmit={onSubmit} className="glass-panel-strong p-6 mb-6">
         <h3 className="mb-3 font-bold">Add or update a rule</h3>

@@ -95,7 +95,7 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
     const { stexSuccessOtp } = await import("./stex.server");
 
     const { getSetting } = await import("./settings.server");
-    const defaultPayout = Number(await getSetting("default_payout", 0.04));
+    const defaultPayout = Number(await getSetting("default_payout", 0.40));
     const r = await stexSuccessOtp();
     if (r.meta.code !== 200 || !r.data) return { processed: 0, credited: 0 };
 
@@ -121,17 +121,8 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
       if (inserted.length === 0) continue;
       processed += 1;
 
-      // Payout lookup: (sid,country) → (sid,NULL) → default
-      let payout = defaultPayout;
-      if (alloc.sid) {
-        const p = await sql<any[]>`
-          SELECT amount::numeric AS amount FROM service_payouts
-          WHERE active = true AND sid = ${alloc.sid}
-            AND (country = ${alloc.country} OR country IS NULL)
-          ORDER BY country NULLS LAST LIMIT 1
-        `;
-        if (p.length) payout = Number(p[0].amount);
-      }
+      // Flat rate: every successful OTP pays default_payout.
+      const payout = defaultPayout;
 
       await sql`UPDATE allocations SET status='success', payout_amount=${payout}, completed_at=now() WHERE id=${alloc.id}`;
       await sql`UPDATE users SET balance=balance+${payout}, lifetime_earning=lifetime_earning+${payout} WHERE id=${alloc.user_id}`;

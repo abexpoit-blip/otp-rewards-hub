@@ -108,7 +108,7 @@ function WithdrawalsPage() {
             Lifetime: ৳{profile.data ? Number(profile.data.lifetime_earning).toFixed(2) : "—"}
           </p>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Per-OTP rate: <span className="text-foreground font-semibold">৳{(settings.data?.otp_rate ?? 0.04).toFixed(2)}</span>
+            Per-OTP rate: <span className="text-foreground font-semibold">৳{(settings.data?.otp_rate ?? 0.40).toFixed(2)}</span>
             {" · "}Min withdraw: <span className="text-foreground font-semibold">৳{globalMin.toFixed(2)}</span>
           </p>
         </div>
