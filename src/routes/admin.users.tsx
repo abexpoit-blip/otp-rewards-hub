@@ -262,6 +262,27 @@ function AdminUsers() {
                 <button onClick={() => mut.mutate({ user_id: modal.user.id, action: "set_notes", note })} className="px-4 py-2 rounded-lg text-sm bg-primary text-primary-foreground font-bold shadow-md shadow-primary/25">Save notes</button>
               </div>
             </>)}
+
+            {modal.kind === "delete" && (<>
+              <h3 className="font-bold text-lg mb-1 text-rose-700 flex items-center gap-2"><Trash2 className="size-5" /> Delete user permanently</h3>
+              <p className="text-sm text-muted-foreground mb-2">{modal.user.email}</p>
+              <div className="text-xs bg-rose-500/10 text-rose-700 rounded p-2 mb-3">
+                This wipes the user and ALL their sessions, allocations, API keys, OTP history, and balance.
+                Cannot delete admins or users with pending withdrawals. <b>Cannot be undone.</b>
+              </div>
+              <label className="block text-xs font-bold mb-1">Type the user's email to confirm</label>
+              <input autoFocus value={deleteEmail} onChange={(e) => setDeleteEmail(e.target.value)} placeholder={modal.user.email} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm mb-3 font-mono" />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setModal(null)} className="px-4 py-2 rounded-lg text-sm hover:bg-accent">Cancel</button>
+                <button
+                  onClick={() => delMut.mutate()}
+                  disabled={deleteEmail.trim().toLowerCase() !== modal.user.email.toLowerCase() || delMut.isPending}
+                  className="px-4 py-2 rounded-lg text-sm bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md disabled:opacity-40"
+                >
+                  {delMut.isPending ? "Deleting…" : "Delete forever"}
+                </button>
+              </div>
+            </>)}
           </div>
         </div>
       )}
