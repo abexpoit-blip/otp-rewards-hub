@@ -124,7 +124,7 @@ function WithdrawalsPage() {
           }}
           className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4"
         >
-          <Select label="Gateway" value={newAddr.gateway} onChange={(v) => setNewAddr({ ...newAddr, gateway: v })} options={GATEWAYS} />
+          <Select label="Gateway" value={newAddr.gateway} onChange={(v) => setNewAddr({ ...newAddr, gateway: v })} options={gwOptionsSafe} />
           <Field label="Address" value={newAddr.address} onChange={(v) => setNewAddr({ ...newAddr, address: v })} />
           <Field label="Label (optional)" value={newAddr.label} onChange={(v) => setNewAddr({ ...newAddr, label: v })} />
           <button type="submit" className="self-end rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background">
