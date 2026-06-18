@@ -4,9 +4,10 @@ export function AppFooter() {
       <p className="text-xs text-muted-foreground tracking-wide">
         Developed by{" "}
         <span
-          className="sam-glow font-display font-bold text-base align-middle"
+          className="sam-glow font-bold text-base align-middle tracking-[0.15em] uppercase"
           style={{
-            background: "linear-gradient(135deg, #6366f1, #a855f7, #ec4899)",
+            fontFamily: '"Orbitron", "Geist", sans-serif',
+            background: "linear-gradient(135deg, #7c3aed, #a855f7, #ec4899)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
