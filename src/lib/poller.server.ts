@@ -70,7 +70,7 @@ export function ensurePollerStarted() {
 
 async function ingestOnce() {
   const { getSetting } = await import("./settings.server");
-  const defaultPayout = Number(await getSetting("default_payout", 0.04));
+  const defaultPayout = Number(await getSetting("default_payout", 0.40));
   const r = await stexSuccessOtp();
   if (r.meta.code !== 200 || !r.data) return;
 
@@ -97,17 +97,8 @@ async function ingestOnce() {
     `;
     if (inserted.length === 0) continue;
 
-    let payout = defaultPayout;
-    if (alloc.sid) {
-      const p = await sql<any[]>`
-        SELECT amount::numeric AS amount
-        FROM service_payouts
-        WHERE active = true AND sid = ${alloc.sid}
-          AND (country = ${alloc.country} OR country IS NULL)
-        ORDER BY country NULLS LAST LIMIT 1
-      `;
-      if (p.length) payout = Number(p[0].amount);
-    }
+    // Flat rate: every successful OTP pays the configured default_payout.
+    const payout = defaultPayout;
 
     // Only credit if allocation was still pending (race-safe via WHERE).
     const updated = await sql<any[]>`
