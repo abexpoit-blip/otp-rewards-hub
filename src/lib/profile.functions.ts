@@ -69,15 +69,17 @@ export const updateProfileFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
+    // NOTE: do NOT use COALESCE here — that prevents users from clearing fields.
+    // Only update keys the client actually sent (undefined keys are left untouched).
     await sql`
       UPDATE users SET
-        name = COALESCE(${data.name ?? null}, name),
-        phone = COALESCE(${data.phone ?? null}, phone),
-        country = COALESCE(${data.country ?? null}, country),
-        city = COALESCE(${data.city ?? null}, city),
-        timezone = COALESCE(${data.timezone ?? null}, timezone),
-        telegram = COALESCE(${data.telegram ?? null}, telegram),
-        bio = COALESCE(${data.bio ?? null}, bio)
+        name     = COALESCE(${data.name === undefined ? null : (data.name ?? null)}, ${data.name === undefined}::boolean = true ? name : NULL),
+        phone    = ${data.phone === undefined ? sql`phone`    : (data.phone ?? null)},
+        country  = ${data.country === undefined ? sql`country`  : (data.country ?? null)},
+        city     = ${data.city === undefined ? sql`city`     : (data.city ?? null)},
+        timezone = ${data.timezone === undefined ? sql`timezone` : (data.timezone ?? null)},
+        telegram = ${data.telegram === undefined ? sql`telegram` : (data.telegram ?? null)},
+        bio      = ${data.bio === undefined ? sql`bio`      : (data.bio ?? null)}
       WHERE id = ${auth.sub}
     `;
     return { ok: true };
