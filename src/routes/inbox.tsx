@@ -230,35 +230,39 @@ function InboxPage() {
 
       {/* Date filter + Download */}
       <div className="mb-4 flex flex-wrap items-center gap-2 glass-panel-strong p-3 rounded-xl">
-        <Calendar className="size-4 text-muted-foreground" />
-        <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">From</label>
+        <div className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <Calendar className="size-4" />
+          <span className="text-[10px] uppercase tracking-widest font-bold">Range</span>
+        </div>
         <input
           type="date"
           value={fromDate}
           onChange={(e) => setFromDate(e.target.value)}
-          className="bg-background border border-border rounded-md px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary/30"
+          className="bg-background/80 border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition"
         />
-        <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">To</label>
+        <span className="text-muted-foreground text-xs">→</span>
         <input
           type="date"
           value={toDate}
           onChange={(e) => setToDate(e.target.value)}
-          className="bg-background border border-border rounded-md px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary/30"
+          className="bg-background/80 border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition"
         />
         {(fromDate || toDate) && (
           <button
             onClick={() => { setFromDate(""); setToDate(""); }}
-            className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline"
+            className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition"
           >
             Clear
           </button>
         )}
         <button
-          onClick={downloadCsv}
+          onClick={downloadTxt}
           disabled={!filteredOtps.length}
-          className="ml-auto inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-auto group inline-flex items-center gap-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground px-4 py-2 rounded-lg text-xs font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-sm transition-all duration-200"
+          title="Download Number|OTP pairs as .txt"
         >
-          <Download className="size-3.5" /> Download CSV
+          <Download className="size-3.5 group-hover:translate-y-0.5 transition-transform" />
+          Download <span className="font-mono opacity-80">Number|OTP</span>
         </button>
       </div>
 
