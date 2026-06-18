@@ -34,6 +34,7 @@ import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAllocationsRouteImport } from './routes/admin.allocations'
 import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
+import { Route as ApiPublicCronCleanupInactiveRouteImport } from './routes/api/public/cron.cleanup-inactive'
 
 const WithdrawalsRoute = WithdrawalsRouteImport.update({
   id: '/withdrawals',
@@ -160,6 +161,12 @@ const ApiInboxStreamRoute = ApiInboxStreamRouteImport.update({
   path: '/api/inbox/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronCleanupInactiveRoute =
+  ApiPublicCronCleanupInactiveRouteImport.update({
+    id: '/api/public/cron/cleanup-inactive',
+    path: '/api/public/cron/cleanup-inactive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/admin/': typeof AdminIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
+  '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -214,6 +222,7 @@ export interface FileRoutesByTo {
   '/api/health': typeof ApiHealthRoute
   '/admin': typeof AdminIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
+  '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -242,6 +251,7 @@ export interface FileRoutesById {
   '/api/health': typeof ApiHealthRoute
   '/admin/': typeof AdminIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
+  '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/admin/'
     | '/api/inbox/stream'
+    | '/api/public/cron/cleanup-inactive'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -298,6 +309,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/admin'
     | '/api/inbox/stream'
+    | '/api/public/cron/cleanup-inactive'
   id:
     | '__root__'
     | '/'
@@ -325,6 +337,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/admin/'
     | '/api/inbox/stream'
+    | '/api/public/cron/cleanup-inactive'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -353,6 +366,7 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiInboxStreamRoute: typeof ApiInboxStreamRoute
+  ApiPublicCronCleanupInactiveRoute: typeof ApiPublicCronCleanupInactiveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -532,6 +546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInboxStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/cleanup-inactive': {
+      id: '/api/public/cron/cleanup-inactive'
+      path: '/api/public/cron/cleanup-inactive'
+      fullPath: '/api/public/cron/cleanup-inactive'
+      preLoaderRoute: typeof ApiPublicCronCleanupInactiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -561,6 +582,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiInboxStreamRoute: ApiInboxStreamRoute,
+  ApiPublicCronCleanupInactiveRoute: ApiPublicCronCleanupInactiveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
