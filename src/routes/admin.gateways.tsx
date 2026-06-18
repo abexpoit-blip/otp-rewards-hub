@@ -113,8 +113,8 @@ function AdminGateways() {
           <div className="max-w-xl w-full glass-panel-strong rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-lg mb-4">{edit.id ? "Edit Gateway" : "New Gateway"}</h3>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Code (unique)" value={edit.code || ""} onChange={(v) => setEdit({ ...edit, code: v.toUpperCase() })} placeholder="USDT-TRC20" />
-              <Field label="Display Name" value={edit.name || ""} onChange={(v) => setEdit({ ...edit, name: v })} placeholder="USDT (TRC20)" />
+              <Field label="Code (unique)" value={edit.code || ""} onChange={(v) => setEdit({ ...edit, code: v.toUpperCase() })} placeholder="bKash" />
+              <Field label="Display Name" value={edit.name || ""} onChange={(v) => setEdit({ ...edit, name: v })} placeholder="bKash (BDT)" />
               <Field label="Min Amount ($)" value={String(edit.min_amount ?? "")} onChange={(v) => setEdit({ ...edit, min_amount: v })} type="number" />
               <Field label="Max Amount ($)" value={String(edit.max_amount ?? "")} onChange={(v) => setEdit({ ...edit, max_amount: v })} type="number" />
               <Field label="Fee %" value={String(edit.fee_percent ?? "")} onChange={(v) => setEdit({ ...edit, fee_percent: v })} type="number" />
