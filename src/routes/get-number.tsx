@@ -25,6 +25,9 @@ function GetNumberPage() {
   const callAlloc = useServerFn(allocateNumberFn);
   const callMine = useServerFn(myAllocationsFn);
   const callOtps = useServerFn(getOtpsFn);
+  const callProfile = useServerFn(getProfileFn);
+  const callPublicSettings = useServerFn(getPublicSettingsFn);
+  const qc = useQueryClient();
   const seenStatusRef = useRef<Map<string, string>>(new Map());
   const initializedRef = useRef(false);
 
