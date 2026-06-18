@@ -16,6 +16,7 @@ import {
   Users,
   Wallet,
   Activity,
+  Banknote,
   DollarSign,
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
