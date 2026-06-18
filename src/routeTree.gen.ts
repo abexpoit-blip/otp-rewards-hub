@@ -30,6 +30,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminReportRouteImport } from './routes/admin.report'
 import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
 import { Route as AdminNoticesRouteImport } from './routes/admin.notices'
+import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAllocationsRouteImport } from './routes/admin.allocations'
 import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
@@ -139,6 +140,11 @@ const AdminNoticesRoute = AdminNoticesRouteImport.update({
   path: '/admin/notices',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminGatewaysRoute = AdminGatewaysRouteImport.update({
+  id: '/admin/gateways',
+  path: '/admin/gateways',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/admin/audit',
   path: '/admin/audit',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/withdrawals': typeof WithdrawalsRoute
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/withdrawals': typeof WithdrawalsRoute
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/withdrawals': typeof WithdrawalsRoute
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/gateways': typeof AdminGatewaysRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | '/withdrawals'
     | '/admin/allocations'
     | '/admin/audit'
+    | '/admin/gateways'
     | '/admin/notices'
     | '/admin/payouts'
     | '/admin/report'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/withdrawals'
     | '/admin/allocations'
     | '/admin/audit'
+    | '/admin/gateways'
     | '/admin/notices'
     | '/admin/payouts'
     | '/admin/report'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/withdrawals'
     | '/admin/allocations'
     | '/admin/audit'
+    | '/admin/gateways'
     | '/admin/notices'
     | '/admin/payouts'
     | '/admin/report'
@@ -331,6 +343,7 @@ export interface RootRouteChildren {
   WithdrawalsRoute: typeof WithdrawalsRoute
   AdminAllocationsRoute: typeof AdminAllocationsRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminGatewaysRoute: typeof AdminGatewaysRoute
   AdminNoticesRoute: typeof AdminNoticesRoute
   AdminPayoutsRoute: typeof AdminPayoutsRoute
   AdminReportRoute: typeof AdminReportRoute
@@ -491,6 +504,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNoticesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/gateways': {
+      id: '/admin/gateways'
+      path: '/admin/gateways'
+      fullPath: '/admin/gateways'
+      preLoaderRoute: typeof AdminGatewaysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/audit': {
       id: '/admin/audit'
       path: '/admin/audit'
@@ -531,6 +551,7 @@ const rootRouteChildren: RootRouteChildren = {
   WithdrawalsRoute: WithdrawalsRoute,
   AdminAllocationsRoute: AdminAllocationsRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminGatewaysRoute: AdminGatewaysRoute,
   AdminNoticesRoute: AdminNoticesRoute,
   AdminPayoutsRoute: AdminPayoutsRoute,
   AdminReportRoute: AdminReportRoute,

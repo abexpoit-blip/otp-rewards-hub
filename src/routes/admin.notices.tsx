@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin/notices")({
   component: () => (<Protected><AdminNotices /></Protected>),
 });
 
-type EditState = Partial<NoticeRow> & { _editing: boolean };
+type EditState = Partial<NoticeRow> & { _editing: boolean; _targetEmailsText?: string; _targetMode?: "all" | "custom" };
 
 const empty: EditState = {
   _editing: true,
@@ -27,6 +27,8 @@ const empty: EditState = {
   active: true,
   starts_at: null,
   ends_at: null,
+  _targetMode: "all",
+  _targetEmailsText: "",
 };
 
 function AdminNotices() {
