@@ -128,6 +128,47 @@ function InboxPage() {
     };
   }, [token, manualReconnect]);
 
+  // Date filter (YYYY-MM-DD). Empty = no bound.
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const filteredOtps = useMemo(() => {
+    if (!fromDate && !toDate) return otps;
+    const fromTs = fromDate ? new Date(fromDate + "T00:00:00").getTime() : -Infinity;
+    const toTs = toDate ? new Date(toDate + "T23:59:59.999").getTime() : Infinity;
+    return otps.filter((o) => {
+      const t = new Date(o.received_at).getTime();
+      return t >= fromTs && t <= toTs;
+    });
+  }, [otps, fromDate, toDate]);
+
+  const downloadCsv = () => {
+    if (!filteredOtps.length) { toast.error("No OTPs to download"); return; }
+    const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Time", "Number", "Sender", "Message", "Country"];
+    const lines = [header.join(",")];
+    for (const o of filteredOtps) {
+      lines.push([
+        esc(new Date(o.received_at).toISOString()),
+        esc(o.number || ""),
+        esc(o.sender || ""),
+        esc(o.body || ""),
+        esc(o.country || ""),
+      ].join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `otp-inbox-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${filteredOtps.length} OTPs`);
+  };
+
   const lastEventLabel = lastEventAt
     ? `${Math.max(0, Math.floor((nowTick - lastEventAt) / 1000))}s ago`
     : "—";
@@ -168,7 +209,7 @@ function InboxPage() {
         )}
 
         <span className="text-muted-foreground">
-          Last event: <b>{lastEventLabel}</b> · {otps.length} OTPs loaded
+          Last event: <b>{lastEventLabel}</b> · {filteredOtps.length} / {otps.length} OTPs
         </span>
 
         <button
@@ -180,6 +221,40 @@ function InboxPage() {
         </button>
       </div>
 
+      {/* Date filter + Download */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 glass-panel-strong p-3 rounded-xl">
+        <Calendar className="size-4 text-muted-foreground" />
+        <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">From</label>
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          className="bg-background border border-border rounded-md px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">To</label>
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          className="bg-background border border-border rounded-md px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        {(fromDate || toDate) && (
+          <button
+            onClick={() => { setFromDate(""); setToDate(""); }}
+            className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline"
+          >
+            Clear
+          </button>
+        )}
+        <button
+          onClick={downloadCsv}
+          disabled={!filteredOtps.length}
+          className="ml-auto inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="size-3.5" /> Download CSV
+        </button>
+      </div>
+
       {lastError && status !== "live" && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800">
           <AlertTriangle className="size-4 shrink-0" />
@@ -188,11 +263,13 @@ function InboxPage() {
       )}
 
       <div className="glass-panel-strong p-6">
-        {otps.length === 0 ? (
+        {filteredOtps.length === 0 ? (
           <div className="py-16 text-center">
             <MessageSquare className="mx-auto size-10 text-muted-foreground/40" />
             <p className="mt-3 text-sm text-muted-foreground">
-              No OTPs yet. Allocate a number from <b>Get Number</b> to start receiving messages.
+              {otps.length === 0
+                ? <>No OTPs yet. Allocate a number from <b>Get Number</b> to start receiving messages.</>
+                : <>No OTPs match the selected date range.</>}
             </p>
           </div>
         ) : (
@@ -208,7 +285,7 @@ function InboxPage() {
                 </tr>
               </thead>
               <tbody>
-                {otps.map((o) => (
+                {filteredOtps.map((o) => (
                   <tr key={o.id} className="border-t border-border">
                     <td className="py-2 font-mono text-xs whitespace-nowrap">
                       {new Date(o.received_at).toLocaleString()}
