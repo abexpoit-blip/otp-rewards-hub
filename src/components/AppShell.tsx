@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
+import { NoticeBanner } from "./NoticeBanner";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -14,7 +15,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col gap-3 sm:gap-4 lg:gap-6">
           <TopBar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1">
+            <NoticeBanner />
+            {children}
+          </main>
         </div>
       </div>
     </div>

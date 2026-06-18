@@ -29,7 +29,7 @@ export const getOtpsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<OtpRow[]> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, number, sender, body, carrier, country, received_at
       FROM otp_messages
@@ -48,7 +48,7 @@ export const getAllocationsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<AllocationRow[]> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, full_number, country, operator, status,
              payout_amount::text, created_at, completed_at

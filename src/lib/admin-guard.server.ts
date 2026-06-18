@@ -5,7 +5,7 @@ import { requireAuth } from "./auth-guard.server";
 import type { JwtPayload } from "./jwt.server";
 
 export async function requireAdmin(token: string | undefined | null): Promise<JwtPayload> {
-  const auth = requireAuth(token);
+  const auth = await requireAuth(token);
   const { sql } = await import("./db.server");
   const [r] = await sql<{ ok: boolean }[]>`
     SELECT has_role(${auth.sub}::uuid, 'admin') AS ok

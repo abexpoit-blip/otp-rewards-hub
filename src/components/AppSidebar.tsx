@@ -61,6 +61,8 @@ const adminSection: NavSection = {
   items: [
     { to: "/admin", icon: ShieldCheck, label: "Admin Home" },
     { to: "/admin/users", icon: Users, label: "Users" },
+    { to: "/admin/notices", icon: Radio, label: "Notices" },
+    { to: "/admin/audit", icon: Activity, label: "Audit Log" },
     { to: "/admin/allocations", icon: Activity, label: "Allocations" },
     { to: "/admin/withdrawals", icon: Wallet, label: "Withdrawals" },
     { to: "/admin/payouts", icon: DollarSign, label: "Payouts" },

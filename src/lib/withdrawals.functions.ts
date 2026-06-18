@@ -29,7 +29,7 @@ export const listAddressesFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PaymentAddressRow[]> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, gateway, address, label, created_at
       FROM payment_addresses WHERE user_id = ${auth.sub}
@@ -53,7 +53,7 @@ export const addAddressFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true; id: string }> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const [row] = await sql`
       INSERT INTO payment_addresses (user_id, gateway, address, label)
       VALUES (${auth.sub}, ${data.gateway}, ${data.address}, ${data.label ?? null})
@@ -72,7 +72,7 @@ export const deleteAddressFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     await sql`DELETE FROM payment_addresses WHERE id = ${data.id} AND user_id = ${auth.sub}`;
     return { ok: true };
   });
@@ -83,7 +83,7 @@ export const listWithdrawalsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<WithdrawalRow[]> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, amount::text, gateway, address, status, tx_id, admin_note,
              created_at, processed_at
@@ -110,7 +110,7 @@ export const createWithdrawalFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true; id: string }> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
 
     // balance check + deduct in transaction
     const result = await sql.begin(async (tx) => {

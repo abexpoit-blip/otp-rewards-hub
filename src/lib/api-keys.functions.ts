@@ -17,7 +17,7 @@ export const listApiKeysFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ApiKeyRow[]> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, key_prefix, label, last_used_at, revoked_at, created_at
       FROM api_keys WHERE user_id = ${auth.sub}
@@ -41,7 +41,7 @@ export const createApiKeyFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true; key: string; prefix: string }> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const crypto = await import("node:crypto");
     const raw = "nx_" + crypto.randomBytes(28).toString("base64url");
     const hash = crypto.createHash("sha256").update(raw).digest("hex");
@@ -63,7 +63,7 @@ export const revokeApiKeyFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     await sql`
       UPDATE api_keys SET revoked_at = now()
       WHERE id = ${data.id} AND user_id = ${auth.sub} AND revoked_at IS NULL
