@@ -81,12 +81,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Nexus SMS — OTP Dialer Panel" },
-      { name: "description", content: "Real-time OTP dialer panel with carrier analytics, range allocation and instant payouts." },
-      { property: "og:title", content: "Nexus SMS — OTP Dialer Panel" },
-      { property: "og:description", content: "Real-time OTP dialer panel with carrier analytics, range allocation and instant payouts." },
+      { title: "Nexus X - Connect Beyond Limits" },
+      { name: "description", content: "Nexus X — Connect Beyond Limits. Real-time OTP dialer with carrier analytics, range allocation and instant BDT payouts." },
+      { name: "application-name", content: "Nexus X" },
+      { property: "og:site_name", content: "Nexus X" },
+      { property: "og:title", content: "Nexus X - Connect Beyond Limits" },
+      { property: "og:description", content: "Connect Beyond Limits — Real-time OTP dialer panel with carrier analytics, range allocation and instant BDT payouts." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "/nexus-favicon.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Nexus X - Connect Beyond Limits" },
+      { name: "twitter:description", content: "Connect Beyond Limits — Real-time OTP dialer panel with instant BDT payouts." },
+      { name: "twitter:image", content: "/nexus-favicon.png" },
     ],
     links: [
       {
