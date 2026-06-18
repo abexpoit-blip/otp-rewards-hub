@@ -386,3 +386,171 @@ export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
     await audit(admin.sub, "allocation.force_expire", { type: "allocation", id: data.id });
     return { ok: true as const };
   });
+
+// =====================================================================
+// Dashboard — aggregated stats for /admin home
+// =====================================================================
+export type AdminDashboardStats = {
+  users: {
+    total: number;
+    active: number;
+    blocked: number;
+    suspended: number;
+    new_today: number;
+    new_7d: number;
+  };
+  otps: {
+    total: number;
+    success: number;
+    pending: number;
+    expired: number;
+    today: number;
+    success_today: number;
+  };
+  money: {
+    total_earned: string;       // sum lifetime_earning
+    total_balance: string;      // sum users.balance
+    earned_today: string;       // sum payout_amount today (success)
+    pending_withdraw: string;   // sum withdrawals pending
+    paid_withdraw: string;      // sum withdrawals paid
+  };
+  top_users: Array<{
+    id: string; email: string; name: string | null;
+    lifetime_earning: string; balance: string;
+    success_count: number; total_count: number;
+  }>;
+  recent_users: Array<{
+    id: string; email: string; name: string | null;
+    created_at: string; total_count: number;
+  }>;
+  top_ranges: Array<{ range_label: string; count: number; success: number }>;
+  recent_otps: Array<{
+    id: string; user_email: string; full_number: string;
+    sid: string | null; status: string; payout_amount: string; created_at: string;
+  }>;
+};
+
+export const adminDashboardStatsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => tokenSchema.parse(d))
+  .handler(async ({ data }): Promise<AdminDashboardStats> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+
+    const [u] = await sql<any[]>`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status='active')::int AS active,
+        COUNT(*) FILTER (WHERE status='blocked')::int AS blocked,
+        COUNT(*) FILTER (WHERE banned_until IS NOT NULL AND banned_until > now())::int AS suspended,
+        COUNT(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS new_today,
+        COUNT(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS new_7d
+      FROM users
+    `;
+
+    const [o] = await sql<any[]>`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status='success')::int AS success,
+        COUNT(*) FILTER (WHERE status='pending')::int AS pending,
+        COUNT(*) FILTER (WHERE status='expired')::int AS expired,
+        COUNT(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today,
+        COUNT(*) FILTER (WHERE status='success' AND completed_at >= date_trunc('day', now()))::int AS success_today
+      FROM allocations
+    `;
+
+    const [m] = await sql<any[]>`
+      SELECT
+        COALESCE(SUM(lifetime_earning),0)::text AS total_earned,
+        COALESCE(SUM(balance),0)::text AS total_balance
+      FROM users
+    `;
+    const [et] = await sql<any[]>`
+      SELECT COALESCE(SUM(payout_amount),0)::text AS earned_today
+      FROM allocations
+      WHERE status='success' AND completed_at >= date_trunc('day', now())
+    `;
+    const [w] = await sql<any[]>`
+      SELECT
+        COALESCE(SUM(amount) FILTER (WHERE status='pending'),0)::text AS pending_withdraw,
+        COALESCE(SUM(amount) FILTER (WHERE status='paid'),0)::text AS paid_withdraw
+      FROM withdrawals
+    `;
+
+    const topUsers = await sql<any[]>`
+      SELECT u.id, u.email::text AS email, u.name,
+             u.lifetime_earning::text AS lifetime_earning,
+             u.balance::text AS balance,
+             (SELECT COUNT(*)::int FROM allocations a WHERE a.user_id=u.id AND a.status='success') AS success_count,
+             (SELECT COUNT(*)::int FROM allocations a WHERE a.user_id=u.id) AS total_count
+      FROM users u
+      ORDER BY u.lifetime_earning DESC NULLS LAST
+      LIMIT 10
+    `;
+
+    const recentUsers = await sql<any[]>`
+      SELECT u.id, u.email::text AS email, u.name, u.created_at,
+             (SELECT COUNT(*)::int FROM allocations a WHERE a.user_id=u.id) AS total_count
+      FROM users u
+      ORDER BY u.created_at DESC
+      LIMIT 10
+    `;
+
+    const topRanges = await sql<any[]>`
+      SELECT
+        COALESCE(country,'?') || ' / ' || COALESCE(operator,'?') AS range_label,
+        COUNT(*)::int AS count,
+        COUNT(*) FILTER (WHERE status='success')::int AS success
+      FROM allocations
+      WHERE created_at >= now() - interval '30 days'
+      GROUP BY range_label
+      ORDER BY count DESC
+      LIMIT 10
+    `;
+
+    const recentOtps = await sql<any[]>`
+      SELECT a.id, u.email::text AS user_email, a.full_number, a.sid,
+             a.status::text AS status, a.payout_amount::text AS payout_amount, a.created_at
+      FROM allocations a JOIN users u ON u.id=a.user_id
+      ORDER BY a.created_at DESC
+      LIMIT 20
+    `;
+
+    return {
+      users: {
+        total: u.total, active: u.active, blocked: u.blocked,
+        suspended: u.suspended, new_today: u.new_today, new_7d: u.new_7d,
+      },
+      otps: {
+        total: o.total, success: o.success, pending: o.pending,
+        expired: o.expired, today: o.today, success_today: o.success_today,
+      },
+      money: {
+        total_earned: String(m.total_earned),
+        total_balance: String(m.total_balance),
+        earned_today: String(et.earned_today),
+        pending_withdraw: String(w.pending_withdraw),
+        paid_withdraw: String(w.paid_withdraw),
+      },
+      top_users: topUsers.map((r) => ({
+        id: r.id, email: r.email, name: r.name,
+        lifetime_earning: String(r.lifetime_earning),
+        balance: String(r.balance),
+        success_count: r.success_count, total_count: r.total_count,
+      })),
+      recent_users: recentUsers.map((r) => ({
+        id: r.id, email: r.email, name: r.name,
+        created_at: r.created_at.toISOString(),
+        total_count: r.total_count,
+      })),
+      top_ranges: topRanges.map((r) => ({
+        range_label: r.range_label, count: r.count, success: r.success,
+      })),
+      recent_otps: recentOtps.map((r) => ({
+        id: r.id, user_email: r.user_email, full_number: r.full_number,
+        sid: r.sid, status: r.status,
+        payout_amount: String(r.payout_amount),
+        created_at: r.created_at.toISOString(),
+      })),
+    };
+  });
