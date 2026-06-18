@@ -142,31 +142,38 @@ function InboxPage() {
     });
   }, [otps, fromDate, toDate]);
 
-  const downloadCsv = () => {
+  // Extract OTP code from message body (4-8 digit run, allows separators like 123-456 or 123 456)
+  const extractOtp = (body: string): string => {
+    if (!body) return "";
+    // Prefer grouped patterns like "123-456" or "123 456"
+    const grouped = body.match(/\b(\d{3})[\s-](\d{3,4})\b/);
+    if (grouped) return grouped[1] + grouped[2];
+    const m = body.match(/\b(\d{4,8})\b/);
+    return m ? m[1] : "";
+  };
+
+  const downloadTxt = () => {
     if (!filteredOtps.length) { toast.error("No OTPs to download"); return; }
-    const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    const header = ["Time", "Number", "Sender", "Message", "Country"];
-    const lines = [header.join(",")];
+    const lines: string[] = [];
+    let skipped = 0;
     for (const o of filteredOtps) {
-      lines.push([
-        esc(new Date(o.received_at).toISOString()),
-        esc(o.number || ""),
-        esc(o.sender || ""),
-        esc(o.body || ""),
-        esc(o.country || ""),
-      ].join(","));
+      const num = (o.number || "").trim();
+      const code = extractOtp(o.body);
+      if (!num || !code) { skipped++; continue; }
+      lines.push(`${num}|${code}`);
     }
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    if (!lines.length) { toast.error("No Number|OTP pairs found"); return; }
+    const blob = new Blob([lines.join("\n") + "\n"], { type: "text/plain;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     a.href = url;
-    a.download = `otp-inbox-${stamp}.csv`;
+    a.download = `otp-${stamp}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success(`Downloaded ${filteredOtps.length} OTPs`);
+    toast.success(`Downloaded ${lines.length} pairs${skipped ? ` · ${skipped} skipped` : ""}`);
   };
 
   const lastEventLabel = lastEventAt
