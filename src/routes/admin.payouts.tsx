@@ -38,7 +38,7 @@ function AdminPayouts() {
     onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["admin-payouts"] }); },
   });
 
-  const [form, setForm] = useState({ sid: "", country: "", amount: "0.10", note: "" });
+  const [form, setForm] = useState({ sid: "", country: "", amount: "0.04", note: "" });
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +67,7 @@ function AdminPayouts() {
     );
   }
 
-  const defaultPayout = "৳0.10 (STEX_DEFAULT_PAYOUT env)";
+  const defaultPayout = "৳0.04 (STEX_DEFAULT_PAYOUT env)";
   return (
     <AppShell>
       <PageHeader icon={<DollarSign className="size-6" />} title="Payout Pricing" subtitle="Per-service & per-country payout overrides. Order: (sid, country) → (sid, any) → default." />
