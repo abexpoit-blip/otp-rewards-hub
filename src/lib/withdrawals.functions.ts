@@ -107,10 +107,25 @@ const createWithdrawalSchema = z.object({
 
 export const createWithdrawalFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createWithdrawalSchema.parse(d))
-  .handler(async ({ data }): Promise<{ ok: true; id: string }> => {
+  .handler(async ({ data }): Promise<{ ok: true; id: string; status: string }> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
+
+    // Validate gateway is enabled + within min/max
+    const [gw] = await sql<any[]>`
+      SELECT code, enabled, min_amount::numeric AS min_amount,
+             max_amount::numeric AS max_amount,
+             auto_approve_under::numeric AS auto_approve_under
+      FROM payment_gateways WHERE code = ${data.gateway}
+    `;
+    if (!gw) throw new Error(`Unknown gateway: ${data.gateway}`);
+    if (!gw.enabled) throw new Error(`Gateway "${data.gateway}" is currently disabled`);
+    if (data.amount < Number(gw.min_amount)) throw new Error(`Minimum withdrawal for ${data.gateway} is $${Number(gw.min_amount).toFixed(2)}`);
+    if (data.amount > Number(gw.max_amount)) throw new Error(`Maximum withdrawal for ${data.gateway} is $${Number(gw.max_amount).toFixed(2)}`);
+
+    const autoApprove = gw.auto_approve_under != null && data.amount <= Number(gw.auto_approve_under);
+    const initialStatus = autoApprove ? "approved" : "pending";
 
     // balance check + deduct in transaction
     const result = await sql.begin(async (tx) => {
@@ -124,10 +139,10 @@ export const createWithdrawalFn = createServerFn({ method: "POST" })
       await tx`UPDATE users SET balance = balance - ${data.amount} WHERE id = ${auth.sub}`;
       const [wd] = await tx`
         INSERT INTO withdrawals (user_id, amount, gateway, address, status)
-        VALUES (${auth.sub}, ${data.amount}, ${data.gateway}, ${data.address}, 'pending')
+        VALUES (${auth.sub}, ${data.amount}, ${data.gateway}, ${data.address}, ${initialStatus}::withdrawal_status)
         RETURNING id
       `;
       return wd.id as string;
     });
-    return { ok: true, id: result };
+    return { ok: true, id: result, status: initialStatus };
   });

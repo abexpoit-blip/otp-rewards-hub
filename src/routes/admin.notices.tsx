@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin/notices")({
   component: () => (<Protected><AdminNotices /></Protected>),
 });
 
-type EditState = Partial<NoticeRow> & { _editing: boolean };
+type EditState = Partial<NoticeRow> & { _editing: boolean; _targetEmailsText?: string; _targetMode?: "all" | "custom" };
 
 const empty: EditState = {
   _editing: true,
@@ -27,6 +27,8 @@ const empty: EditState = {
   active: true,
   starts_at: null,
   ends_at: null,
+  _targetMode: "all",
+  _targetEmailsText: "",
 };
 
 function AdminNotices() {
@@ -47,7 +49,12 @@ function AdminNotices() {
 
   const upsert = useMutation({
     mutationFn: (v: any) => callUpsert({ data: { token: token!, ...v } }),
-    onSuccess: () => { toast.success("Notice saved"); setEdit(null); qc.invalidateQueries({ queryKey: ["admin-notices"] }); qc.invalidateQueries({ queryKey: ["active-notices"] }); },
+    onSuccess: (r: any) => {
+      toast.success(r?.matched_users ? `Notice saved · ${r.matched_users} user(s) targeted` : "Notice saved · all users");
+      setEdit(null);
+      qc.invalidateQueries({ queryKey: ["admin-notices"] });
+      qc.invalidateQueries({ queryKey: ["active-notices"] });
+    },
     onError: (e: any) => toast.error(e?.message || "Failed"),
   });
   const del = useMutation({
@@ -76,26 +83,32 @@ function AdminNotices() {
               <th className="text-left p-3">Type</th>
               <th className="text-left p-3">Priority</th>
               <th className="text-left p-3">Active</th>
+              <th className="text-left p-3">Audience</th>
               <th className="text-left p-3">Window</th>
               <th className="text-right p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {isLoading ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr> :
-              (data ?? []).length === 0 ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No notices yet.</td></tr> :
+            {isLoading ? <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr> :
+              (data ?? []).length === 0 ? <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No notices yet.</td></tr> :
               data!.map((n) => {
                 const Icon = n.priority === "critical" ? AlertTriangle : n.priority === "warning" ? Megaphone : Info;
+                const isAll = !n.target_user_ids || n.target_user_ids.length === 0;
                 return (
                   <tr key={n.id} className="border-t border-border">
                     <td className="p-3"><div className="font-semibold">{n.title}</div>{n.body && <div className="text-xs text-muted-foreground line-clamp-1 max-w-md">{n.body}</div>}</td>
                     <td className="p-3"><span className="text-[10px] uppercase font-bold tracking-widest">{n.type}</span></td>
                     <td className="p-3"><span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest"><Icon className="size-3" /> {n.priority}</span></td>
                     <td className="p-3">{n.active ? <Check className="size-4 text-emerald-600" /> : <X className="size-4 text-muted-foreground" />}</td>
+                    <td className="p-3 text-xs">
+                      {isAll ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-bold uppercase text-[10px]">All</span> :
+                        <span className="px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-700 font-bold text-[10px]" title={(n.target_emails ?? []).join(", ")}>{n.target_user_ids!.length} user{n.target_user_ids!.length > 1 ? "s" : ""}</span>}
+                    </td>
                     <td className="p-3 text-xs text-muted-foreground font-mono">
                       {n.starts_at ? new Date(n.starts_at).toLocaleDateString() : "—"} → {n.ends_at ? new Date(n.ends_at).toLocaleDateString() : "∞"}
                     </td>
                     <td className="p-3 text-right">
-                      <button onClick={() => setEdit({ ...n, _editing: true })} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-muted mr-1"><Pencil className="size-3" /> Edit</button>
+                      <button onClick={() => setEdit({ ...n, _editing: true, _targetMode: isAll ? "all" : "custom", _targetEmailsText: (n.target_emails ?? []).join(", ") })} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-muted mr-1"><Pencil className="size-3" /> Edit</button>
                       <button onClick={() => { if (confirm("Delete this notice?")) del.mutate(n.id); }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10"><Trash2 className="size-3" /></button>
                     </td>
                   </tr>
@@ -140,19 +153,50 @@ function AdminNotices() {
                 </label>
               </div>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> Active</label>
+
+              {/* Audience targeting */}
+              <div className="rounded-lg border border-border p-3 bg-muted/20">
+                <div className="text-xs font-bold uppercase tracking-wider mb-2">Audience</div>
+                <div className="flex gap-3 mb-2">
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input type="radio" checked={(edit._targetMode ?? "all") === "all"} onChange={() => setEdit({ ...edit, _targetMode: "all" })} /> All users
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input type="radio" checked={edit._targetMode === "custom"} onChange={() => setEdit({ ...edit, _targetMode: "custom" })} /> Custom users (by email)
+                  </label>
+                </div>
+                {edit._targetMode === "custom" && (
+                  <textarea
+                    rows={3}
+                    value={edit._targetEmailsText || ""}
+                    onChange={(e) => setEdit({ ...edit, _targetEmailsText: e.target.value })}
+                    placeholder="alice@example.com, bob@example.com"
+                    className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono"
+                  />
+                )}
+                {edit._targetMode === "custom" && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Comma or newline separated. Unknown emails cause the save to fail.</p>
+                )}
+              </div>
             </div>
             <div className="flex justify-end gap-2 mt-5">
               <button onClick={() => setEdit(null)} className="text-xs font-semibold px-3 py-2 text-muted-foreground hover:text-foreground">Cancel</button>
               <button
-                onClick={() => upsert.mutate({
-                  id: edit.id ?? undefined,
-                  type: edit.type, priority: edit.priority,
-                  title: (edit.title || "").trim(),
-                  body: edit.body || "",
-                  active: !!edit.active,
-                  starts_at: edit.starts_at ?? undefined,
-                  ends_at: edit.ends_at ?? undefined,
-                })}
+                onClick={() => {
+                  const emails = (edit._targetMode === "custom")
+                    ? (edit._targetEmailsText || "").split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
+                    : [];
+                  upsert.mutate({
+                    id: edit.id ?? undefined,
+                    type: edit.type, priority: edit.priority,
+                    title: (edit.title || "").trim(),
+                    body: edit.body || "",
+                    active: !!edit.active,
+                    starts_at: edit.starts_at ?? undefined,
+                    ends_at: edit.ends_at ?? undefined,
+                    target_emails: emails,
+                  });
+                }}
                 disabled={!edit.title?.trim() || upsert.isPending}
                 className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-bold shadow-md shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
               >{upsert.isPending ? "Saving…" : "Save"}</button>

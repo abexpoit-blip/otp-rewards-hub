@@ -9,6 +9,7 @@ import {
   listAddressesFn, addAddressFn, deleteAddressFn,
   listWithdrawalsFn, createWithdrawalFn,
 } from "@/lib/withdrawals.functions";
+import { listEnabledGatewaysFn } from "@/lib/gateways.functions";
 import { getProfileFn } from "@/lib/profile.functions";
 import { Wallet, Plus, Trash2 } from "lucide-react";
 
@@ -16,8 +17,6 @@ export const Route = createFileRoute("/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Nexus SMS" }] }),
   component: () => (<Protected><WithdrawalsPage /></Protected>),
 });
-
-const GATEWAYS = ["USDT-TRC20", "USDT-BEP20", "USDT-SOL", "bKash", "Nagad", "Bank"];
 
 function WithdrawalsPage() {
   const { token } = useAuth();
@@ -28,10 +27,15 @@ function WithdrawalsPage() {
   const callWds = useServerFn(listWithdrawalsFn);
   const callCreateWd = useServerFn(createWithdrawalFn);
   const callProfile = useServerFn(getProfileFn);
+  const callGateways = useServerFn(listEnabledGatewaysFn);
 
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => callProfile({ data: { token: token! } }), enabled: !!token });
   const addrs = useQuery({ queryKey: ["addresses"], queryFn: () => callAddrs({ data: { token: token! } }), enabled: !!token });
   const wds = useQuery({ queryKey: ["withdrawals"], queryFn: () => callWds({ data: { token: token! } }), enabled: !!token });
+  const gateways = useQuery({ queryKey: ["gateways"], queryFn: () => callGateways({ data: { token: token! } }), enabled: !!token });
+  const gwOptions = (gateways.data ?? []).map((g) => g.code);
+  const gwOptionsSafe = gwOptions.length ? gwOptions : ["USDT-TRC20"];
+  const selectedGw = (gateways.data ?? []).find((g) => g.code === newWd.gateway);
 
   const addAddrMut = useMutation({
     mutationFn: (v: any) => callAddAddr({ data: { token: token!, ...v } }),
@@ -86,10 +90,18 @@ function WithdrawalsPage() {
         <form onSubmit={onCreateWd} className="glass-panel p-6 xl:col-span-2">
           <h3 className="mb-3 text-lg font-bold tracking-tight">New withdrawal</h3>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Select label="Gateway" value={newWd.gateway} onChange={(v) => setNewWd({ ...newWd, gateway: v })} options={GATEWAYS} />
+            <Select label="Gateway" value={newWd.gateway} onChange={(v) => setNewWd({ ...newWd, gateway: v })} options={gwOptionsSafe} />
             <Field label="Amount (USD)" type="number" value={newWd.amount} onChange={(v) => setNewWd({ ...newWd, amount: v })} />
             <Field label="Payout address" value={newWd.address} onChange={(v) => setNewWd({ ...newWd, address: v })} />
           </div>
+          {selectedGw && (
+            <p className="mt-2 text-[11px] text-muted-foreground font-mono">
+              Min ${Number(selectedGw.min_amount).toFixed(2)} · Max ${Number(selectedGw.max_amount).toFixed(2)}
+              {Number(selectedGw.fee_percent) > 0 || Number(selectedGw.fee_flat) > 0 ? ` · Fee ${selectedGw.fee_percent}% + $${selectedGw.fee_flat}` : ""}
+              {selectedGw.auto_approve_under ? ` · Auto-approve ≤ $${Number(selectedGw.auto_approve_under).toFixed(2)}` : ""}
+            </p>
+          )}
+          {selectedGw?.instructions && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{selectedGw.instructions}</p>}
           {wdMsg && <p className={`mt-3 text-xs ${wdMsg.includes("✓") ? "text-emerald-600" : "text-destructive"}`}>{wdMsg}</p>}
           <button
             type="submit"
@@ -112,7 +124,7 @@ function WithdrawalsPage() {
           }}
           className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4"
         >
-          <Select label="Gateway" value={newAddr.gateway} onChange={(v) => setNewAddr({ ...newAddr, gateway: v })} options={GATEWAYS} />
+          <Select label="Gateway" value={newAddr.gateway} onChange={(v) => setNewAddr({ ...newAddr, gateway: v })} options={gwOptionsSafe} />
           <Field label="Address" value={newAddr.address} onChange={(v) => setNewAddr({ ...newAddr, address: v })} />
           <Field label="Label (optional)" value={newAddr.label} onChange={(v) => setNewAddr({ ...newAddr, label: v })} />
           <button type="submit" className="self-end rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background">
