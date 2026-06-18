@@ -23,7 +23,7 @@ export const bulkAllocateFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => schema.parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
     const { stexGetNum } = await import("./stex.server");
 

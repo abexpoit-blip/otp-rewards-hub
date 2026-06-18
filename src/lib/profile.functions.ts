@@ -32,7 +32,7 @@ export const getProfileFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ProfileDTO> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, email, name, phone, country, city, timezone, telegram, bio,
              balance::text, lifetime_earning::text,
@@ -68,7 +68,7 @@ export const updateProfileFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     await sql`
       UPDATE users SET
         name = COALESCE(${data.name ?? null}, name),
@@ -96,7 +96,7 @@ export const changePasswordFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
     const { hashPassword, verifyPassword } = await import("./password.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`SELECT password_hash FROM users WHERE id = ${auth.sub}`;
     if (rows.length === 0) throw new Error("User not found");
     const ok = await verifyPassword(data.currentPassword, rows[0].password_hash);
@@ -112,7 +112,7 @@ export const getSessionsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<SessionDTO[]> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, ip, user_agent, created_at
       FROM sessions WHERE user_id = ${auth.sub}

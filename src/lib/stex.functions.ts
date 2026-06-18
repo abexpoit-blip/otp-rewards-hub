@@ -19,7 +19,7 @@ export const liveAccessFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    requireAuth(data.token);
+    await requireAuth(data.token);
     const { stexLiveAccess } = await import("./stex.server");
     const r = await stexLiveAccess();
     if (r.meta.code !== 200 || !r.data) {
@@ -35,7 +35,7 @@ export const consoleFeedFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    requireAuth(data.token);
+    await requireAuth(data.token);
     const { stexConsole } = await import("./stex.server");
     const r = await stexConsole();
     if (r.meta.code !== 200 || !r.data) return { hits: [] as { range: string; sid: string; message: string; time: number }[] };
@@ -47,7 +47,7 @@ export const allocateNumberFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => allocSchema.parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
     const { stexGetNum } = await import("./stex.server");
 
@@ -90,7 +90,7 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    requireAuth(data.token);
+    await requireAuth(data.token);
     const { sql } = await import("./db.server");
     const { stexSuccessOtp } = await import("./stex.server");
 
@@ -144,7 +144,7 @@ export const summaryFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
 
     const [stats] = await sql<any[]>`
@@ -173,7 +173,7 @@ export const dashboardStatsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
 
     // Hourly buckets — last 24h, user-scoped
@@ -227,7 +227,7 @@ export const summaryDailyFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ token: z.string().min(1), days: z.number().min(7).max(90).default(14) }).parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
 
     const daily = await sql<any[]>`
@@ -248,7 +248,7 @@ export const summaryReportFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ token: z.string().min(1), days: z.number().min(1).max(90).default(7) }).parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
     const days = data.days;
 
@@ -309,7 +309,7 @@ export const myAllocationsFn = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
-    const auth = requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
 
     const statusFilter = data.status === "all" ? null
