@@ -193,6 +193,9 @@ export type AdminUserRow = {
   last_login_at: string | null;
   total_allocations: number;
   success_allocations: number;
+  banned_until: string | null;
+  ban_reason: string | null;
+  admin_notes: string | null;
 };
 
 export const adminListUsersFn = createServerFn({ method: "POST" })
