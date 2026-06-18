@@ -110,7 +110,7 @@ function AdminPayouts() {
                 <tr key={p.id} className="border-t border-border">
                   <td className="px-4 py-2 font-bold accent-text">{p.sid}</td>
                   <td className="px-4 py-2">{p.country || <span className="text-muted-foreground italic">any</span>}</td>
-                  <td className="px-4 py-2 font-mono">${Number(p.amount).toFixed(4)}</td>
+                  <td className="px-4 py-2 font-mono">৳{Number(p.amount).toFixed(4)}</td>
                   <td className="px-4 py-2">{p.active ? "✓" : "—"}</td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">{p.note || "—"}</td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(p.updated_at).toLocaleString()}</td>

@@ -94,7 +94,8 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { stexSuccessOtp } = await import("./stex.server");
 
-    const defaultPayout = Number(process.env.STEX_DEFAULT_PAYOUT || "0.04");
+    const { getSetting } = await import("./settings.server");
+    const defaultPayout = Number(await getSetting("default_payout", 0.04));
     const r = await stexSuccessOtp();
     if (r.meta.code !== 200 || !r.data) return { processed: 0, credited: 0 };
 

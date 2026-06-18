@@ -109,7 +109,7 @@ function AdminAllocations() {
                 <td className="p-3">
                   <span className={`text-[10px] font-bold rounded px-2 py-0.5 uppercase ${statusColor[a.status] || "bg-muted"}`}>{a.status}</span>
                 </td>
-                <td className="p-3 text-right font-mono text-xs">${Number(a.payout_amount).toFixed(4)}</td>
+                <td className="p-3 text-right font-mono text-xs">৳{Number(a.payout_amount).toFixed(4)}</td>
                 <td className="p-3 text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString()}</td>
                 <td className="p-3 text-right">
                   {a.status === "pending" && (

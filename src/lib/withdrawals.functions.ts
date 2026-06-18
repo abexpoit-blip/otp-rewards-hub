@@ -112,6 +112,13 @@ export const createWithdrawalFn = createServerFn({ method: "POST" })
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
 
+    // Global minimum (admin-configurable via app_settings.min_withdraw)
+    const { getSetting } = await import("./settings.server");
+    const globalMin = Number(await getSetting("min_withdraw", 500));
+    if (data.amount < globalMin) {
+      throw new Error(`Minimum withdrawal amount is ৳${globalMin.toFixed(2)} BDT. You entered ৳${data.amount.toFixed(2)}.`);
+    }
+
     // Validate gateway is enabled + within min/max
     const [gw] = await sql<any[]>`
       SELECT code, enabled, min_amount::numeric AS min_amount,
@@ -121,8 +128,8 @@ export const createWithdrawalFn = createServerFn({ method: "POST" })
     `;
     if (!gw) throw new Error(`Unknown gateway: ${data.gateway}`);
     if (!gw.enabled) throw new Error(`Gateway "${data.gateway}" is currently disabled`);
-    if (data.amount < Number(gw.min_amount)) throw new Error(`Minimum withdrawal for ${data.gateway} is ৳${Number(gw.min_amount).toFixed(2)}`);
-    if (data.amount > Number(gw.max_amount)) throw new Error(`Maximum withdrawal for ${data.gateway} is ৳${Number(gw.max_amount).toFixed(2)}`);
+    if (data.amount < Number(gw.min_amount)) throw new Error(`Minimum withdrawal for ${data.gateway} is ৳${Number(gw.min_amount).toFixed(2)} BDT`);
+    if (data.amount > Number(gw.max_amount)) throw new Error(`Maximum withdrawal for ${data.gateway} is ৳${Number(gw.max_amount).toFixed(2)} BDT`);
 
     const autoApprove = gw.auto_approve_under != null && data.amount <= Number(gw.auto_approve_under);
     const initialStatus = autoApprove ? "approved" : "pending";

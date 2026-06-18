@@ -80,7 +80,7 @@ function Dashboard() {
         <div className="flex items-center gap-3">
           <div className="rounded-2xl bg-white/70 px-4 py-2 text-right shadow-sm">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Balance</p>
-            <p className="text-lg font-bold tracking-tight accent-text" data-mask>${balance}</p>
+            <p className="text-lg font-bold tracking-tight accent-text" data-mask>৳{balance}</p>
           </div>
         </div>
       </header>

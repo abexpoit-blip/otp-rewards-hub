@@ -240,7 +240,7 @@ function SummaryPage() {
                         <td className="py-2 text-right font-mono text-emerald-600">{s}</td>
                         <td className="py-2 text-right font-mono text-rose-600">{f}</td>
                         <td className="py-2 text-right font-mono">{rt.toFixed(0)}%</td>
-                        <td className="py-2 text-right font-mono">${amt.toFixed(2)}</td>
+                        <td className="py-2 text-right font-mono">৳{amt.toFixed(2)}</td>
                       </tr>
                     );
                   })}
@@ -250,7 +250,7 @@ function SummaryPage() {
                     <td className="py-2 text-right font-mono text-emerald-600">{tSuccess}</td>
                     <td className="py-2 text-right font-mono text-rose-600">{tFailed}</td>
                     <td className="py-2 text-right font-mono">{rate.toFixed(0)}%</td>
-                    <td className="py-2 text-right font-mono">${tAmount.toFixed(2)}</td>
+                    <td className="py-2 text-right font-mono">৳{tAmount.toFixed(2)}</td>
                   </tr>
                 </tbody>
               </table>

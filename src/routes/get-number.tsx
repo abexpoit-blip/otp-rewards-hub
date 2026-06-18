@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -7,7 +7,9 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { allocateNumberFn, myAllocationsFn } from "@/lib/stex.functions";
 import { getOtpsFn } from "@/lib/inbox.functions";
-import { Hash, Copy, Loader2, Search, Globe2, Play, Pause, RefreshCw, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Inbox } from "lucide-react";
+import { getProfileFn } from "@/lib/profile.functions";
+import { getPublicSettingsFn } from "@/lib/settings.functions";
+import { Hash, Copy, Loader2, Search, Globe2, Play, Pause, RefreshCw, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Inbox, Wallet, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { SkeletonRows } from "@/components/Skeleton";
 
@@ -23,6 +25,9 @@ function GetNumberPage() {
   const callAlloc = useServerFn(allocateNumberFn);
   const callMine = useServerFn(myAllocationsFn);
   const callOtps = useServerFn(getOtpsFn);
+  const callProfile = useServerFn(getProfileFn);
+  const callPublicSettings = useServerFn(getPublicSettingsFn);
+  const qc = useQueryClient();
   const seenStatusRef = useRef<Map<string, string>>(new Map());
   const initializedRef = useRef(false);
 
@@ -62,6 +67,20 @@ function GetNumberPage() {
     refetchInterval: 5000,
   });
 
+  const profile = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => callProfile({ data: { token: token! } }),
+    enabled: !!token,
+    refetchInterval: 5000,
+  });
+
+  const settings = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: () => callPublicSettings(),
+    staleTime: 60_000,
+  });
+  const otpRate = settings.data?.otp_rate ?? 0.04;
+
   const otpByNumber = useMemo(() => {
     const m = new Map<string, { body: string; received_at: string }>();
     for (const o of otps ?? []) {
@@ -85,12 +104,15 @@ function GetNumberPage() {
       const prev = map.get(r.id);
       if (prev && prev !== r.status) {
         const shown = r.full_number || r.national_number || r.no_plus_number || "number";
-        if (r.status === "success") toast.success(`OTP received for ${shown}`, { duration: 4000 });
+        if (r.status === "success") {
+          toast.success(`✓ OTP received for ${shown} — +৳${otpRate.toFixed(2)} credited`, { duration: 4500 });
+          qc.invalidateQueries({ queryKey: ["profile"] });
+        }
         else if (r.status === "failed" || r.status === "expired") toast.error(`Allocation ${shown} ${r.status}`);
       }
       map.set(r.id, r.status);
     }
-  }, [mine]);
+  }, [mine, qc, otpRate]);
 
   const counts = mine?.counts ?? { total: 0, success: 0, failed: 0, pending: 0 };
   const successRate = counts.total ? (counts.success / counts.total) * 100 : 0;
@@ -185,6 +207,35 @@ function GetNumberPage() {
             </div>
             <div className="bg-card/50 backdrop-blur-sm border border-border px-3 py-1.5 rounded-lg shadow-sm font-mono text-muted-foreground">
               {timeStr} <span className="opacity-60">UTC{-new Date().getTimezoneOffset() / 60 >= 0 ? "+" : ""}{-new Date().getTimezoneOffset() / 60}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Live balance + earnings strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="glass-panel p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-primary/15 p-2"><Wallet className="size-5 text-primary" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Balance</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums" data-mask>
+                ৳{profile.data ? Number(profile.data.balance).toFixed(2) : "—"}
+              </p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-emerald-500/15 p-2"><TrendingUp className="size-5 text-emerald-500" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Lifetime Earned</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums" data-mask>
+                ৳{profile.data ? Number(profile.data.lifetime_earning).toFixed(2) : "—"}
+              </p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-chart-2/15 p-2"><MessageSquare className="size-5 text-chart-2" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Per-OTP Rate</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums">৳{otpRate.toFixed(2)}</p>
             </div>
           </div>
         </div>
