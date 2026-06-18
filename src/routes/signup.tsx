@@ -106,6 +106,15 @@ function SignupPage() {
           />
         </Field>
 
+        <div className="rounded-md border border-amber-400/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-[11px] leading-relaxed p-2.5 flex gap-2">
+          <span className="text-base leading-none">⚠️</span>
+          <span>
+            <b>Inactivity policy:</b> if you don't log in for <b>14 consecutive days</b>, your account will be
+            automatically deleted along with all data, API keys, and any zero-balance history. Keep your balance positive
+            or log in regularly to stay active.
+          </span>
+        </div>
+
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           By creating an account you accept the operator terms and live-monitoring policy.
         </p>
