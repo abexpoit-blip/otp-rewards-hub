@@ -104,12 +104,15 @@ function GetNumberPage() {
       const prev = map.get(r.id);
       if (prev && prev !== r.status) {
         const shown = r.full_number || r.national_number || r.no_plus_number || "number";
-        if (r.status === "success") toast.success(`OTP received for ${shown}`, { duration: 4000 });
+        if (r.status === "success") {
+          toast.success(`✓ OTP received for ${shown} — +৳${otpRate.toFixed(2)} credited`, { duration: 4500 });
+          qc.invalidateQueries({ queryKey: ["profile"] });
+        }
         else if (r.status === "failed" || r.status === "expired") toast.error(`Allocation ${shown} ${r.status}`);
       }
       map.set(r.id, r.status);
     }
-  }, [mine]);
+  }, [mine, qc, otpRate]);
 
   const counts = mine?.counts ?? { total: 0, success: 0, failed: 0, pending: 0 };
   const successRate = counts.total ? (counts.success / counts.total) * 100 : 0;
