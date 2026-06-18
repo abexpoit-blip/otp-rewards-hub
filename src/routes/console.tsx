@@ -93,75 +93,119 @@ function ConsolePage() {
     <AppShell>
       <PageHeader icon={<TerminalSquare className="size-6" />} title="Live Console" subtitle="Streaming OTP messages with carrier and app distribution charts." />
 
+      {/* ===== Premium command strip ===== */}
+      <div className="relative mb-4 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/8 via-background/40 to-background/60 backdrop-blur-xl p-4">
+        <div className="absolute -top-12 -right-12 size-48 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <span className="absolute inset-0 rounded-full bg-emerald-500 blur-md opacity-60 animate-pulse" />
+              <span className="relative size-2.5 block rounded-full bg-emerald-500 ring-2 ring-emerald-500/30" />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">Stream Status</div>
+              <div className="text-sm font-bold flex items-center gap-2">Live <span className="text-muted-foreground/60">·</span> <span className="font-mono tabular-nums text-primary">{totalHits}</span> events</div>
+            </div>
+          </div>
+          <StatPill label="Apps Tracked" value={topApps.length} />
+          <StatPill label="Carriers" value={carriers.length} />
+          <StatPill label="Next Sync" value={`${nextUpdateIn}s`} mono />
+          <button onClick={() => refetch()} disabled={isFetching} aria-busy={isFetching} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-background/60 hover:bg-accent text-xs font-semibold disabled:opacity-60">
+            <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} /> {isFetching ? "Syncing…" : "Refresh"}
+          </button>
+        </div>
+      </div>
+
       {/* ===== Stats grid ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Top Apps */}
-        <div className="glass-panel-strong p-5">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Smartphone className="size-4 text-emerald-500" /> Top Apps</h3>
-          <div className="h-[200px]">
-            {topApps.length === 0 ? <p className="text-xs text-muted-foreground">No data yet.</p> : (
+        <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl p-5 shadow-[0_8px_30px_-12px_oklch(0.21_0.034_264/0.15)]">
+          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Smartphone className="size-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold tracking-tight">Top Apps</h3>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Sender distribution</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary/80">
+              <TrendingUp className="size-3" /> Ranked
+            </span>
+          </div>
+          <div className="h-[180px] -mx-2">
+            {topApps.length === 0 ? <EmptyState label="No app data yet" /> : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topApps} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="sid" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                    {topApps.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                <BarChart data={topApps} margin={{ top: 12, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    {topApps.map((_, i) => (
+                      <linearGradient key={i} id={`barGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={PALETTE[i % PALETTE.length]} stopOpacity={1} />
+                        <stop offset="100%" stopColor={PALETTE[i % PALETTE.length]} stopOpacity={0.55} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <XAxis dataKey="sid" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
+                  <Tooltip cursor={{ fill: "hsl(221 83% 53% / 0.06)" }} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.15)" }} />
+                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                    {topApps.map((_, i) => <Cell key={i} fill={`url(#barGrad-${i})`} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
-          <div className="mt-3 space-y-1.5">
+          <div className="mt-4 space-y-2 pt-3 border-t border-border/60">
             {topApps.map((a, i) => (
-              <div key={a.sid} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="size-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />
-                  <span className="font-medium truncate">{a.sid}</span>
-                </div>
-                <div className="flex items-center gap-3 tabular-nums">
-                  <span className="font-mono font-semibold">{a.count}</span>
-                  <span className="text-muted-foreground w-10 text-right">{a.pct.toFixed(0)}%</span>
-                </div>
-              </div>
+              <LegendRow key={a.sid} color={PALETTE[i % PALETTE.length]} label={a.sid} value={a.count} pct={a.pct} />
             ))}
           </div>
         </div>
 
         {/* Carrier distribution */}
-        <div className="glass-panel-strong p-5">
-          <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Radio className="size-4 text-emerald-500" /> Carrier Distribution</h3>
-          <div className="h-[200px] relative">
-            {carriers.length === 0 ? <p className="text-xs text-muted-foreground">No data yet.</p> : (
-              <>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={carriers} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2} stroke="none">
-                      {carriers.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="text-2xl font-bold tabular-nums">{totalHits}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
-                </div>
-              </>
-            )}
-          </div>
-          <div className="mt-3 space-y-1.5">
-            {carriers.map((c, i) => (
-              <div key={c.name} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />
-                  <span className="font-medium">{c.name}</span>
-                </div>
-                <div className="flex items-center gap-3 tabular-nums">
-                  <span className="font-mono font-semibold">{c.value}</span>
-                  <span className="text-muted-foreground w-10 text-right">{c.pct.toFixed(0)}%</span>
-                </div>
+        <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl p-5 shadow-[0_8px_30px_-12px_oklch(0.21_0.034_264/0.15)]">
+          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Radio className="size-4 text-primary" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-sm font-bold tracking-tight">Carrier Distribution</h3>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Country code routing</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary/80">
+              <Activity className="size-3" /> Global
+            </span>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative size-[180px] flex-shrink-0">
+              {carriers.length === 0 ? <EmptyState label="No carriers" /> : (
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={carriers} dataKey="value" nameKey="name" innerRadius={58} outerRadius={86} paddingAngle={3} stroke="var(--card)" strokeWidth={2} cornerRadius={4}>
+                        {carriers.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.15)" }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-bold">Total</div>
+                    <div className="text-3xl font-bold tabular-nums font-mono bg-gradient-to-br from-primary to-primary/60 bg-clip-text text-transparent leading-none mt-0.5">{totalHits}</div>
+                    <div className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">OTP Hits</div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex-1 w-full space-y-1.5 min-w-0">
+              {carriers.slice(0, 6).map((c, i) => (
+                <LegendRow key={c.name} color={PALETTE[i % PALETTE.length]} label={c.name} value={c.value} pct={c.pct} compact />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -169,26 +213,17 @@ function ConsolePage() {
       {/* ===== Feed header bar ===== */}
       <div className="glass-panel-strong p-3 mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold flex items-center gap-2"><TerminalSquare className="size-4 text-emerald-500" /> Live Console</span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[10px] font-bold">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
-          </span>
-          <span className="text-[10px] text-muted-foreground">Logs: {filtered.length} (Max 50)</span>
+          <span className="text-sm font-bold flex items-center gap-2"><TerminalSquare className="size-4 text-primary" /> Event Feed</span>
+          <span className="text-[10px] text-muted-foreground font-mono">{filtered.length} / 50 logs</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2 py-1.5 text-xs">
-            <Search className="size-3 text-muted-foreground" />
-            <input
-              placeholder="Filter logs (sender, range, msg)"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="bg-transparent outline-none w-48"
-            />
-          </div>
-          <button onClick={() => refetch()} disabled={isFetching} aria-busy={isFetching} aria-label={isFetching ? "Refreshing console feed" : "Refresh now"} className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2.5 py-1.5 text-xs hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed">
-            <RefreshCw className={`size-3 ${isFetching ? "animate-spin" : ""}`} aria-hidden="true" />
-            {isFetching ? "Refreshing…" : <>Next update: <span className="font-mono font-semibold">{nextUpdateIn}s</span></>}
-          </button>
+        <div className="flex items-center gap-1.5 bg-background border border-border rounded-md px-2 py-1.5 text-xs">
+          <Search className="size-3 text-muted-foreground" />
+          <input
+            placeholder="Filter logs (sender, range, msg)"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="bg-transparent outline-none w-48"
+          />
         </div>
       </div>
 
