@@ -49,7 +49,12 @@ function AdminNotices() {
 
   const upsert = useMutation({
     mutationFn: (v: any) => callUpsert({ data: { token: token!, ...v } }),
-    onSuccess: () => { toast.success("Notice saved"); setEdit(null); qc.invalidateQueries({ queryKey: ["admin-notices"] }); qc.invalidateQueries({ queryKey: ["active-notices"] }); },
+    onSuccess: (r: any) => {
+      toast.success(r?.matched_users ? `Notice saved · ${r.matched_users} user(s) targeted` : "Notice saved · all users");
+      setEdit(null);
+      qc.invalidateQueries({ queryKey: ["admin-notices"] });
+      qc.invalidateQueries({ queryKey: ["active-notices"] });
+    },
     onError: (e: any) => toast.error(e?.message || "Failed"),
   });
   const del = useMutation({
