@@ -67,6 +67,20 @@ function GetNumberPage() {
     refetchInterval: 5000,
   });
 
+  const profile = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => callProfile({ data: { token: token! } }),
+    enabled: !!token,
+    refetchInterval: 5000,
+  });
+
+  const settings = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: () => callPublicSettings(),
+    staleTime: 60_000,
+  });
+  const otpRate = settings.data?.otp_rate ?? 0.04;
+
   const otpByNumber = useMemo(() => {
     const m = new Map<string, { body: string; received_at: string }>();
     for (const o of otps ?? []) {
