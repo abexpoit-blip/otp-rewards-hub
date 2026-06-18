@@ -263,3 +263,32 @@ function ConsolePage() {
     </AppShell>
   );
 }
+
+function StatPill({ label, value, mono }: { label: string; value: string | number; mono?: boolean }) {
+  return (
+    <div className="hidden md:flex flex-col px-3 py-1.5 rounded-lg border border-border/60 bg-background/60 backdrop-blur min-w-[90px]">
+      <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-bold">{label}</span>
+      <span className={`text-sm font-bold leading-tight ${mono ? "font-mono tabular-nums" : ""}`}>{value}</span>
+    </div>
+  );
+}
+
+function LegendRow({ color, label, value, pct, compact }: { color: string; label: string; value: number; pct: number; compact?: boolean }) {
+  return (
+    <div className="group/row flex items-center gap-3 text-xs">
+      <span className={`${compact ? "size-2" : "size-2.5"} rounded-sm flex-shrink-0 shadow-sm`} style={{ background: color }} />
+      <span className="font-medium truncate flex-shrink-0 max-w-[120px]">{label}</span>
+      <div className="flex-1 h-1 rounded-full bg-muted/60 overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <span className="font-mono font-semibold tabular-nums w-8 text-right">{value}</span>
+      <span className="text-muted-foreground font-mono tabular-nums w-10 text-right text-[10px]">{pct.toFixed(0)}%</span>
+    </div>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="h-full flex items-center justify-center text-xs text-muted-foreground">{label}</div>
+  );
+}
