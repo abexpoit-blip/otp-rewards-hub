@@ -67,7 +67,7 @@ function AdminPayouts() {
     );
   }
 
-  const defaultPayout = "$0.10 (STEX_DEFAULT_PAYOUT env)";
+  const defaultPayout = "৳0.10 (STEX_DEFAULT_PAYOUT env)";
   return (
     <AppShell>
       <PageHeader icon={<DollarSign className="size-6" />} title="Payout Pricing" subtitle="Per-service & per-country payout overrides. Order: (sid, country) → (sid, any) → default." />
@@ -77,7 +77,7 @@ function AdminPayouts() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <In label="Service (sid)" value={form.sid} onChange={(v) => setForm({ ...form, sid: v })} placeholder="TELEGRAM" />
           <In label="Country (optional)" value={form.country} onChange={(v) => setForm({ ...form, country: v })} placeholder="Bangladesh / blank=any" />
-          <In label="Amount (USD)" value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} placeholder="0.15" />
+          <In label="Amount (BDT)" value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} placeholder="0.15" />
           <In label="Note (optional)" value={form.note} onChange={(v) => setForm({ ...form, note: v })} placeholder="" />
           <div className="flex items-end">
             <button disabled={upsertMut.isPending} className="w-full rounded-xl accent-bg px-4 py-2 text-sm font-semibold accent-glow disabled:opacity-50 flex items-center justify-center gap-1">

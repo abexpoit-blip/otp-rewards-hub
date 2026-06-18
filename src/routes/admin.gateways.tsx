@@ -92,7 +92,7 @@ function AdminGateways() {
                   <td className="p-3">{g.name}</td>
                   <td className="p-3 font-mono text-xs">${Number(g.min_amount).toFixed(2)} – ${Number(g.max_amount).toFixed(2)}</td>
                   <td className="p-3 font-mono text-xs">{Number(g.fee_percent).toFixed(2)}% + ${Number(g.fee_flat).toFixed(2)}</td>
-                  <td className="p-3 font-mono text-xs">{g.auto_approve_under == null ? "—" : `≤ $${Number(g.auto_approve_under).toFixed(2)}`}</td>
+                  <td className="p-3 font-mono text-xs">{g.auto_approve_under == null ? "—" : `≤ ৳${Number(g.auto_approve_under).toFixed(2)}`}</td>
                   <td className="p-3">
                     <button onClick={() => toggle.mutate({ id: g.id, enabled: !g.enabled })} title="Toggle">
                       {g.enabled ? <Check className="size-4 text-emerald-600" /> : <X className="size-4 text-muted-foreground" />}

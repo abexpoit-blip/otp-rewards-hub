@@ -121,8 +121,8 @@ export const createWithdrawalFn = createServerFn({ method: "POST" })
     `;
     if (!gw) throw new Error(`Unknown gateway: ${data.gateway}`);
     if (!gw.enabled) throw new Error(`Gateway "${data.gateway}" is currently disabled`);
-    if (data.amount < Number(gw.min_amount)) throw new Error(`Minimum withdrawal for ${data.gateway} is $${Number(gw.min_amount).toFixed(2)}`);
-    if (data.amount > Number(gw.max_amount)) throw new Error(`Maximum withdrawal for ${data.gateway} is $${Number(gw.max_amount).toFixed(2)}`);
+    if (data.amount < Number(gw.min_amount)) throw new Error(`Minimum withdrawal for ${data.gateway} is ৳${Number(gw.min_amount).toFixed(2)}`);
+    if (data.amount > Number(gw.max_amount)) throw new Error(`Maximum withdrawal for ${data.gateway} is ৳${Number(gw.max_amount).toFixed(2)}`);
 
     const autoApprove = gw.auto_approve_under != null && data.amount <= Number(gw.auto_approve_under);
     const initialStatus = autoApprove ? "approved" : "pending";
@@ -134,7 +134,7 @@ export const createWithdrawalFn = createServerFn({ method: "POST" })
       `;
       if (!user) throw new Error("User not found");
       if (Number(user.balance) < data.amount) {
-        throw new Error(`Insufficient balance. Current: $${Number(user.balance).toFixed(2)}`);
+        throw new Error(`Insufficient balance. Current: ৳${Number(user.balance).toFixed(2)}`);
       }
       await tx`UPDATE users SET balance = balance - ${data.amount} WHERE id = ${auth.sub}`;
       const [wd] = await tx`

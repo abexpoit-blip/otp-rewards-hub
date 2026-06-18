@@ -82,8 +82,8 @@ function ProfilePage() {
               <p className="text-sm text-muted-foreground">{p.email}</p>
             </div>
             <div className="ml-auto flex gap-6 text-sm">
-              <Stat label="Balance" value={`$${Number(p.balance).toFixed(2)}`} />
-              <Stat label="Lifetime" value={`$${Number(p.lifetime_earning).toFixed(2)}`} />
+              <Stat label="Balance" value={`৳${Number(p.balance).toFixed(2)}`} />
+              <Stat label="Lifetime" value={`৳${Number(p.lifetime_earning).toFixed(2)}`} />
             </div>
           </div>
         ) : null}

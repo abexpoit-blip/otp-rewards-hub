@@ -98,7 +98,7 @@ function ReportPage() {
           { label: "Total Allocations", value: totals.total },
           { label: "Successful OTPs", value: totals.success },
           { label: "Expired", value: totals.expired },
-          { label: "Total Payout", value: `$${totals.payout.toFixed(2)}` },
+          { label: "Total Payout", value: `৳${totals.payout.toFixed(2)}` },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-border bg-card p-4">
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{s.label}</div>
