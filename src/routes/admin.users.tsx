@@ -104,16 +104,6 @@ function AdminUsers() {
     else setNote("");
   };
 
-  if (!isAdmin) {
-    return (<AppShell><div className="glass-panel-strong p-12 text-center"><AlertTriangle className="mx-auto size-10 text-destructive" /><h2 className="mt-3 text-xl font-bold">Admin only</h2></div></AppShell>);
-  }
-
-  const openModal = (m: NonNullable<ModalState>) => {
-    setModal(m);
-    if (m.kind === "notes") setNote(m.user.admin_notes || "");
-    else if (m.kind === "block") setNote(m.user.ban_reason || "");
-    else setNote("");
-  };
 
   return (
     <AppShell>
