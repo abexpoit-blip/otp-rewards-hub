@@ -109,6 +109,21 @@ function AdminUsers() {
     <AppShell>
       <PageHeader icon={<Users className="size-6" />} title="Users" subtitle="Manage user accounts, balance, ban/suspend, force-logout, notes." />
 
+      <div className="mb-4 rounded-xl border border-amber-400/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-rose-500/10 p-3 flex items-center gap-3">
+        <Sparkles className="size-5 text-amber-600 shrink-0" />
+        <div className="text-xs flex-1">
+          <span className="font-bold">Inactivity policy:</span> accounts with no login for <b>14 days</b> are auto-deleted by the nightly cron
+          (admins, users with balance, or pending withdrawals are skipped). Run it now if needed.
+        </div>
+        <button
+          onClick={() => { if (confirm("Run inactive-user cleanup (14 days) now?")) cleanupMut.mutate(); }}
+          disabled={cleanupMut.isPending}
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow disabled:opacity-50"
+        >
+          <Trash2 className="size-3.5" /> {cleanupMut.isPending ? "Running…" : "Run cleanup"}
+        </button>
+      </div>
+
       <div className="glass-panel-strong p-3 mb-4 flex items-center gap-2">
         <Search className="size-4 text-muted-foreground" />
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by email or name…" className="flex-1 bg-transparent text-sm outline-none" />
@@ -134,12 +149,25 @@ function AdminUsers() {
               <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No users</td></tr>
             ) : data?.map((u) => {
               const suspended = u.banned_until && new Date(u.banned_until).getTime() > Date.now();
+              const lastLoginMs = u.last_login_at ? new Date(u.last_login_at).getTime() : new Date(u.created_at).getTime();
+              const daysIdle = Math.floor((Date.now() - lastLoginMs) / 86400000);
+              const inactiveWarn = daysIdle >= 10;
               return (
                 <tr key={u.id} className="border-t border-border">
                   <td className="p-3">
                     <div className="font-medium">{u.email}</div>
                     {u.name && <div className="text-xs text-muted-foreground">{u.name}</div>}
-                    {u.admin_notes && <div title={u.admin_notes} className="mt-1 text-[10px] inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 text-amber-700 rounded font-semibold"><StickyNote className="size-2.5" /> note</div>}
+                    <div className="mt-1 flex items-center gap-1 flex-wrap">
+                      {u.admin_notes && <span title={u.admin_notes} className="text-[10px] inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 text-amber-700 rounded font-semibold"><StickyNote className="size-2.5" /> note</span>}
+                      {inactiveWarn && (
+                        <span
+                          title={`No login for ${daysIdle} days. Auto-delete at 14 days (if balance ≤ 0 and no pending withdrawals).`}
+                          className={`text-[10px] inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold ${daysIdle >= 14 ? "bg-rose-500/15 text-rose-700" : "bg-orange-500/15 text-orange-700"}`}
+                        >
+                          <Clock className="size-2.5" /> idle {daysIdle}d
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="p-3">
                     {u.status === "blocked" ? (
@@ -157,6 +185,7 @@ function AdminUsers() {
                   <td className="p-3 text-xs">{u.roles.length ? u.roles.join(", ") : <span className="text-muted-foreground">user</span>}</td>
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1 flex-wrap">
+                      <button title="Login as user (impersonate)" onClick={() => { if (confirm(`Sign in as ${u.email}? You can exit back to your admin account anytime.`)) impMut.mutate(u.id); }} className="p-1.5 rounded hover:bg-indigo-50 text-indigo-700"><UserCog className="size-4" /></button>
                       {u.status === "blocked" ? (
                         <button title="Unblock" onClick={() => mut.mutate({ user_id: u.id, action: "unblock" })} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"><CheckCircle2 className="size-4" /></button>
                       ) : (
@@ -168,14 +197,15 @@ function AdminUsers() {
                         <button title="Suspend (timed)" onClick={() => openModal({ kind: "suspend", user: u })} className="p-1.5 rounded hover:bg-amber-50 text-amber-700"><Clock className="size-4" /></button>
                       )}
                       <button title="Force logout" onClick={() => { if (confirm(`Force-logout ${u.email}? All sessions invalidated.`)) mut.mutate({ user_id: u.id, action: "force_logout" }); }} className="p-1.5 rounded hover:bg-sky-50 text-sky-700"><LogOut className="size-4" /></button>
-                      <button title="Credit" onClick={() => openModal({ kind: "credit", user: u })} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"><Plus className="size-4" /></button>
-                      <button title="Debit" onClick={() => openModal({ kind: "debit", user: u })} className="p-1.5 rounded hover:bg-rose-50 text-rose-700"><Minus className="size-4" /></button>
+                      <button title="Credit balance" onClick={() => openModal({ kind: "credit", user: u })} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"><Plus className="size-4" /></button>
+                      <button title="Debit balance" onClick={() => openModal({ kind: "debit", user: u })} className="p-1.5 rounded hover:bg-rose-50 text-rose-700"><Minus className="size-4" /></button>
                       <button title="Admin notes" onClick={() => openModal({ kind: "notes", user: u })} className="p-1.5 rounded hover:bg-accent text-amber-700"><StickyNote className="size-4" /></button>
                       {u.roles.includes("admin") ? (
                         <button title="Revoke admin" onClick={() => { if (confirm("Revoke admin from " + u.email + "?")) mut.mutate({ user_id: u.id, action: "revoke_admin" }); }} className="p-1.5 rounded hover:bg-accent"><ShieldOff className="size-4" /></button>
                       ) : (
                         <button title="Grant admin" onClick={() => { if (confirm("Grant admin to " + u.email + "?")) mut.mutate({ user_id: u.id, action: "grant_admin" }); }} className="p-1.5 rounded hover:bg-accent"><ShieldCheck className="size-4" /></button>
                       )}
+                      <button title="Delete user (permanent)" onClick={() => openModal({ kind: "delete", user: u })} className="p-1.5 rounded hover:bg-rose-50 text-rose-700"><Trash2 className="size-4" /></button>
                     </div>
                   </td>
                 </tr>
