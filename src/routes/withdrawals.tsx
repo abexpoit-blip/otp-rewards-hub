@@ -42,18 +42,22 @@ function WithdrawalsPage() {
 
   const addAddrMut = useMutation({
     mutationFn: (v: any) => callAddAddr({ data: { token: token!, ...v } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),
+    onSuccess: () => { toast.success("Address saved"); qc.invalidateQueries({ queryKey: ["addresses"] }); },
+    onError: (e: any) => toast.error(e?.message || "Failed to save address"),
   });
   const delAddrMut = useMutation({
     mutationFn: (id: string) => callDelAddr({ data: { token: token!, id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),
+    onSuccess: () => { toast.success("Address removed"); qc.invalidateQueries({ queryKey: ["addresses"] }); },
+    onError: (e: any) => toast.error(e?.message || "Failed to remove address"),
   });
   const createWdMut = useMutation({
     mutationFn: (v: any) => callCreateWd({ data: { token: token!, ...v } }),
     onSuccess: () => {
+      toast.success("Withdrawal request submitted");
       qc.invalidateQueries({ queryKey: ["withdrawals"] });
       qc.invalidateQueries({ queryKey: ["profile"] });
     },
+    onError: (e: any) => toast.error(e?.message || "Withdrawal failed"),
   });
 
   const [newAddr, setNewAddr] = useState({ gateway: "bKash", address: "", label: "" });

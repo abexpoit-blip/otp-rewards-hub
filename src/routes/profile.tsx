@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
@@ -36,17 +37,31 @@ function ProfilePage() {
 
   const updateMut = useMutation({
     mutationFn: (vars: any) => callUpdate({ data: { token: token!, ...vars } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
+    onSuccess: () => { toast.success("Profile updated"); qc.invalidateQueries({ queryKey: ["profile"] }); },
+    onError: (e: any) => toast.error(e?.message || "Update failed"),
   });
   const pwdMut = useMutation({
     mutationFn: (vars: any) => callPwd({ data: { token: token!, ...vars } }),
   });
 
-  const [form, setForm] = useState<any>({});
+  // Controlled form — initialize/sync when profile arrives so inputs reflect saved values.
+  const [form, setForm] = useState<Record<string, string>>({});
   const [pwd, setPwd] = useState({ currentPassword: "", newPassword: "" });
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
 
   const p = profile.data;
+  useEffect(() => {
+    if (!p) return;
+    setForm({
+      name: p.name ?? "",
+      phone: p.phone ?? "",
+      country: (p as any).country ?? "",
+      city: (p as any).city ?? "",
+      timezone: (p as any).timezone ?? "",
+      telegram: (p as any).telegram ?? "",
+      bio: (p as any).bio ?? "",
+    });
+  }, [p]);
 
   const onSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,17 +109,17 @@ function ProfilePage() {
         <form onSubmit={onSave} className="glass-panel p-6 xl:col-span-2">
           <h3 className="mb-4 text-lg font-bold tracking-tight">Personal Info</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Name" defaultValue={p?.name ?? ""} onChange={(v) => setForm({ ...form, name: v })} />
-            <Field label="Phone" defaultValue={p?.phone ?? ""} onChange={(v) => setForm({ ...form, phone: v })} />
-            <Field label="Country" defaultValue={p?.country ?? ""} onChange={(v) => setForm({ ...form, country: v })} />
-            <Field label="City" defaultValue={p?.city ?? ""} onChange={(v) => setForm({ ...form, city: v })} />
-            <Field label="Timezone" defaultValue={p?.timezone ?? ""} onChange={(v) => setForm({ ...form, timezone: v })} />
-            <Field label="Telegram" defaultValue={p?.telegram ?? ""} onChange={(v) => setForm({ ...form, telegram: v })} />
+            <Field label="Name" value={form.name ?? ""} onChange={(v) => setForm({ ...form, name: v })} />
+            <Field label="Phone" value={form.phone ?? ""} onChange={(v) => setForm({ ...form, phone: v })} />
+            <Field label="Country" value={form.country ?? ""} onChange={(v) => setForm({ ...form, country: v })} />
+            <Field label="City" value={form.city ?? ""} onChange={(v) => setForm({ ...form, city: v })} />
+            <Field label="Timezone" value={form.timezone ?? ""} onChange={(v) => setForm({ ...form, timezone: v })} />
+            <Field label="Telegram" value={form.telegram ?? ""} onChange={(v) => setForm({ ...form, telegram: v })} />
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Bio</label>
               <textarea
                 rows={3}
-                defaultValue={p?.bio ?? ""}
+                value={form.bio ?? ""}
                 onChange={(e) => setForm({ ...form, bio: e.target.value })}
                 className="w-full rounded-xl border border-input bg-white/70 px-3 py-2 text-sm"
               />

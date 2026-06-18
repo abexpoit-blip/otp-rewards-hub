@@ -57,14 +57,14 @@ export async function requireAuth(token: string | undefined | null): Promise<Jwt
     throw err;
   }
 
-  // Maintenance mode: only admins bypass
-  const [m] = await sql<any[]>`SELECT value FROM app_settings WHERE key = 'maintenance_mode'`;
-  if (m && (m.value === true || m.value === "true")) {
+  // Maintenance mode: only admins bypass. Use cached settings (15s TTL) instead of raw SQL on every request.
+  const { getSetting } = await import("./settings.server");
+  const maintenance = await getSetting<boolean>("maintenance_mode", false);
+  if (maintenance === true || (maintenance as any) === "true") {
     const isAdmin = payload.roles?.includes("admin");
     if (!isAdmin) {
-      const [msg] = await sql<any[]>`SELECT value FROM app_settings WHERE key = 'maintenance_message'`;
-      const text = typeof msg?.value === "string" ? msg.value : "System is under maintenance.";
-      const err: any = new Error(text);
+      const text = await getSetting<string>("maintenance_message", "System is under maintenance.");
+      const err: any = new Error(typeof text === "string" ? text : "System is under maintenance.");
       err.status = 503;
       throw err;
     }
