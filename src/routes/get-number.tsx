@@ -1,12 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
-import { liveAccessFn, allocateNumberFn, myAllocationsFn } from "@/lib/stex.functions";
-import { Hash, Copy, Loader2, Search, Globe2, ListFilter, Play, Pause, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { allocateNumberFn, myAllocationsFn } from "@/lib/stex.functions";
+import { getOtpsFn } from "@/lib/inbox.functions";
+import { Hash, Copy, Loader2, Search, Globe2, Play, Pause, RefreshCw, CheckCircle2, XCircle, Clock, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { SkeletonRows } from "@/components/Skeleton";
 
@@ -15,24 +16,17 @@ export const Route = createFileRoute("/get-number")({
   component: () => (<Protected><GetNumberPage /></Protected>),
 });
 
-type Mode = "range" | "search" | "access";
 type StatusTab = "all" | "success" | "failed" | "pending";
 
 function GetNumberPage() {
   const { token } = useAuth();
-  const navigate = useNavigate();
-  const callLive = useServerFn(liveAccessFn);
   const callAlloc = useServerFn(allocateNumberFn);
   const callMine = useServerFn(myAllocationsFn);
+  const callOtps = useServerFn(getOtpsFn);
   const seenStatusRef = useRef<Map<string, string>>(new Map());
   const initializedRef = useRef(false);
 
-  const [mode, setMode] = useState<Mode>("range");
   const [rangeInput, setRangeInput] = useState("");
-  const [query, setQuery] = useState("");
-  const [country, setCountry] = useState<string>("");
-  const [operator, setOperator] = useState<string>("");
-  const [serviceFilter, setServiceFilter] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
   const [sync, setSync] = useState(false);
   const [syncRid, setSyncRid] = useState<string>("");
@@ -43,13 +37,6 @@ function GetNumberPage() {
   const [listSearch, setListSearch] = useState("");
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: live, isFetching: liveFetching, isLoading: liveLoading, refetch: refetchLive } = useQuery({
-    queryKey: ["stex-live"],
-    queryFn: () => callLive({ data: { token: token! } }),
-    enabled: !!token,
-    refetchInterval: 30000,
-  });
-
   const { data: mine, isFetching: mineFetching, refetch: refetchMine } = useQuery({
     queryKey: ["my-allocations", statusTab, listSearch],
     queryFn: () => callMine({ data: { token: token!, status: statusTab, search: listSearch || undefined, limit: 100 } }),
@@ -57,69 +44,50 @@ function GetNumberPage() {
     refetchInterval: 5000,
   });
 
-  // Detect status transitions: pending → success/failed for user's allocations.
-  // On success, fire a success toast and auto-advance to the OTP Inbox.
+  const { data: otps } = useQuery({
+    queryKey: ["my-otps"],
+    queryFn: () => callOtps({ data: { token: token! } }),
+    enabled: !!token,
+    refetchInterval: 5000,
+  });
+
+  // Build a lookup: number → latest OTP body
+  const otpByNumber = useMemo(() => {
+    const m = new Map<string, { body: string; received_at: string }>();
+    for (const o of otps ?? []) {
+      if (!o.number) continue;
+      const keys = [o.number, "+" + o.number, o.number.replace(/^\+/, "")];
+      for (const k of keys) if (!m.has(k)) m.set(k, { body: o.body, received_at: o.received_at });
+    }
+    return m;
+  }, [otps]);
+
+  // Detect status transitions — toast in-place, no redirect.
   useEffect(() => {
     const rows = mine?.rows as Array<{ id: string; status: string; full_number?: string; national_number?: string; no_plus_number?: string }> | undefined;
     if (!rows) return;
     const map = seenStatusRef.current;
-    // First load: seed without firing toasts.
     if (!initializedRef.current) {
       for (const r of rows) map.set(r.id, r.status);
       initializedRef.current = true;
       return;
     }
-    let advanced = false;
     for (const r of rows) {
       const prev = map.get(r.id);
       if (prev && prev !== r.status) {
         const shown = r.full_number || r.national_number || r.no_plus_number || "number";
         if (r.status === "success") {
-          toast.success(`OTP received for ${shown} — opening inbox…`, { duration: 3500 });
-          if (!advanced) {
-            advanced = true;
-            setTimeout(() => navigate({ to: "/inbox" }), 800);
-          }
+          toast.success(`OTP received for ${shown}`, { duration: 4000 });
         } else if (r.status === "failed" || r.status === "expired") {
           toast.error(`Allocation ${shown} ${r.status}`);
         }
       }
       map.set(r.id, r.status);
     }
-  }, [mine, navigate]);
+  }, [mine]);
 
-  const services = live?.services ?? [];
   const counts = mine?.counts ?? { total: 0, success: 0, failed: 0, pending: 0 };
   const successRate = counts.total ? (counts.success / counts.total) * 100 : 0;
-
-  const countries = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of services) for (const r of s.ranges) {
-      const m = r.match(/^(\d{1,3})/);
-      if (m) set.add(m[1]);
-    }
-    return Array.from(set).sort();
-  }, [services]);
-
-  const filteredServices = useMemo(() => {
-    if (mode === "access") {
-      const q = serviceFilter.trim().toLowerCase();
-      if (!q) return services;
-      return services.filter((s) => s.sid.toLowerCase().includes(q));
-    }
-    if (mode === "search") {
-      const cc = country.trim();
-      const op = operator.trim();
-      return services
-        .map((s) => ({ ...s, ranges: s.ranges.filter((r) => (!cc || r.startsWith(cc)) && (!op || r.includes(op))) }))
-        .filter((s) => s.ranges.length);
-    }
-    const q = query.trim().toLowerCase();
-    if (!q) return services;
-    return services
-      .map((s) => ({ ...s, ranges: s.ranges.filter((r) => r.toLowerCase().includes(q) || s.sid.toLowerCase().includes(q)) }))
-      .filter((s) => s.ranges.length || s.sid.toLowerCase().includes(q));
-  }, [services, mode, query, country, operator, serviceFilter]);
 
   const allocate = async (rangePattern: string, sid: string) => {
     if (!token) return null;
@@ -155,12 +123,6 @@ function GetNumberPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sync, syncRid, syncSid]);
 
-  const handleClick = (rangePattern: string, sid: string) => {
-    setSyncRid(rangePattern.replace(/X+$/i, ""));
-    setSyncSid(sid);
-    allocate(rangePattern, sid);
-  };
-
   const handleDirect = () => {
     const r = rangeInput.trim();
     if (!r) { toast.error("Type a range first (e.g. 88017XXX)"); return; }
@@ -188,21 +150,16 @@ function GetNumberPage() {
     <AppShell>
       <PageHeader icon={<Hash className="size-6" />} title="Get Number" subtitle="Allocate numbers from a prefix range and watch incoming OTPs." />
 
-      {/* ===== TOP: Direct Range Input + Get Number button (STEX-style) ===== */}
+      {/* ===== TOP: Direct Range Input + Get Number button ===== */}
       <div className="glass-panel-strong p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] uppercase tracking-widest font-bold text-emerald-600">Enter Number Range</div>
           <div className="flex items-center gap-1">
-            {(["range","search","access"] as const).map((k) => (
-              <button key={k} onClick={() => setMode(k)} className={`px-3 py-1 rounded-md text-[11px] font-bold tracking-widest uppercase transition ${mode === k ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground hover:bg-accent"}`}>
-                {k}
-              </button>
-            ))}
             <button
               onClick={() => setSync((v) => !v)}
               disabled={!syncRid && !sync}
               title="SYNC MODE — auto loop the last range every 6s"
-              className={`ml-2 size-7 rounded-full flex items-center justify-center ${sync ? "bg-rose-500 text-white" : "bg-muted text-muted-foreground hover:bg-accent disabled:opacity-40"}`}
+              className={`size-7 rounded-full flex items-center justify-center ${sync ? "bg-rose-500 text-white" : "bg-muted text-muted-foreground hover:bg-accent disabled:opacity-40"}`}
             >
               {sync ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
             </button>
@@ -245,7 +202,7 @@ function GetNumberPage() {
         </div>
       </div>
 
-      {/* ===== TWO-COL: Allocations sidebar + persistent table ===== */}
+      {/* ===== TWO-COL: filters sidebar + persistent table ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
         {/* LEFT SIDEBAR — filters + counters + success rate */}
         <div className="glass-panel-strong p-4 space-y-3">
@@ -315,19 +272,21 @@ function GetNumberPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[560px]">
                 <thead>
                   <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
                     <th className="py-2 pr-4">Number Info</th>
                     <th className="py-2 pr-4">Country / Operator</th>
+                    <th className="py-2 pr-4">OTP</th>
                     <th className="py-2 text-right">Activity</th>
                   </tr>
                 </thead>
                 <tbody>
                   {mine.rows.map((r: any) => {
                     const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
+                    const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
                     return (
-                      <tr key={r.id} className="border-t border-border hover:bg-accent/30">
+                      <tr key={r.id} className="border-t border-border hover:bg-accent/30 align-top">
                         <td className="py-3 pr-4">
                           <div className="font-mono font-semibold flex items-center gap-2">
                             {shown}
@@ -347,7 +306,30 @@ function GetNumberPage() {
                             <Globe2 className="size-3" /> {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}
                           </div>
                         </td>
-                        <td className="py-3 text-right text-xs text-muted-foreground">
+                        <td className="py-3 pr-4 max-w-[320px]">
+                          {otp ? (
+                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
+                              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-600 font-bold mb-1">
+                                <MessageSquare className="size-3" /> OTP
+                                <button
+                                  onClick={() => { navigator.clipboard.writeText(otp.body); toast.success("OTP copied"); }}
+                                  className="ml-auto opacity-60 hover:opacity-100"
+                                  title="Copy OTP"
+                                >
+                                  <Copy className="size-3" />
+                                </button>
+                              </div>
+                              <div className="text-xs font-mono break-words whitespace-pre-wrap">{otp.body}</div>
+                            </div>
+                          ) : r.status === "pending" ? (
+                            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                              <Loader2 className="size-3 animate-spin" /> Waiting…
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 text-right text-xs text-muted-foreground whitespace-nowrap">
                           {timeAgo(r.created_at)}
                         </td>
                       </tr>
@@ -358,92 +340,6 @@ function GetNumberPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* ===== Live access services grid (range picker) ===== */}
-      <div className="glass-panel-strong p-4 mt-4">
-        {mode === "range" && (
-          <div className="flex items-center gap-2 mb-3">
-            <Search className="size-4 text-muted-foreground" />
-            <input
-              placeholder="Filter ranges or services (e.g. 8801, TELEGRAM)"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-sm outline-none"
-            />
-          </div>
-        )}
-        {mode === "search" && (
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Country code</label>
-              <select value={country} onChange={(e) => setCountry(e.target.value)} className="mt-1 w-full bg-background border border-border rounded-md px-3 py-2 text-sm">
-                <option value="">Any country</option>
-                {countries.map((c) => <option key={c} value={c}>+{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Operator digits</label>
-              <input
-                placeholder="e.g. 17, 88"
-                value={operator}
-                onChange={(e) => setOperator(e.target.value)}
-                className="mt-1 w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono"
-              />
-            </div>
-          </div>
-        )}
-        {mode === "access" && (
-          <div className="flex items-center gap-2 mb-3">
-            <ListFilter className="size-4 text-muted-foreground" />
-            <input
-              placeholder="Filter by service: TELEGRAM, FB, WHATSAPP…"
-              value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
-              className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-sm outline-none"
-            />
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold flex items-center gap-2">
-            <Globe2 className="size-4" /> Live access ({filteredServices.length} services)
-          </h3>
-          <button onClick={() => refetchLive()} disabled={liveFetching} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
-            <RefreshCw className={`size-3 ${liveFetching ? "animate-spin" : ""}`} /> {liveFetching ? "Refreshing…" : "Refresh"}
-          </button>
-        </div>
-        {liveLoading ? (
-          <SkeletonRows rows={4} />
-        ) : filteredServices.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-12 text-center">No services match your filter.</p>
-        ) : (
-          <div className="space-y-5">
-            {filteredServices.map((s) => (
-              <div key={s.sid}>
-                <div className="mb-2 flex items-baseline gap-2">
-                  <h4 className="font-bold text-sm accent-text">{s.sid}</h4>
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    last hit {new Date(s.last_at).toLocaleTimeString()} · {s.ranges.length} ranges
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {s.ranges.map((r) => (
-                    <button
-                      key={r}
-                      disabled={!!busy}
-                      onClick={() => handleClick(r, s.sid)}
-                      className="rounded-md border border-border bg-background px-3 py-1.5 font-mono text-xs hover:bg-emerald-500/10 hover:border-emerald-500/40 disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {busy === r ? <Loader2 className="size-3 animate-spin" /> : null}
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </AppShell>
   );
