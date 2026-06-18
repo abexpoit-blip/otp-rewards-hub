@@ -27,10 +27,15 @@ function WithdrawalsPage() {
   const callWds = useServerFn(listWithdrawalsFn);
   const callCreateWd = useServerFn(createWithdrawalFn);
   const callProfile = useServerFn(getProfileFn);
+  const callGateways = useServerFn(listEnabledGatewaysFn);
 
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => callProfile({ data: { token: token! } }), enabled: !!token });
   const addrs = useQuery({ queryKey: ["addresses"], queryFn: () => callAddrs({ data: { token: token! } }), enabled: !!token });
   const wds = useQuery({ queryKey: ["withdrawals"], queryFn: () => callWds({ data: { token: token! } }), enabled: !!token });
+  const gateways = useQuery({ queryKey: ["gateways"], queryFn: () => callGateways({ data: { token: token! } }), enabled: !!token });
+  const gwOptions = (gateways.data ?? []).map((g) => g.code);
+  const gwOptionsSafe = gwOptions.length ? gwOptions : ["USDT-TRC20"];
+  const selectedGw = (gateways.data ?? []).find((g) => g.code === newWd.gateway);
 
   const addAddrMut = useMutation({
     mutationFn: (v: any) => callAddAddr({ data: { token: token!, ...v } }),
