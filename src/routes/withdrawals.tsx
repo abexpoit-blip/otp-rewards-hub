@@ -9,6 +9,7 @@ import {
   listAddressesFn, addAddressFn, deleteAddressFn,
   listWithdrawalsFn, createWithdrawalFn,
 } from "@/lib/withdrawals.functions";
+import { listEnabledGatewaysFn } from "@/lib/gateways.functions";
 import { getProfileFn } from "@/lib/profile.functions";
 import { Wallet, Plus, Trash2 } from "lucide-react";
 
@@ -16,8 +17,6 @@ export const Route = createFileRoute("/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Nexus SMS" }] }),
   component: () => (<Protected><WithdrawalsPage /></Protected>),
 });
-
-const GATEWAYS = ["USDT-TRC20", "USDT-BEP20", "USDT-SOL", "bKash", "Nagad", "Bank"];
 
 function WithdrawalsPage() {
   const { token } = useAuth();
