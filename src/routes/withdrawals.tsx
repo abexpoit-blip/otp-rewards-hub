@@ -11,7 +11,8 @@ import {
 } from "@/lib/withdrawals.functions";
 import { listEnabledGatewaysFn } from "@/lib/gateways.functions";
 import { getProfileFn } from "@/lib/profile.functions";
-import { Wallet, Plus, Trash2 } from "lucide-react";
+import { getPublicSettingsFn } from "@/lib/settings.functions";
+import { Wallet, Plus, Trash2, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Nexus SMS" }] }),
