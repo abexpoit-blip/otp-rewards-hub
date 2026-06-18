@@ -279,6 +279,99 @@ export const adminUserActionFn = createServerFn({ method: "POST" })
   });
 
 // =====================================================================
+// Delete user (hard delete; cascades to sessions/allocations/api_keys/etc).
+// Safety: cannot delete yourself; cannot delete admins; refuses if pending withdrawal.
+// =====================================================================
+const deleteUserSchema = z.object({
+  token: z.string().min(1),
+  user_id: z.string().uuid(),
+  confirm_email: z.string().email(),
+});
+
+export const adminDeleteUserFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => deleteUserSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; email: string }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+
+    if (data.user_id === admin.sub) throw new Error("You cannot delete your own account.");
+
+    const [u] = await sql<any[]>`SELECT id, email::text AS email FROM users WHERE id = ${data.user_id}`;
+    if (!u) throw new Error("User not found.");
+    if (u.email.toLowerCase() !== data.confirm_email.toLowerCase()) {
+      throw new Error("Email confirmation does not match.");
+    }
+    const [isAdmin] = await sql<{ ok: boolean }[]>`SELECT has_role(${data.user_id}::uuid, 'admin') AS ok`;
+    if (isAdmin?.ok) throw new Error("Refuse: target is an admin. Revoke admin first.");
+
+    const [pending] = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM withdrawals
+      WHERE user_id = ${data.user_id} AND status IN ('pending','approved')
+    `;
+    if ((pending?.n ?? 0) > 0) throw new Error("Refuse: user has pending/approved withdrawals.");
+
+    await sql`DELETE FROM users WHERE id = ${data.user_id}`;
+    await audit(admin.sub, "user.delete", { type: "user", id: data.user_id }, { email: u.email });
+    return { ok: true as const, email: u.email };
+  });
+
+// =====================================================================
+// Impersonate — admin gets a token for another user. Audited.
+// =====================================================================
+const impersonateSchema = z.object({ token: z.string().min(1), user_id: z.string().uuid() });
+
+export const adminImpersonateFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => impersonateSchema.parse(d))
+  .handler(async ({ data }): Promise<{ token: string; user: any }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { signToken } = await import("./jwt.server");
+    const { audit } = await import("./audit.server");
+
+    if (data.user_id === admin.sub) throw new Error("You are already this user.");
+
+    const [u] = await sql<any[]>`
+      SELECT id, email::text AS email, name, phone,
+             balance::text AS balance, lifetime_earning::text AS lifetime_earning
+      FROM users WHERE id = ${data.user_id}
+    `;
+    if (!u) throw new Error("User not found.");
+
+    const roleRows = await sql<{ role: string }[]>`
+      SELECT role FROM user_roles WHERE user_id = ${data.user_id}
+    `;
+    const roles = roleRows.map((r) => r.role);
+    if (roles.length === 0) roles.push("user");
+
+    const token = signToken({ sub: u.id, email: u.email, roles });
+    await audit(admin.sub, "user.impersonate", { type: "user", id: data.user_id }, { email: u.email });
+    return { token, user: { ...u, roles } };
+  });
+
+// =====================================================================
+// Manual cleanup trigger — same SQL the cron job runs.
+// =====================================================================
+const cleanupSchema = z.object({ token: z.string().min(1), days: z.number().int().min(7).max(365).optional() });
+
+export const adminCleanupInactiveFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => cleanupSchema.parse(d))
+  .handler(async ({ data }): Promise<{ deleted: number; days: number }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+    const days = data.days ?? 14;
+    const [r] = await sql<{ deleted: number }[]>`
+      SELECT cleanup_inactive_users(${days})::int AS deleted
+    `;
+    await audit(admin.sub, "users.cleanup_inactive", { type: "system", id: "cleanup" }, { days, deleted: r?.deleted ?? 0 });
+    return { deleted: r?.deleted ?? 0, days };
+  });
+
+// =====================================================================
 // Settings — get / set (secrets are masked on read)
 // =====================================================================
 export const adminGetSettingsFn = createServerFn({ method: "POST" })
