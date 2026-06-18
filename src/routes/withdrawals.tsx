@@ -61,13 +61,26 @@ function WithdrawalsPage() {
   const [wdMsg, setWdMsg] = useState<string | null>(null);
   const selectedGw = (gateways.data ?? []).find((g) => g.code === newWd.gateway);
 
+  const amtNum = parseFloat(newWd.amount);
+  const balance = Number(profile.data?.balance ?? 0);
+  const effectiveMin = Math.max(globalMin, Number(selectedGw?.min_amount ?? 0));
+  const effectiveMax = Number(selectedGw?.max_amount ?? Infinity);
+  const amountError: string | null =
+    !newWd.amount ? null
+    : isNaN(amtNum) || amtNum <= 0 ? "সঠিক amount দিন।"
+    : amtNum < effectiveMin ? `সর্বনিম্ন withdraw ৳${effectiveMin.toFixed(2)} BDT — আপনি দিয়েছেন ৳${amtNum.toFixed(2)}।`
+    : amtNum > effectiveMax ? `সর্বোচ্চ ৳${effectiveMax.toFixed(2)} BDT অনুমোদিত।`
+    : amtNum > balance ? `Insufficient balance. Available: ৳${balance.toFixed(2)} BDT।`
+    : null;
+  const canSubmit = !amountError && !!newWd.amount && !!newWd.address && !createWdMut.isPending;
+
   const onCreateWd = async (e: React.FormEvent) => {
     e.preventDefault();
     setWdMsg(null);
     try {
-      const amt = parseFloat(newWd.amount);
-      if (!amt || amt <= 0) throw new Error("Enter a valid amount");
-      await createWdMut.mutateAsync({ ...newWd, amount: amt });
+      if (amountError) throw new Error(amountError);
+      if (!amtNum || amtNum <= 0) throw new Error("Enter a valid amount");
+      await createWdMut.mutateAsync({ ...newWd, amount: amtNum });
       setNewWd({ gateway: "bKash", address: "", amount: "" });
       setWdMsg("Withdrawal request submitted ✓");
     } catch (e: any) {
