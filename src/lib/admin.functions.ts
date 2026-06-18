@@ -206,6 +206,7 @@ export const adminListUsersFn = createServerFn({ method: "POST" })
       SELECT u.id, u.email::text AS email, u.name, u.status::text AS status,
              u.balance::text AS balance, u.lifetime_earning::text AS lifetime_earning,
              u.created_at, u.last_login_at,
+             u.banned_until, u.ban_reason, u.admin_notes,
              COALESCE(ARRAY_AGG(ur.role::text) FILTER (WHERE ur.role IS NOT NULL), '{}') AS roles,
              (SELECT COUNT(*)::int FROM allocations a WHERE a.user_id = u.id) AS total_allocations,
              (SELECT COUNT(*)::int FROM allocations a WHERE a.user_id = u.id AND a.status='success') AS success_allocations
@@ -220,15 +221,21 @@ export const adminListUsersFn = createServerFn({ method: "POST" })
       ...r,
       created_at: r.created_at.toISOString(),
       last_login_at: r.last_login_at ? r.last_login_at.toISOString() : null,
+      banned_until: r.banned_until ? r.banned_until.toISOString() : null,
     })) as AdminUserRow[];
   });
 
 const userActionSchema = z.object({
   token: z.string().min(1),
   user_id: z.string().uuid(),
-  action: z.enum(["block", "unblock", "credit", "debit", "grant_admin", "revoke_admin"]),
+  action: z.enum([
+    "block", "unblock", "credit", "debit",
+    "grant_admin", "revoke_admin",
+    "suspend", "unsuspend", "force_logout", "set_notes",
+  ]),
   amount: z.number().optional(),
-  note: z.string().max(300).optional(),
+  note: z.string().max(2000).optional(),
+  days: z.number().int().min(1).max(3650).optional(),
 });
 
 export const adminUserActionFn = createServerFn({ method: "POST" })
@@ -241,7 +248,18 @@ export const adminUserActionFn = createServerFn({ method: "POST" })
 
     if (data.action === "block" || data.action === "unblock") {
       const status = data.action === "block" ? "blocked" : "active";
-      await sql`UPDATE users SET status = ${status}::user_status WHERE id = ${data.user_id}`;
+      const reason = data.action === "block" ? (data.note ?? null) : null;
+      await sql`UPDATE users SET status = ${status}::user_status, ban_reason = ${reason} WHERE id = ${data.user_id}`;
+    } else if (data.action === "suspend") {
+      const days = data.days ?? 1;
+      await sql`UPDATE users SET banned_until = now() + (${days} || ' days')::interval, ban_reason = ${data.note ?? null} WHERE id = ${data.user_id}`;
+    } else if (data.action === "unsuspend") {
+      await sql`UPDATE users SET banned_until = NULL, ban_reason = NULL WHERE id = ${data.user_id}`;
+    } else if (data.action === "force_logout") {
+      if (data.user_id === admin.sub) throw new Error("You cannot force-logout yourself");
+      await sql`UPDATE users SET tokens_invalidated_at = now() WHERE id = ${data.user_id}`;
+    } else if (data.action === "set_notes") {
+      await sql`UPDATE users SET admin_notes = ${data.note ?? null} WHERE id = ${data.user_id}`;
     } else if (data.action === "credit" || data.action === "debit") {
       const amt = Number(data.amount ?? 0);
       if (!isFinite(amt) || amt <= 0) throw new Error("Invalid amount");
@@ -253,7 +271,7 @@ export const adminUserActionFn = createServerFn({ method: "POST" })
       if (data.user_id === admin.sub) throw new Error("You cannot revoke your own admin role");
       await sql`DELETE FROM user_roles WHERE user_id = ${data.user_id} AND role = 'admin'`;
     }
-    await audit(admin.sub, `user.${data.action}`, { type: "user", id: data.user_id }, { amount: data.amount, note: data.note });
+    await audit(admin.sub, `user.${data.action}`, { type: "user", id: data.user_id }, { amount: data.amount, note: data.note, days: data.days });
     return { ok: true as const };
   });
 
