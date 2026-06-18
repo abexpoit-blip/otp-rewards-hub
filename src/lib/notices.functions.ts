@@ -156,15 +156,19 @@ export const listActiveNoticesFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<NoticeRow[]> => {
     // requireAuth already enforces maintenance + ban; we just need a valid session
     const { requireAuth } = await import("./auth-guard.server");
-    await requireAuth(data.token);
+    const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
     const rows = await sql<any[]>`
       SELECT id, type::text AS type, priority::text AS priority,
-             title, body, active, starts_at, ends_at, created_at, updated_at
+             title, body, active, starts_at, ends_at, target_user_ids,
+             created_at, updated_at
       FROM notices
       WHERE active = true
         AND (starts_at IS NULL OR starts_at <= now())
         AND (ends_at   IS NULL OR ends_at   >= now())
+        AND (target_user_ids IS NULL
+             OR cardinality(target_user_ids) = 0
+             OR ${auth.sub}::uuid = ANY(target_user_ids))
       ORDER BY
         CASE priority WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
         created_at DESC
@@ -172,6 +176,7 @@ export const listActiveNoticesFn = createServerFn({ method: "POST" })
     `;
     return rows.map((r) => ({
       ...r,
+      target_user_ids: r.target_user_ids ?? null,
       starts_at: r.starts_at ? r.starts_at.toISOString() : null,
       ends_at: r.ends_at ? r.ends_at.toISOString() : null,
       created_at: r.created_at.toISOString(),
