@@ -45,12 +45,20 @@ export const adminListNoticesFn = createServerFn({ method: "POST" })
     await requireAdmin(data.token);
     const { sql } = await import("./db.server");
     const rows = await sql<any[]>`
-      SELECT id, type::text AS type, priority::text AS priority,
-             title, body, active, starts_at, ends_at, created_at, updated_at
-      FROM notices ORDER BY created_at DESC LIMIT 200
+      SELECT n.id, n.type::text AS type, n.priority::text AS priority,
+             n.title, n.body, n.active, n.starts_at, n.ends_at,
+             n.target_user_ids, n.created_at, n.updated_at,
+             COALESCE(
+               (SELECT array_agg(u.email::text)
+                FROM users u WHERE u.id = ANY(n.target_user_ids)),
+               '{}'
+             ) AS target_emails
+      FROM notices n ORDER BY n.created_at DESC LIMIT 200
     `;
     return rows.map((r) => ({
       ...r,
+      target_user_ids: r.target_user_ids ?? null,
+      target_emails: r.target_emails ?? [],
       starts_at: r.starts_at ? r.starts_at.toISOString() : null,
       ends_at: r.ends_at ? r.ends_at.toISOString() : null,
       created_at: r.created_at.toISOString(),
