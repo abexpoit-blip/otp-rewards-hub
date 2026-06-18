@@ -1,14 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
-import { adminListUsersFn, adminUserActionFn, type AdminUserRow } from "@/lib/admin.functions";
+import {
+  adminListUsersFn, adminUserActionFn, adminDeleteUserFn,
+  adminImpersonateFn, adminCleanupInactiveFn, type AdminUserRow,
+} from "@/lib/admin.functions";
 import {
   Users, Ban, CheckCircle2, Plus, Minus, ShieldCheck, ShieldOff, Search, AlertTriangle,
-  Clock, LogOut, StickyNote,
+  Clock, LogOut, StickyNote, Trash2, UserCog, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,13 +25,18 @@ type ModalState =
   | { kind: "suspend"; user: AdminUserRow }
   | { kind: "block"; user: AdminUserRow }
   | { kind: "notes"; user: AdminUserRow }
+  | { kind: "delete"; user: AdminUserRow }
   | null;
 
 function AdminUsers() {
-  const { user, token } = useAuth();
+  const { user, token, enterImpersonation } = useAuth();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const callList = useServerFn(adminListUsersFn);
   const callAction = useServerFn(adminUserActionFn);
+  const callDelete = useServerFn(adminDeleteUserFn);
+  const callImpersonate = useServerFn(adminImpersonateFn);
+  const callCleanup = useServerFn(adminCleanupInactiveFn);
   const isAdmin = user?.roles?.includes("admin");
 
   const [search, setSearch] = useState("");
@@ -36,6 +44,7 @@ function AdminUsers() {
   const [amount, setAmount] = useState("");
   const [days, setDays] = useState("1");
   const [note, setNote] = useState("");
+  const [deleteEmail, setDeleteEmail] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users", search],
@@ -52,6 +61,48 @@ function AdminUsers() {
     },
     onError: (e: any) => toast.error(e?.message || "Failed"),
   });
+
+  const delMut = useMutation({
+    mutationFn: () =>
+      callDelete({ data: { token: token!, user_id: (modal as any).user.id, confirm_email: deleteEmail.trim() } }),
+    onSuccess: (r) => {
+      toast.success(`Deleted ${r.email}`);
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      setModal(null); setDeleteEmail("");
+    },
+    onError: (e: any) => toast.error(e?.message || "Delete failed"),
+  });
+
+  const impMut = useMutation({
+    mutationFn: (uid: string) => callImpersonate({ data: { token: token!, user_id: uid } }),
+    onSuccess: (r) => {
+      enterImpersonation(r.token, r.user);
+      toast.success(`Now viewing as ${r.user.email}`);
+      navigate({ to: "/" });
+    },
+    onError: (e: any) => toast.error(e?.message || "Impersonation failed"),
+  });
+
+  const cleanupMut = useMutation({
+    mutationFn: () => callCleanup({ data: { token: token!, days: 14 } }),
+    onSuccess: (r) => {
+      toast.success(`Cleanup done · ${r.deleted} inactive account(s) removed (${r.days}d)`);
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Cleanup failed"),
+  });
+
+  if (!isAdmin) {
+    return (<AppShell><div className="glass-panel-strong p-12 text-center"><AlertTriangle className="mx-auto size-10 text-destructive" /><h2 className="mt-3 text-xl font-bold">Admin only</h2></div></AppShell>);
+  }
+
+  const openModal = (m: NonNullable<ModalState>) => {
+    setModal(m);
+    if (m.kind === "notes") setNote(m.user.admin_notes || "");
+    else if (m.kind === "block") setNote(m.user.ban_reason || "");
+    else if (m.kind === "delete") setDeleteEmail("");
+    else setNote("");
+  };
 
   if (!isAdmin) {
     return (<AppShell><div className="glass-panel-strong p-12 text-center"><AlertTriangle className="mx-auto size-10 text-destructive" /><h2 className="mt-3 text-xl font-bold">Admin only</h2></div></AppShell>);
