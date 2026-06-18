@@ -6,18 +6,28 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { consoleFeedFn } from "@/lib/stex.functions";
-import { TerminalSquare, Search, RefreshCw, Smartphone, Radio } from "lucide-react";
+import { TerminalSquare, Search, RefreshCw, Smartphone, Radio, Activity, TrendingUp } from "lucide-react";
 import {
   Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { SkeletonFeedRows, SkeletonRows } from "@/components/Skeleton";
+import { SkeletonFeedRows } from "@/components/Skeleton";
 
 export const Route = createFileRoute("/console")({
   head: () => ({ meta: [{ title: "Console — Nexus SMS" }] }),
   component: () => (<Protected><ConsolePage /></Protected>),
 });
 
-const PALETTE = ["#10b981", "#3b82f6", "#a855f7", "#f59e0b", "#ec4899", "#0ea5e9", "#64748b", "#dc2626"];
+// Indigo-led palette aligned with --primary / --chart-* tokens (oklch).
+const PALETTE = [
+  "hsl(221 83% 53%)",   // indigo (primary)
+  "oklch(0.65 0.2 277)",// violet
+  "oklch(0.7 0.18 195)",// cyan
+  "oklch(0.78 0.17 75)",// amber
+  "oklch(0.65 0.22 25)",// rose
+  "oklch(0.7 0.15 155)",// emerald
+  "oklch(0.6 0.18 320)",// magenta
+  "oklch(0.55 0.04 257)" // slate
+];
 const REFRESH_MS = 5000;
 
 function ConsolePage() {
