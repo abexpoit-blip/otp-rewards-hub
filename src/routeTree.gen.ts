@@ -31,6 +31,7 @@ import { Route as AdminReportRouteImport } from './routes/admin.report'
 import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
 import { Route as AdminOtpsRouteImport } from './routes/admin.otps'
 import { Route as AdminNoticesRouteImport } from './routes/admin.notices'
+import { Route as AdminMaintenanceRouteImport } from './routes/admin.maintenance'
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAllocationsRouteImport } from './routes/admin.allocations'
@@ -148,6 +149,11 @@ const AdminNoticesRoute = AdminNoticesRouteImport.update({
   path: '/admin/notices',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminMaintenanceRoute = AdminMaintenanceRouteImport.update({
+  id: '/admin/maintenance',
+  path: '/admin/maintenance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminGatewaysRoute = AdminGatewaysRouteImport.update({
   id: '/admin/gateways',
   path: '/admin/gateways',
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/otps': typeof AdminOtpsRoute
   '/admin/payouts': typeof AdminPayoutsRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/otps': typeof AdminOtpsRoute
   '/admin/payouts': typeof AdminPayoutsRoute
@@ -259,6 +267,7 @@ export interface FileRoutesById {
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/gateways': typeof AdminGatewaysRoute
+  '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/otps': typeof AdminOtpsRoute
   '/admin/payouts': typeof AdminPayoutsRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/admin/allocations'
     | '/admin/audit'
     | '/admin/gateways'
+    | '/admin/maintenance'
     | '/admin/notices'
     | '/admin/otps'
     | '/admin/payouts'
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/admin/allocations'
     | '/admin/audit'
     | '/admin/gateways'
+    | '/admin/maintenance'
     | '/admin/notices'
     | '/admin/otps'
     | '/admin/payouts'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/admin/allocations'
     | '/admin/audit'
     | '/admin/gateways'
+    | '/admin/maintenance'
     | '/admin/notices'
     | '/admin/otps'
     | '/admin/payouts'
@@ -382,6 +394,7 @@ export interface RootRouteChildren {
   AdminAllocationsRoute: typeof AdminAllocationsRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
+  AdminMaintenanceRoute: typeof AdminMaintenanceRoute
   AdminNoticesRoute: typeof AdminNoticesRoute
   AdminOtpsRoute: typeof AdminOtpsRoute
   AdminPayoutsRoute: typeof AdminPayoutsRoute
@@ -552,6 +565,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNoticesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/maintenance': {
+      id: '/admin/maintenance'
+      path: '/admin/maintenance'
+      fullPath: '/admin/maintenance'
+      preLoaderRoute: typeof AdminMaintenanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/gateways': {
       id: '/admin/gateways'
       path: '/admin/gateways'
@@ -614,6 +634,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAllocationsRoute: AdminAllocationsRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
+  AdminMaintenanceRoute: AdminMaintenanceRoute,
   AdminNoticesRoute: AdminNoticesRoute,
   AdminOtpsRoute: AdminOtpsRoute,
   AdminPayoutsRoute: AdminPayoutsRoute,

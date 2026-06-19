@@ -64,6 +64,7 @@ const adminSection: NavSection = {
     { to: "/admin", icon: ShieldCheck, label: "Admin Home" },
     { to: "/admin/users", icon: Users, label: "Users" },
     { to: "/admin/notices", icon: Radio, label: "Notices" },
+    { to: "/admin/maintenance", icon: Settings, label: "Maintenance" },
     { to: "/admin/audit", icon: Activity, label: "Audit Log" },
     { to: "/admin/allocations", icon: Activity, label: "Allocations" },
     { to: "/admin/otps", icon: MessageSquare, label: "OTPs Received" },
