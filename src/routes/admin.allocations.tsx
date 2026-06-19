@@ -207,14 +207,14 @@ function AdminAllocations() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Loading…</td></tr>
-            ) : !data || data.length === 0 ? (
+            ) : !data || data.rows.length === 0 ? (
               <tr><td colSpan={9} className="p-10 text-center text-muted-foreground">No allocations match this filter.</td></tr>
-            ) : data.map((a) => (
+            ) : data.rows.map((a) => (
               <tr key={a.id} className="border-t border-border/40 transition-colors hover:bg-muted/30">
                 <td className="p-3 font-mono text-xs">{a.full_number}</td>
                 <td className="p-3 text-xs text-muted-foreground">
                   <button
-                    onClick={() => setSearch({ q: a.user_email })}
+                    onClick={() => setSearch({ q: a.user_email, page: 1 })}
                     className="hover:underline"
                     title="Filter by this user"
                   >
@@ -257,10 +257,15 @@ function AdminAllocations() {
             ))}
           </tbody>
         </table>
-        {data && data.length > 0 && (
-          <div className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
-            Showing {data.length} record{data.length === 1 ? "" : "s"}.
-          </div>
+        {data && (
+          <Pager
+            page={page}
+            pageSize={limit}
+            total={data.total}
+            shown={data.rows.length}
+            onPage={(p) => setSearch({ page: p })}
+            onPageSize={(s) => setSearch({ pageSize: s as any, page: 1 })}
+          />
         )}
       </div>
     </AppShell>
