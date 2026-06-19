@@ -437,6 +437,7 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     token: z.string().min(1),
     status: z.enum(["all", "pending", "success", "expired", "failed"]).optional(),
+    range: z.enum(["all", "today", "7d", "30d"]).optional(),
     search: z.string().optional(),
     limit: z.number().int().min(10).max(500).optional(),
   }).parse(d))
@@ -444,9 +445,12 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-guard.server");
     await requireAdmin(data.token);
     const { sql } = await import("./db.server");
+    // Sweep stale pendings so this view is always fresh.
+    await sql`UPDATE allocations SET status='expired' WHERE status='pending' AND expires_at < now()`;
     const status = data.status ?? "all";
+    const range = data.range ?? "all";
     const q = `%${(data.search ?? "").trim().toLowerCase()}%`;
-    const limit = data.limit ?? 100;
+    const limit = data.limit ?? 200;
     const rows = await sql<any[]>`
       SELECT a.id, a.user_id, u.email::text AS user_email,
              a.full_number, a.country, a.operator, a.sid, a.status::text AS status,
@@ -454,6 +458,10 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
              a.created_at, a.expires_at, a.completed_at
       FROM allocations a JOIN users u ON u.id = a.user_id
       WHERE (${status} = 'all' OR a.status::text = ${status})
+        AND (${range} = 'all'
+             OR (${range} = 'today' AND a.created_at >= date_trunc('day', now()))
+             OR (${range} = '7d'    AND a.created_at >= now() - interval '7 days')
+             OR (${range} = '30d'   AND a.created_at >= now() - interval '30 days'))
         AND (${data.search ?? ""} = '' OR lower(u.email::text) LIKE ${q}
              OR a.full_number LIKE ${q} OR COALESCE(a.sid,'') ILIKE ${q})
       ORDER BY a.created_at DESC
