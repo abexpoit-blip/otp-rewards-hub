@@ -485,27 +485,19 @@ export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
 // =====================================================================
 export type AdminDashboardStats = {
   users: {
-    total: number;
-    active: number;
-    blocked: number;
-    suspended: number;
-    new_today: number;
-    new_7d: number;
+    total: number; active: number; blocked: number; suspended: number;
+    new_today: number; new_7d: number;
   };
-  otps: {
-    total: number;
-    success: number;
-    pending: number;
-    expired: number;
-    today: number;
-    success_today: number;
+  // "numbers" = allocations issued to users (a number request).
+  numbers: {
+    total: number; success: number; pending: number; expired: number;
+    today: number; success_today: number;
   };
+  // "otps_received" = actual SMS messages that arrived from STEX.
+  otps_received: { total: number; today: number };
   money: {
-    total_earned: string;       // sum lifetime_earning
-    total_balance: string;      // sum users.balance
-    earned_today: string;       // sum payout_amount today (success)
-    pending_withdraw: string;   // sum withdrawals pending
-    paid_withdraw: string;      // sum withdrawals paid
+    total_earned: string; total_balance: string; earned_today: string;
+    pending_withdraw: string; paid_withdraw: string;
   };
   top_users: Array<{
     id: string; email: string; name: string | null;
