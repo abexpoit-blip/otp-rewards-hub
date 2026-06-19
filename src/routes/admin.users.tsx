@@ -189,28 +189,79 @@ function AdminUsers() {
                   <td className="p-3 text-right text-xs">{u.success_allocations}/{u.total_allocations}</td>
                   <td className="p-3 text-xs">{u.roles.length ? u.roles.join(", ") : <span className="text-muted-foreground">user</span>}</td>
                   <td className="p-3">
-                    <div className="flex items-center justify-end gap-1 flex-wrap">
-                      <button title="Login as user (impersonate)" onClick={() => { if (confirm(`Sign in as ${u.email}? You can exit back to your admin account anytime.`)) impMut.mutate(u.id); }} className="p-1.5 rounded hover:bg-indigo-50 text-indigo-700"><UserCog className="size-4" /></button>
-                      {u.status === "blocked" ? (
-                        <button title="Unblock" onClick={() => mut.mutate({ user_id: u.id, action: "unblock" })} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"><CheckCircle2 className="size-4" /></button>
-                      ) : (
-                        <button title="Block (permanent)" onClick={() => openModal({ kind: "block", user: u })} className="p-1.5 rounded hover:bg-rose-50 text-rose-700"><Ban className="size-4" /></button>
-                      )}
-                      {suspended ? (
-                        <button title="Unsuspend" onClick={() => mut.mutate({ user_id: u.id, action: "unsuspend" })} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"><CheckCircle2 className="size-4" /></button>
-                      ) : (
-                        <button title="Suspend (timed)" onClick={() => openModal({ kind: "suspend", user: u })} className="p-1.5 rounded hover:bg-amber-50 text-amber-700"><Clock className="size-4" /></button>
-                      )}
-                      <button title="Force logout" onClick={() => { if (confirm(`Force-logout ${u.email}? All sessions invalidated.`)) mut.mutate({ user_id: u.id, action: "force_logout" }); }} className="p-1.5 rounded hover:bg-sky-50 text-sky-700"><LogOut className="size-4" /></button>
-                      <button title="Credit balance" onClick={() => openModal({ kind: "credit", user: u })} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"><Plus className="size-4" /></button>
-                      <button title="Debit balance" onClick={() => openModal({ kind: "debit", user: u })} className="p-1.5 rounded hover:bg-rose-50 text-rose-700"><Minus className="size-4" /></button>
-                      <button title="Admin notes" onClick={() => openModal({ kind: "notes", user: u })} className="p-1.5 rounded hover:bg-accent text-amber-700"><StickyNote className="size-4" /></button>
-                      {u.roles.includes("admin") ? (
-                        <button title="Revoke admin" onClick={() => { if (confirm("Revoke admin from " + u.email + "?")) mut.mutate({ user_id: u.id, action: "revoke_admin" }); }} className="p-1.5 rounded hover:bg-accent"><ShieldOff className="size-4" /></button>
-                      ) : (
-                        <button title="Grant admin" onClick={() => { if (confirm("Grant admin to " + u.email + "?")) mut.mutate({ user_id: u.id, action: "grant_admin" }); }} className="p-1.5 rounded hover:bg-accent"><ShieldCheck className="size-4" /></button>
-                      )}
-                      <button title="Delete user (permanent)" onClick={() => openModal({ kind: "delete", user: u })} className="p-1.5 rounded hover:bg-rose-50 text-rose-700"><Trash2 className="size-4" /></button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-8 gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/60"
+                        onClick={() => { if (confirm(`Sign in as ${u.email}? You can exit back to your admin account anytime.`)) impMut.mutate(u.id); }}
+                      >
+                        <UserCog className="size-3.5" /> Login as user
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline" className="h-8 gap-1.5">
+                            <MoreHorizontal className="size-3.5" /> Actions
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuLabel className="text-xs">Status</DropdownMenuLabel>
+                          {u.status === "blocked" ? (
+                            <DropdownMenuItem onClick={() => mut.mutate({ user_id: u.id, action: "unblock" })} className="text-emerald-700">
+                              <CheckCircle2 className="size-4" /> Unblock user
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => openModal({ kind: "block", user: u })} className="text-rose-700">
+                              <Ban className="size-4" /> Block (permanent)
+                            </DropdownMenuItem>
+                          )}
+                          {suspended ? (
+                            <DropdownMenuItem onClick={() => mut.mutate({ user_id: u.id, action: "unsuspend" })} className="text-emerald-700">
+                              <CheckCircle2 className="size-4" /> Unsuspend
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => openModal({ kind: "suspend", user: u })} className="text-amber-700">
+                              <Clock className="size-4" /> Suspend (timed)
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => { if (confirm(`Force-logout ${u.email}? All sessions invalidated.`)) mut.mutate({ user_id: u.id, action: "force_logout" }); }}
+                            className="text-sky-700"
+                          >
+                            <LogOut className="size-4" /> Force logout
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs">Balance</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openModal({ kind: "credit", user: u })} className="text-emerald-700">
+                            <Plus className="size-4" /> Credit balance
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openModal({ kind: "debit", user: u })} className="text-rose-700">
+                            <Minus className="size-4" /> Debit balance
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs">Admin</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openModal({ kind: "notes", user: u })} className="text-amber-700">
+                            <StickyNote className="size-4" /> Admin notes
+                          </DropdownMenuItem>
+                          {u.roles.includes("admin") ? (
+                            <DropdownMenuItem onClick={() => { if (confirm("Revoke admin from " + u.email + "?")) mut.mutate({ user_id: u.id, action: "revoke_admin" }); }}>
+                              <ShieldOff className="size-4" /> Revoke admin
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => { if (confirm("Grant admin to " + u.email + "?")) mut.mutate({ user_id: u.id, action: "grant_admin" }); }}>
+                              <ShieldCheck className="size-4" /> Grant admin
+                            </DropdownMenuItem>
+                          )}
+
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => openModal({ kind: "delete", user: u })} className="text-rose-700 focus:bg-rose-50 focus:text-rose-700">
+                            <Trash2 className="size-4" /> Delete user…
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
