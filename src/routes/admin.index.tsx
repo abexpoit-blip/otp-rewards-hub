@@ -38,7 +38,7 @@ function HeroKpi({
   accent?: "primary" | "chart-2" | "chart-3" | "chart-4";
   spark?: number[];
   to?: string;
-  linkSearch?: Record<string, string>;
+  linkSearch?: Record<string, string | number>;
 }) {
   const accentVar = {
     primary: "var(--color-primary)",
