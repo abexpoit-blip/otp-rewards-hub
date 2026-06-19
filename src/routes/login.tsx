@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   AuthShell,
   ErrorBox,
@@ -9,6 +11,8 @@ import {
   useFormState,
 } from "@/components/AuthShell";
 import { useAuth } from "@/lib/auth";
+import { getPublicSettingsFn } from "@/lib/settings.functions";
+import { Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -26,6 +30,13 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const callPublic = useServerFn(getPublicSettingsFn);
+  const { data: pub } = useQuery({
+    queryKey: ["public-settings-login"],
+    queryFn: () => callPublic(),
+    staleTime: 30_000,
+  });
+  const fullMaintenance = !!pub?.maintenance_mode;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
