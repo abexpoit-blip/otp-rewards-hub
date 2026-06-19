@@ -204,7 +204,9 @@ function AdminHome() {
     queryKey: ["admin-dashboard-stats"],
     queryFn: () => adminDashboardStatsFn({ data: { token: token! } }),
     enabled: !!token && !!isAdmin,
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   if (!isAdmin) {
