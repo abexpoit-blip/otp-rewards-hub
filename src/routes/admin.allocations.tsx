@@ -1,15 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { adminListAllocationsFn, adminForceExpireAllocFn } from "@/lib/admin.functions";
-import { Activity, X, Search, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle, Hash } from "lucide-react";
+import { Activity, X, Search, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle, Hash, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
+const allocSearch = z.object({
+  status: fallback(z.enum(["all", "pending", "success", "expired", "failed"]), "all").default("all"),
+  range: fallback(z.enum(["all", "today", "7d", "30d"]), "all").default("all"),
+  q: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/admin/allocations")({
+  validateSearch: zodValidator(allocSearch),
   head: () => ({ meta: [{ title: "Admin · Allocations — Nexus X" }] }),
   component: () => (<Protected><AdminAllocations /></Protected>),
 });
@@ -36,18 +45,22 @@ function Countdown({ to }: { to: string }) {
 function AdminAllocations() {
   const { user, token } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate({ from: "/admin/allocations" });
+  const search = Route.useSearch();
+  const { status, range, q: searchQ } = search;
+  const [searchInput, setSearchInput] = useState(searchQ);
+  useEffect(() => { setSearchInput(searchQ); }, [searchQ]);
+
   const callList = useServerFn(adminListAllocationsFn);
   const callExpire = useServerFn(adminForceExpireAllocFn);
   const isAdmin = !!user?.roles?.includes("admin");
 
-  const [status, setStatus] = useState<"all" | "pending" | "success" | "expired" | "failed">("all");
-  const [search, setSearch] = useState("");
-
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["admin-allocs", status, search],
-    queryFn: () => callList({ data: { token: token!, status, search } }),
+    queryKey: ["admin-allocs", status, range, searchQ],
+    queryFn: () => callList({ data: { token: token!, status, range, search: searchQ } }),
     enabled: !!token && isAdmin,
     refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 
   const mut = useMutation({
@@ -59,6 +72,9 @@ function AdminAllocations() {
     },
     onError: (e: any) => toast.error(e?.message || "Failed"),
   });
+
+  const setSearch = (patch: Partial<typeof search>) =>
+    navigate({ search: (prev: typeof search) => ({ ...prev, ...patch }) });
 
   if (!isAdmin) {
     return (
@@ -78,6 +94,12 @@ function AdminAllocations() {
     { key: "expired", label: "Expired", Icon: XCircle,       tone: "text-muted-foreground" },
     { key: "failed",  label: "Failed",  Icon: AlertTriangle, tone: "text-destructive" },
   ];
+  const ranges: Array<{ key: typeof range; label: string }> = [
+    { key: "today", label: "Today" },
+    { key: "7d",    label: "7 days" },
+    { key: "30d",   label: "30 days" },
+    { key: "all",   label: "All time" },
+  ];
 
   const statusBadge: Record<string, string> = {
     pending: "bg-[color:color-mix(in_oklab,var(--color-warning)_15%,transparent)] text-[color:var(--color-warning)] ring-1 ring-[color:color-mix(in_oklab,var(--color-warning)_30%,transparent)]",
@@ -91,48 +113,75 @@ function AdminAllocations() {
       <PageHeader
         icon={<Activity className="size-6" />}
         title="Allocations"
-        subtitle="All number allocations across users. Pending numbers auto-expire 20 minutes after they're issued."
+        subtitle="All numbers issued to users. Pending numbers auto-expire 20 minutes after issue."
       />
 
-      <div className="glass-panel-strong mb-4 flex flex-wrap items-center gap-2 p-3">
-        <div className="flex flex-wrap gap-1">
-          {tabs.map(({ key, label, Icon, tone }) => (
-            <button
-              key={key}
-              onClick={() => setStatus(key)}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                status === key
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : `hover:bg-muted ${tone}`
-              }`}
-            >
-              <Icon className="size-3.5" />
-              {label}
-            </button>
-          ))}
+      <div className="glass-panel-strong mb-4 space-y-2 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1">
+            {tabs.map(({ key, label, Icon, tone }) => (
+              <button
+                key={key}
+                onClick={() => setSearch({ status: key })}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  status === key ? "bg-primary text-primary-foreground shadow-sm" : `hover:bg-muted ${tone}`
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+          >
+            <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
         </div>
-        <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 min-w-[220px]">
-          <Search className="size-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by email, number, or service id…"
-            className="flex-1 bg-transparent text-sm outline-none"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-0.5">
+            <Calendar className="ml-1.5 size-3.5 text-muted-foreground" />
+            {ranges.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setSearch({ range: key })}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                  range === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <form
+            onSubmit={(e) => { e.preventDefault(); setSearch({ q: searchInput.trim() }); }}
+            className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 min-w-[240px]"
+          >
+            <Search className="size-4 text-muted-foreground" />
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by email, number, or service id…  (press Enter)"
+              className="flex-1 bg-transparent text-sm outline-none"
+            />
+            {searchQ && (
+              <button
+                type="button"
+                onClick={() => { setSearchInput(""); setSearch({ q: "" }); }}
+                className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </form>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
-          title="Refresh"
-        >
-          <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
       </div>
 
       {error && (
         <div className="glass-panel-strong mb-4 p-4 text-sm text-destructive">
-          Failed to load allocations: {(error as Error).message}
+          Failed to load: {(error as Error).message}
         </div>
       )}
 
@@ -159,7 +208,15 @@ function AdminAllocations() {
             ) : data.map((a) => (
               <tr key={a.id} className="border-t border-border/40 transition-colors hover:bg-muted/30">
                 <td className="p-3 font-mono text-xs">{a.full_number}</td>
-                <td className="p-3 text-xs text-muted-foreground">{a.user_email}</td>
+                <td className="p-3 text-xs text-muted-foreground">
+                  <button
+                    onClick={() => setSearch({ q: a.user_email })}
+                    className="hover:underline"
+                    title="Filter by this user"
+                  >
+                    {a.user_email}
+                  </button>
+                </td>
                 <td className="p-3 text-xs">{a.sid || "—"}</td>
                 <td className="p-3 text-xs">
                   {a.country || "—"}
@@ -186,7 +243,6 @@ function AdminAllocations() {
                     <button
                       onClick={() => { if (confirm(`Force expire ${a.full_number}?`)) mut.mutate(a.id); }}
                       className="inline-flex items-center gap-1 rounded-md border border-destructive/30 px-2 py-1 text-[11px] font-semibold text-destructive hover:bg-destructive/10"
-                      title="Force expire"
                     >
                       <X className="size-3.5" />
                       Expire
@@ -197,6 +253,11 @@ function AdminAllocations() {
             ))}
           </tbody>
         </table>
+        {data && data.length > 0 && (
+          <div className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
+            Showing {data.length} record{data.length === 1 ? "" : "s"}.
+          </div>
+        )}
       </div>
     </AppShell>
   );
