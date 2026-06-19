@@ -270,6 +270,7 @@ function AdminHome() {
               icon={<Users className="size-3.5" />}
               accent="primary"
               spark={trendSuccess}
+              to="/admin/users"
             />
             <HeroKpi
               label="Numbers Today"
@@ -278,6 +279,8 @@ function AdminHome() {
               icon={<Hash className="size-3.5" />}
               accent="chart-2"
               spark={trendTotal}
+              to="/admin/allocations"
+              linkSearch={{ status: "all", range: "today", q: "" }}
             />
             <HeroKpi
               label="OTPs Received"
@@ -285,6 +288,8 @@ function AdminHome() {
               delta={`${fmt(d.otps_received.total)} all-time`}
               icon={<MessageSquare className="size-3.5" />}
               accent="chart-3"
+              to="/admin/otps"
+              linkSearch={{ range: "today", q: "" }}
             />
             <HeroKpi
               label="Earned Today"
@@ -293,6 +298,7 @@ function AdminHome() {
               icon={<Sparkles className="size-3.5" />}
               accent="chart-4"
               spark={trendEarned}
+              to="/admin/report"
             />
           </div>
 
