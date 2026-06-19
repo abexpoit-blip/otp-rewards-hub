@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { AlertTriangle, Info, Megaphone, X } from "lucide-react";
+import { AlertTriangle, Info, Megaphone, Wrench, X } from "lucide-react";
 import { listActiveNoticesFn, type NoticeRow } from "@/lib/notices.functions";
+import { getPublicSettingsFn } from "@/lib/settings.functions";
 import { useAuth } from "@/lib/auth";
 
 const DISMISS_KEY = "nexus_dismissed_notices_v1";
+const LAST_POPUP_KEY = "nexus_last_popup_seen_v1"; // stores id of last popup shown this device
 
 function readDismissed(): Record<string, number> {
   try { return JSON.parse(localStorage.getItem(DISMISS_KEY) || "{}"); } catch { return {}; }
@@ -23,8 +25,8 @@ const priorityStyles: Record<NoticeRow["priority"], { bar: string; icon: any; ch
 export function NoticeBanner() {
   const { token } = useAuth();
   const call = useServerFn(listActiveNoticesFn);
+  const callPublic = useServerFn(getPublicSettingsFn);
   const [dismissed, setDismissed] = useState<Record<string, number>>(() => (typeof window !== "undefined" ? readDismissed() : {}));
-  const [popupShown, setPopupShown] = useState<Set<string>>(new Set());
   const [openPopup, setOpenPopup] = useState<NoticeRow | null>(null);
 
   const { data } = useQuery({
@@ -35,25 +37,39 @@ export function NoticeBanner() {
     staleTime: 30_000,
   });
 
-  // Pop the first unseen critical/popup once per session
+  const { data: pub } = useQuery({
+    queryKey: ["public-settings-banner"],
+    queryFn: () => callPublic(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  // Show ONLY the latest popup (newest created_at) — once per new id
   useEffect(() => {
-    if (!data) return;
-    const popup = data.find((n) => n.type === "popup" && !popupShown.has(n.id) && !dismissed[n.id]);
-    if (popup) {
-      setOpenPopup(popup);
-      setPopupShown((s) => new Set(s).add(popup.id));
-    }
-  }, [data, popupShown, dismissed]);
+    if (!data?.length) return;
+    const popups = data.filter((n) => n.type === "popup");
+    if (!popups.length) return;
+    const latest = popups.slice().sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+    let lastSeen: string | null = null;
+    try { lastSeen = localStorage.getItem(LAST_POPUP_KEY); } catch {}
+    if (lastSeen === latest.id) return;
+    setOpenPopup(latest);
+    try { localStorage.setItem(LAST_POPUP_KEY, latest.id); } catch {}
+  }, [data]);
 
-  if (!token || !data?.length) return null;
+  if (!token) return null;
 
-  const banners = data.filter((n) => n.type === "banner" && !dismissed[n.id]);
+  const banners = (data ?? []).filter((n) => n.type === "banner" && !dismissed[n.id]);
+  const showMaintBanner = !!pub?.maintenance_banner_enabled;
 
   const dismiss = (id: string) => {
     const next = { ...dismissed, [id]: Date.now() };
     setDismissed(next);
     writeDismissed(next);
   };
+
 
   return (
     <>
