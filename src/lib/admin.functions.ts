@@ -523,6 +523,16 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
     await requireAdmin(data.token);
     const { sql } = await import("./db.server");
 
+    // Real-time accuracy: sweep any pending allocations whose 20-min window
+    // has passed before we count. Cheap (partial index on expires_at) and
+    // guarantees the dashboard reflects reality, not stale poller state.
+    await sql`
+      UPDATE allocations
+      SET status = 'expired'
+      WHERE status = 'pending' AND expires_at < now()
+    `;
+
+
     const [u] = await sql<any[]>`
       SELECT
         COUNT(*)::int AS total,
