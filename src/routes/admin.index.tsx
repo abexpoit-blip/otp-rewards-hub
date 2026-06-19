@@ -280,7 +280,7 @@ function AdminHome() {
               accent="chart-2"
               spark={trendTotal}
               to="/admin/allocations"
-              linkSearch={{ status: "all", range: "today", q: "" }}
+              linkSearch={{ status: "all", range: "today", q: "", page: 1, pageSize: "50" }}
             />
             <HeroKpi
               label="OTPs Received"
@@ -289,7 +289,7 @@ function AdminHome() {
               icon={<MessageSquare className="size-3.5" />}
               accent="chart-3"
               to="/admin/otps"
-              linkSearch={{ range: "today", q: "" }}
+              linkSearch={{ range: "today", q: "", page: 1, pageSize: "50" }}
             />
             <HeroKpi
               label="Earned Today"
