@@ -42,9 +42,9 @@ export function AuthShell({
 
             <div className="grid max-w-md grid-cols-3 gap-3 pt-4">
               {[
-                ["98.4%", "Uptime"],
-                ["14ms", "Latency"],
-                ["24/7", "Stream"],
+                ["500+", "Services"],
+                ["BDT", "Instant Payout"],
+                ["20m", "OTP Window"],
               ].map(([v, l]) => (
                 <div key={l} className="glass-panel p-4">
                   <p className="text-2xl font-bold tracking-tight text-foreground">{v}</p>
