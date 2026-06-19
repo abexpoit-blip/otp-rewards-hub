@@ -448,7 +448,7 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-guard.server");
     await requireAdmin(data.token);
     const { sql } = await import("./db.server");
-    await sql`UPDATE allocations SET status='expired' WHERE status='pending' AND expires_at < now()`;
+    await sql`UPDATE allocations SET status='failed', completed_at=COALESCE(completed_at, now()) WHERE status='pending' AND expires_at < now()`;
     const status = data.status ?? "all";
     const range = data.range ?? "all";
     const q = `%${(data.search ?? "").trim().toLowerCase()}%`;
@@ -499,7 +499,7 @@ export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
     const admin = await requireAdmin(data.token);
     const { sql } = await import("./db.server");
     const { audit } = await import("./audit.server");
-    await sql`UPDATE allocations SET status = 'expired', completed_at = now()
+    await sql`UPDATE allocations SET status = 'failed', completed_at = now()
               WHERE id = ${data.id} AND status = 'pending'`;
     await audit(admin.sub, "allocation.force_expire", { type: "allocation", id: data.id });
     return { ok: true as const };
