@@ -15,6 +15,8 @@ const allocSearch = z.object({
   status: fallback(z.enum(["all", "pending", "success", "expired", "failed"]), "all").default("all"),
   range: fallback(z.enum(["all", "today", "7d", "30d"]), "all").default("all"),
   q: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int().min(1), 1).default(1),
+  pageSize: fallback(z.enum(["25", "50", "100", "200"]), "50").default("50"),
 });
 
 export const Route = createFileRoute("/admin/allocations")({
@@ -47,7 +49,9 @@ function AdminAllocations() {
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/admin/allocations" });
   const search = Route.useSearch();
-  const { status, range, q: searchQ } = search;
+  const { status, range, q: searchQ, page, pageSize } = search;
+  const limit = Number(pageSize);
+  const offset = (page - 1) * limit;
   const [searchInput, setSearchInput] = useState(searchQ);
   useEffect(() => { setSearchInput(searchQ); }, [searchQ]);
 
@@ -56,8 +60,8 @@ function AdminAllocations() {
   const isAdmin = !!user?.roles?.includes("admin");
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["admin-allocs", status, range, searchQ],
-    queryFn: () => callList({ data: { token: token!, status, range, search: searchQ } }),
+    queryKey: ["admin-allocs", status, range, searchQ, page, pageSize],
+    queryFn: () => callList({ data: { token: token!, status, range, search: searchQ, limit, offset } }),
     enabled: !!token && isAdmin,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
