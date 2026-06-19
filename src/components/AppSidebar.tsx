@@ -65,6 +65,7 @@ const adminSection: NavSection = {
     { to: "/admin/notices", icon: Radio, label: "Notices" },
     { to: "/admin/audit", icon: Activity, label: "Audit Log" },
     { to: "/admin/allocations", icon: Activity, label: "Allocations" },
+    { to: "/admin/otps", icon: Radio, label: "OTPs Received" },
     { to: "/admin/withdrawals", icon: Wallet, label: "Withdrawals" },
     { to: "/admin/gateways", icon: Banknote, label: "Gateways" },
     { to: "/admin/payouts", icon: DollarSign, label: "Payouts" },
