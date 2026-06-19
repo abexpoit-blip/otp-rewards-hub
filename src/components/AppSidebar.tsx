@@ -8,6 +8,7 @@ import {
   LineChart,
   ListChecks,
   LogOut,
+  MessageSquare,
   Radio,
   Settings,
   ShieldCheck,
