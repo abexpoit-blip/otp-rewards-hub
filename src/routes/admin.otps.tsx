@@ -146,9 +146,9 @@ function AdminOtps() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Loading…</td></tr>
-            ) : !data || data.length === 0 ? (
+            ) : !data || data.rows.length === 0 ? (
               <tr><td colSpan={7} className="p-10 text-center text-muted-foreground">No OTP messages match this filter.</td></tr>
-            ) : data.map((o) => (
+            ) : data.rows.map((o) => (
               <tr key={o.id} className="border-t border-border/40 transition-colors hover:bg-muted/30 align-top">
                 <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
                   {new Date(o.received_at).toLocaleString()}
@@ -170,7 +170,7 @@ function AdminOtps() {
                   {o.allocation_id ? (
                     <Link
                       to="/admin/allocations"
-                      search={{ status: "all", range: "all", q: o.number ?? "" }}
+                      search={{ status: "all", range: "all", q: o.number ?? "", page: 1, pageSize: "50" }}
                       className="text-primary hover:underline"
                     >
                       view →
@@ -181,10 +181,15 @@ function AdminOtps() {
             ))}
           </tbody>
         </table>
-        {data && data.length > 0 && (
-          <div className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
-            Showing {data.length} message{data.length === 1 ? "" : "s"}.
-          </div>
+        {data && (
+          <Pager
+            page={page}
+            pageSize={limit}
+            total={data.total}
+            shown={data.rows.length}
+            onPage={(p) => setSearch({ page: p })}
+            onPageSize={(s) => setSearch({ pageSize: s as any, page: 1 })}
+          />
         )}
       </div>
     </AppShell>
