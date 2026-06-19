@@ -389,7 +389,7 @@ function GetNumberPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-sm min-w-[560px]">
                     <thead>
                       <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -413,7 +413,7 @@ function GetNumberPage() {
                                   className="opacity-50 hover:opacity-100"
                                   title="Copy"
                                 >
-                                  <Copy className="size-3" />
+                                  <Copy className="size-3" strokeWidth={2.25} />
                                 </button>
                               </div>
                               <div className="mt-1">{statusBadge(r.status)}</div>
@@ -421,20 +421,20 @@ function GetNumberPage() {
                             <td className="py-3 px-4">
                               <div className="text-foreground">{r.country || "—"}</div>
                               <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <Globe2 className="size-3" /> {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}
+                                <Globe2 className="size-3" strokeWidth={2.25} /> {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}
                               </div>
                             </td>
                             <td className="py-3 px-4 max-w-[320px]">
                               {otp ? (
                                 <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
                                   <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1">
-                                    <MessageSquare className="size-3" /> OTP
+                                    <MessageSquare className="size-3" strokeWidth={2.25} /> OTP
                                     <button
                                       onClick={() => { navigator.clipboard.writeText(otp.body); toast.success("OTP copied"); }}
                                       className="ml-auto opacity-60 hover:opacity-100"
                                       title="Copy OTP"
                                     >
-                                      <Copy className="size-3" />
+                                      <Copy className="size-3" strokeWidth={2.25} />
                                     </button>
                                   </div>
                                   <div className="text-xs font-mono break-words whitespace-pre-wrap">{otp.body}</div>
@@ -456,6 +456,58 @@ function GetNumberPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile / Tablet card list */}
+                <ul className="lg:hidden divide-y divide-border">
+                  {pageRows.map((r: any) => {
+                    const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
+                    const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
+                    return (
+                      <li key={r.id} className="p-4 hover:bg-accent/30 transition-colors">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-semibold text-sm break-all">{shown}</span>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(shown); toast.success("Copied"); }}
+                              className="shrink-0 opacity-60 hover:opacity-100 p-1 -m-1 rounded hover:bg-accent"
+                              title="Copy"
+                            >
+                              <Copy className="size-3.5" strokeWidth={2.25} />
+                            </button>
+                          </div>
+                          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                            {statusBadge(r.status)}
+                            <span className="text-[10px] text-muted-foreground">{timeAgo(r.created_at)}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1.5 min-w-0">
+                            <Globe2 className="size-3 shrink-0" strokeWidth={2.25} />
+                            <span className="truncate">{r.country || "—"} · {r.operator || "—"}{r.sid ? ` · ${r.sid}` : ""}</span>
+                          </div>
+                        </div>
+
+                        {otp ? (
+                          <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+                            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1">
+                              <MessageSquare className="size-3" strokeWidth={2.25} /> OTP
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(otp.body); toast.success("OTP copied"); }}
+                                className="ml-auto opacity-70 hover:opacity-100 p-1 -m-1 rounded hover:bg-emerald-500/10"
+                                title="Copy OTP"
+                              >
+                                <Copy className="size-3.5" strokeWidth={2.25} />
+                              </button>
+                            </div>
+                            <div className="text-sm font-mono break-words whitespace-pre-wrap">{otp.body}</div>
+                          </div>
+                        ) : r.status === "pending" ? (
+                          <div className="mt-3 text-xs text-muted-foreground inline-flex items-center gap-1.5">
+                            <Loader2 className="size-3.5 animate-spin" /> Waiting for OTP…
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between gap-2 p-3 border-t border-border">
