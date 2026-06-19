@@ -448,7 +448,7 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-guard.server");
     await requireAdmin(data.token);
     const { sql } = await import("./db.server");
-    await sql`UPDATE allocations SET status='expired' WHERE status='pending' AND expires_at < now()`;
+    await sql`UPDATE allocations SET status='failed', completed_at=COALESCE(completed_at, now()) WHERE status='pending' AND expires_at < now()`;
     const status = data.status ?? "all";
     const range = data.range ?? "all";
     const q = `%${(data.search ?? "").trim().toLowerCase()}%`;
@@ -499,7 +499,7 @@ export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
     const admin = await requireAdmin(data.token);
     const { sql } = await import("./db.server");
     const { audit } = await import("./audit.server");
-    await sql`UPDATE allocations SET status = 'expired', completed_at = now()
+    await sql`UPDATE allocations SET status = 'failed', completed_at = now()
               WHERE id = ${data.id} AND status = 'pending'`;
     await audit(admin.sub, "allocation.force_expire", { type: "allocation", id: data.id });
     return { ok: true as const };
@@ -553,7 +553,7 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
     // guarantees the dashboard reflects reality, not stale poller state.
     await sql`
       UPDATE allocations
-      SET status = 'expired'
+      SET status = 'failed', completed_at = COALESCE(completed_at, now())
       WHERE status = 'pending' AND expires_at < now()
     `;
 
@@ -574,7 +574,7 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status='success')::int AS success,
         COUNT(*) FILTER (WHERE status='pending')::int AS pending,
-        COUNT(*) FILTER (WHERE status='expired')::int AS expired,
+        COUNT(*) FILTER (WHERE status IN ('failed','expired'))::int AS expired,
         COUNT(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today,
         COUNT(*) FILTER (WHERE status='success' AND completed_at >= date_trunc('day', now()))::int AS success_today
       FROM allocations

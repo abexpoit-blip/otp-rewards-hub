@@ -314,6 +314,7 @@ export const myAllocationsFn = createServerFn({ method: "POST" })
              sid, status, payout_amount::text AS payout_amount, created_at, completed_at, flags
       FROM allocations
       WHERE user_id = ${auth.sub}
+        AND created_at >= now() - interval '24 hours'
         AND (${statusFilter}::text[] IS NULL OR status::text = ANY(${statusFilter}::text[]))
         AND (${search}::text IS NULL OR full_number ILIKE ${search} OR no_plus_number ILIKE ${search}
              OR national_number ILIKE ${search} OR COALESCE(sid,'') ILIKE ${search}
@@ -327,7 +328,9 @@ export const myAllocationsFn = createServerFn({ method: "POST" })
              COUNT(*) FILTER (WHERE status='success')::int AS success,
              COUNT(*) FILTER (WHERE status IN ('failed','expired'))::int AS failed,
              COUNT(*) FILTER (WHERE status='pending')::int AS pending
-      FROM allocations WHERE user_id = ${auth.sub}
+      FROM allocations
+      WHERE user_id = ${auth.sub}
+        AND created_at >= now() - interval '24 hours'
     `;
 
     return { rows, counts };

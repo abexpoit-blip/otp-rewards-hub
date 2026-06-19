@@ -71,7 +71,8 @@ function GetNumberPage() {
     queryKey: ["profile"],
     queryFn: () => callProfile({ data: { token: token! } }),
     enabled: !!token,
-    refetchInterval: 5000,
+    refetchInterval: 15000,
+    staleTime: 5000,
   });
 
   const settings = useQuery({
