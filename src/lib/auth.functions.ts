@@ -114,6 +114,14 @@ export const loginFn = createServerFn({ method: "POST" })
     const roles = roleRows.map((r) => r.role);
     if (roles.length === 0) roles.push("user");
 
+    // Full maintenance: non-admins cannot log in
+    const { getSetting } = await import("./settings.server");
+    const maintenance = Boolean(await getSetting("maintenance_mode", false));
+    if (maintenance && !roles.includes("admin")) {
+      const msg = String(await getSetting("maintenance_message", "System is under maintenance. Please try again later."));
+      throw new Error(msg);
+    }
+
     const ip = getRequestHeader("x-forwarded-for") || null;
     const ua = getRequestHeader("user-agent") || null;
     await sql`INSERT INTO sessions (user_id, ip, user_agent) VALUES (${user.id}, ${ip}, ${ua})`;

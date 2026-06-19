@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   AuthShell,
   ErrorBox,
@@ -9,6 +11,8 @@ import {
   useFormState,
 } from "@/components/AuthShell";
 import { useAuth } from "@/lib/auth";
+import { getPublicSettingsFn } from "@/lib/settings.functions";
+import { Lock, Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -31,10 +35,22 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const callPublic = useServerFn(getPublicSettingsFn);
+  const { data: pub } = useQuery({
+    queryKey: ["public-settings-signup"],
+    queryFn: () => callPublic(),
+    staleTime: 30_000,
+  });
+
+  const signupBlocked = !!pub && (!pub.signup_enabled || pub.maintenance_mode);
+  const blockReason = pub?.maintenance_mode
+    ? (pub.maintenance_message || "System is under maintenance — signups are paused.")
+    : "New signups are temporarily disabled by the admin. Please check back later.";
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
+    if (signupBlocked) { setErr(blockReason); return; }
     if (form.password.length < 6) {
       setErr("Password must be at least 6 characters.");
       return;
@@ -63,8 +79,21 @@ function SignupPage() {
         </>
       }
     >
+      {signupBlocked && (
+        <div className="mb-4 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 p-3 flex items-start gap-2.5 text-amber-900">
+          {pub?.maintenance_mode ? <Wrench className="size-5 mt-0.5 shrink-0" /> : <Lock className="size-5 mt-0.5 shrink-0" />}
+          <div className="text-xs">
+            <div className="font-bold text-sm mb-0.5">
+              {pub?.maintenance_mode ? "System under maintenance" : "Signups are paused"}
+            </div>
+            <p className="opacity-90">{blockReason}</p>
+          </div>
+        </div>
+      )}
       <form onSubmit={onSubmit} className="space-y-4">
+        <fieldset disabled={signupBlocked} className="space-y-4 disabled:opacity-60">
         <Field label="Full Name">
+
           <TextInput
             required
             placeholder="Jon Doe"
@@ -121,10 +150,12 @@ function SignupPage() {
 
         <ErrorBox>{err}</ErrorBox>
 
-        <PrimaryButton type="submit" loading={loading}>
-          Create Account
+        <PrimaryButton type="submit" loading={loading} disabled={signupBlocked}>
+          {signupBlocked ? "Signups closed" : "Create Account"}
         </PrimaryButton>
+        </fieldset>
       </form>
     </AuthShell>
   );
+
 }
