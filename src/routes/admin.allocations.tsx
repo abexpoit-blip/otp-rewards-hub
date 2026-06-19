@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { adminListAllocationsFn, adminForceExpireAllocFn } from "@/lib/admin.functions";
 import { Activity, X, Search, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle, Hash, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { Pager } from "@/components/Pager";
 
 const allocSearch = z.object({
   status: fallback(z.enum(["all", "pending", "success", "expired", "failed"]), "all").default("all"),
