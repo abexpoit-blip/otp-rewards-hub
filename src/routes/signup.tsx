@@ -150,10 +150,12 @@ function SignupPage() {
 
         <ErrorBox>{err}</ErrorBox>
 
-        <PrimaryButton type="submit" loading={loading}>
-          Create Account
+        <PrimaryButton type="submit" loading={loading} disabled={signupBlocked}>
+          {signupBlocked ? "Signups closed" : "Create Account"}
         </PrimaryButton>
+        </fieldset>
       </form>
     </AuthShell>
   );
+
 }
