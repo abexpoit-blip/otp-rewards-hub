@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   AuthShell,
   ErrorBox,
@@ -9,6 +11,8 @@ import {
   useFormState,
 } from "@/components/AuthShell";
 import { useAuth } from "@/lib/auth";
+import { getPublicSettingsFn } from "@/lib/settings.functions";
+import { Lock, Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -31,10 +35,22 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const callPublic = useServerFn(getPublicSettingsFn);
+  const { data: pub } = useQuery({
+    queryKey: ["public-settings-signup"],
+    queryFn: () => callPublic(),
+    staleTime: 30_000,
+  });
+
+  const signupBlocked = !!pub && (!pub.signup_enabled || pub.maintenance_mode);
+  const blockReason = pub?.maintenance_mode
+    ? (pub.maintenance_message || "System is under maintenance — signups are paused.")
+    : "New signups are temporarily disabled by the admin. Please check back later.";
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
+    if (signupBlocked) { setErr(blockReason); return; }
     if (form.password.length < 6) {
       setErr("Password must be at least 6 characters.");
       return;
