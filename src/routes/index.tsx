@@ -127,7 +127,7 @@ function Dashboard() {
         <StatTile label="Active Numbers" value={String(data?.active ?? 0)} hint="Currently pending" icon={<Activity className="size-5" />} accent="indigo" />
         <StatTile label="Yesterday Revenue" value={`৳${yestEarn.toFixed(2)}`} hint={`${yestSuccess}/${yestTotal} success`} icon={<Wallet className="size-5" />} accent="purple" />
         <StatTile label="Yesterday OTPs" value={String(yestSuccess)} hint="Completed verifications" icon={<ShieldCheck className="size-5" />} accent="sky" />
-        <StatTile label="Latency" value="42ms" hint="Ultra-low response" icon={<Zap className="size-5" />} accent="indigo" />
+        <StatTile label="Success Rate" value={`${successRate}%`} hint={`${todaySuccess}/${todayTotal} today`} icon={<Zap className="size-5" />} accent="indigo" />
         <StatTile label="Top Service" value={topService} hint={topService === "—" ? "No traffic yet" : "Last 24h"} icon={<Crown className="size-5" />} accent="amber" />
       </div>
 
