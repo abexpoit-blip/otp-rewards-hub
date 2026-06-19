@@ -9,10 +9,13 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { adminListOtpsFn } from "@/lib/admin.functions";
 import { MessageSquare, Search, RefreshCw, AlertTriangle, Calendar, X } from "lucide-react";
+import { Pager } from "@/components/Pager";
 
 const otpSearch = z.object({
   range: fallback(z.enum(["all", "today", "7d", "30d"]), "all").default("all"),
   q: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int().min(1), 1).default(1),
+  pageSize: fallback(z.enum(["25", "50", "100", "200"]), "50").default("50"),
 });
 
 export const Route = createFileRoute("/admin/otps")({
@@ -25,7 +28,9 @@ function AdminOtps() {
   const { user, token } = useAuth();
   const navigate = useNavigate({ from: "/admin/otps" });
   const search = Route.useSearch();
-  const { range, q: searchQ } = search;
+  const { range, q: searchQ, page, pageSize } = search;
+  const limit = Number(pageSize);
+  const offset = (page - 1) * limit;
   const [searchInput, setSearchInput] = useState(searchQ);
   useEffect(() => { setSearchInput(searchQ); }, [searchQ]);
 
@@ -33,15 +38,20 @@ function AdminOtps() {
   const isAdmin = !!user?.roles?.includes("admin");
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["admin-otps", range, searchQ],
-    queryFn: () => callList({ data: { token: token!, range, search: searchQ } }),
+    queryKey: ["admin-otps", range, searchQ, page, pageSize],
+    queryFn: () => callList({ data: { token: token!, range, search: searchQ, limit, offset } }),
     enabled: !!token && isAdmin,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
   });
 
   const setSearch = (patch: Partial<typeof search>) =>
-    navigate({ search: (prev: typeof search) => ({ ...prev, ...patch }) });
+    navigate({ search: (prev: typeof search) => {
+      const filterChanged = ("range" in patch) || ("q" in patch) || ("pageSize" in patch);
+      const next = { ...prev, ...patch };
+      if (filterChanged && !("page" in patch)) next.page = 1;
+      return next;
+    }});
 
   if (!isAdmin) {
     return (
