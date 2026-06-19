@@ -29,7 +29,7 @@ const bdt = (v: string | number) => `৳${fmt(v)}`;
 // Theme-aware hero KPI — uses brand primary + chart tokens, no raw colors
 // ────────────────────────────────────────────────────────────────────────────
 function HeroKpi({
-  label, value, delta, icon, accent = "primary", spark,
+  label, value, delta, icon, accent = "primary", spark, to, linkSearch,
 }: {
   label: string;
   value: string;
@@ -37,6 +37,8 @@ function HeroKpi({
   icon: React.ReactNode;
   accent?: "primary" | "chart-2" | "chart-3" | "chart-4";
   spark?: number[];
+  to?: string;
+  linkSearch?: Record<string, string>;
 }) {
   const accentVar = {
     primary: "var(--color-primary)",
@@ -57,15 +59,10 @@ function HeroKpi({
 
   const gradId = `sg-${label.replace(/\s+/g, "-")}`;
 
-  return (
-    <div
-      className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm"
-      style={{
-        backgroundImage: `linear-gradient(135deg, color-mix(in oklab, ${accentVar} 10%, transparent), transparent 60%)`,
-      }}
-    >
+  const inner = (
+    <>
       <div
-        className="absolute -right-10 -top-10 size-32 rounded-full opacity-30 blur-3xl"
+        className="absolute -right-10 -top-10 size-32 rounded-full opacity-30 blur-3xl transition-opacity group-hover:opacity-50"
         style={{ background: accentVar }}
       />
       <div className="relative flex items-start justify-between">
@@ -95,6 +92,13 @@ function HeroKpi({
             </div>
           )}
         </div>
+        {to && (
+          <span
+            className="rounded-full border border-border bg-background/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground transition group-hover:border-primary/40 group-hover:text-primary"
+          >
+            Drilldown →
+          </span>
+        )}
       </div>
 
       {path && (
@@ -109,6 +113,26 @@ function HeroKpi({
           <path d={path} fill="none" stroke={accentVar} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
+    </>
+  );
+
+  const baseCls =
+    "group relative block overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm transition";
+  const hoverCls = to ? " hover:border-primary/40 hover:shadow-md cursor-pointer" : "";
+  const style = {
+    backgroundImage: `linear-gradient(135deg, color-mix(in oklab, ${accentVar} 10%, transparent), transparent 60%)`,
+  };
+
+  if (to) {
+    return (
+      <Link to={to as any} search={linkSearch as any} className={baseCls + hoverCls} style={style}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className={baseCls} style={style}>
+      {inner}
     </div>
   );
 }
