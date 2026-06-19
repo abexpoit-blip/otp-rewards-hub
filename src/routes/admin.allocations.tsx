@@ -10,11 +10,14 @@ import { useAuth } from "@/lib/auth";
 import { adminListAllocationsFn, adminForceExpireAllocFn } from "@/lib/admin.functions";
 import { Activity, X, Search, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle, Hash, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { Pager } from "@/components/Pager";
 
 const allocSearch = z.object({
   status: fallback(z.enum(["all", "pending", "success", "expired", "failed"]), "all").default("all"),
   range: fallback(z.enum(["all", "today", "7d", "30d"]), "all").default("all"),
   q: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int().min(1), 1).default(1),
+  pageSize: fallback(z.enum(["25", "50", "100", "200"]), "50").default("50"),
 });
 
 export const Route = createFileRoute("/admin/allocations")({
@@ -47,7 +50,9 @@ function AdminAllocations() {
   const qc = useQueryClient();
   const navigate = useNavigate({ from: "/admin/allocations" });
   const search = Route.useSearch();
-  const { status, range, q: searchQ } = search;
+  const { status, range, q: searchQ, page, pageSize } = search;
+  const limit = Number(pageSize);
+  const offset = (page - 1) * limit;
   const [searchInput, setSearchInput] = useState(searchQ);
   useEffect(() => { setSearchInput(searchQ); }, [searchQ]);
 
@@ -56,8 +61,8 @@ function AdminAllocations() {
   const isAdmin = !!user?.roles?.includes("admin");
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["admin-allocs", status, range, searchQ],
-    queryFn: () => callList({ data: { token: token!, status, range, search: searchQ } }),
+    queryKey: ["admin-allocs", status, range, searchQ, page, pageSize],
+    queryFn: () => callList({ data: { token: token!, status, range, search: searchQ, limit, offset } }),
     enabled: !!token && isAdmin,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
@@ -74,7 +79,13 @@ function AdminAllocations() {
   });
 
   const setSearch = (patch: Partial<typeof search>) =>
-    navigate({ search: (prev: typeof search) => ({ ...prev, ...patch }) });
+    navigate({ search: (prev: typeof search) => {
+      // Reset to page 1 when filters change (unless caller set page explicitly)
+      const filterChanged = ("status" in patch) || ("range" in patch) || ("q" in patch) || ("pageSize" in patch);
+      const next = { ...prev, ...patch };
+      if (filterChanged && !("page" in patch)) next.page = 1;
+      return next;
+    }});
 
   if (!isAdmin) {
     return (
@@ -203,14 +214,14 @@ function AdminAllocations() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Loading…</td></tr>
-            ) : !data || data.length === 0 ? (
+            ) : !data || data.rows.length === 0 ? (
               <tr><td colSpan={9} className="p-10 text-center text-muted-foreground">No allocations match this filter.</td></tr>
-            ) : data.map((a) => (
+            ) : data.rows.map((a) => (
               <tr key={a.id} className="border-t border-border/40 transition-colors hover:bg-muted/30">
                 <td className="p-3 font-mono text-xs">{a.full_number}</td>
                 <td className="p-3 text-xs text-muted-foreground">
                   <button
-                    onClick={() => setSearch({ q: a.user_email })}
+                    onClick={() => setSearch({ q: a.user_email, page: 1 })}
                     className="hover:underline"
                     title="Filter by this user"
                   >
@@ -253,10 +264,15 @@ function AdminAllocations() {
             ))}
           </tbody>
         </table>
-        {data && data.length > 0 && (
-          <div className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
-            Showing {data.length} record{data.length === 1 ? "" : "s"}.
-          </div>
+        {data && (
+          <Pager
+            page={page}
+            pageSize={limit}
+            total={data.total}
+            shown={data.rows.length}
+            onPage={(p) => setSearch({ page: p })}
+            onPageSize={(s) => setSearch({ pageSize: s as any, page: 1 })}
+          />
         )}
       </div>
     </AppShell>

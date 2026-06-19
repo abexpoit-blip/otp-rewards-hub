@@ -433,6 +433,8 @@ export type AdminAllocRow = {
   completed_at: string | null;
 };
 
+export type AdminAllocListResult = { rows: AdminAllocRow[]; total: number };
+
 export const adminListAllocationsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     token: z.string().min(1),
@@ -440,17 +442,29 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
     range: z.enum(["all", "today", "7d", "30d"]).optional(),
     search: z.string().optional(),
     limit: z.number().int().min(10).max(500).optional(),
+    offset: z.number().int().min(0).max(100000).optional(),
   }).parse(d))
-  .handler(async ({ data }): Promise<AdminAllocRow[]> => {
+  .handler(async ({ data }): Promise<AdminAllocListResult> => {
     const { requireAdmin } = await import("./admin-guard.server");
     await requireAdmin(data.token);
     const { sql } = await import("./db.server");
-    // Sweep stale pendings so this view is always fresh.
     await sql`UPDATE allocations SET status='expired' WHERE status='pending' AND expires_at < now()`;
     const status = data.status ?? "all";
     const range = data.range ?? "all";
     const q = `%${(data.search ?? "").trim().toLowerCase()}%`;
-    const limit = data.limit ?? 200;
+    const limit = data.limit ?? 50;
+    const offset = data.offset ?? 0;
+    const [countRow] = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n
+      FROM allocations a JOIN users u ON u.id = a.user_id
+      WHERE (${status} = 'all' OR a.status::text = ${status})
+        AND (${range} = 'all'
+             OR (${range} = 'today' AND a.created_at >= date_trunc('day', now()))
+             OR (${range} = '7d'    AND a.created_at >= now() - interval '7 days')
+             OR (${range} = '30d'   AND a.created_at >= now() - interval '30 days'))
+        AND (${data.search ?? ""} = '' OR lower(u.email::text) LIKE ${q}
+             OR a.full_number LIKE ${q} OR COALESCE(a.sid,'') ILIKE ${q})
+    `;
     const rows = await sql<any[]>`
       SELECT a.id, a.user_id, u.email::text AS user_email,
              a.full_number, a.country, a.operator, a.sid, a.status::text AS status,
@@ -465,14 +479,17 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
         AND (${data.search ?? ""} = '' OR lower(u.email::text) LIKE ${q}
              OR a.full_number LIKE ${q} OR COALESCE(a.sid,'') ILIKE ${q})
       ORDER BY a.created_at DESC
-      LIMIT ${limit}
+      LIMIT ${limit} OFFSET ${offset}
     `;
-    return rows.map((r) => ({
-      ...r,
-      created_at: r.created_at.toISOString(),
-      expires_at: r.expires_at.toISOString(),
-      completed_at: r.completed_at ? r.completed_at.toISOString() : null,
-    })) as AdminAllocRow[];
+    return {
+      total: countRow?.n ?? 0,
+      rows: rows.map((r) => ({
+        ...r,
+        created_at: r.created_at.toISOString(),
+        expires_at: r.expires_at.toISOString(),
+        completed_at: r.completed_at ? r.completed_at.toISOString() : null,
+      })) as AdminAllocRow[],
+    };
   });
 
 export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
@@ -708,20 +725,38 @@ export type AdminOtpRow = {
   received_at: string;
 };
 
+export type AdminOtpListResult = { rows: AdminOtpRow[]; total: number };
+
 export const adminListOtpsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     token: z.string().min(1),
     range: z.enum(["all", "today", "7d", "30d"]).optional(),
     search: z.string().optional(),
     limit: z.number().int().min(10).max(500).optional(),
+    offset: z.number().int().min(0).max(100000).optional(),
   }).parse(d))
-  .handler(async ({ data }): Promise<AdminOtpRow[]> => {
+  .handler(async ({ data }): Promise<AdminOtpListResult> => {
     const { requireAdmin } = await import("./admin-guard.server");
     await requireAdmin(data.token);
     const { sql } = await import("./db.server");
     const range = data.range ?? "all";
     const q = `%${(data.search ?? "").trim().toLowerCase()}%`;
-    const limit = data.limit ?? 200;
+    const limit = data.limit ?? 50;
+    const offset = data.offset ?? 0;
+    const [countRow] = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n
+      FROM otp_messages o
+      LEFT JOIN users u ON u.id = o.user_id
+      WHERE (${range} = 'all'
+             OR (${range} = 'today' AND o.received_at >= date_trunc('day', now()))
+             OR (${range} = '7d'    AND o.received_at >= now() - interval '7 days')
+             OR (${range} = '30d'   AND o.received_at >= now() - interval '30 days'))
+        AND (${data.search ?? ""} = ''
+             OR lower(COALESCE(u.email::text,'')) LIKE ${q}
+             OR COALESCE(o.number,'') LIKE ${q}
+             OR COALESCE(o.sender,'') ILIKE ${q}
+             OR lower(o.body) LIKE ${q})
+    `;
     const rows = await sql<any[]>`
       SELECT o.id, o.user_id, u.email::text AS user_email,
              o.allocation_id, o.number, o.sender, o.body,
@@ -738,18 +773,21 @@ export const adminListOtpsFn = createServerFn({ method: "POST" })
              OR COALESCE(o.sender,'') ILIKE ${q}
              OR lower(o.body) LIKE ${q})
       ORDER BY o.received_at DESC
-      LIMIT ${limit}
+      LIMIT ${limit} OFFSET ${offset}
     `;
-    return rows.map((r) => ({
-      id: r.id,
-      user_id: r.user_id,
-      user_email: r.user_email,
-      allocation_id: r.allocation_id,
-      number: r.number,
-      sender: r.sender,
-      body: r.body,
-      country: r.country,
-      carrier: r.carrier,
-      received_at: r.received_at.toISOString(),
-    }));
+    return {
+      total: countRow?.n ?? 0,
+      rows: rows.map((r) => ({
+        id: r.id,
+        user_id: r.user_id,
+        user_email: r.user_email,
+        allocation_id: r.allocation_id,
+        number: r.number,
+        sender: r.sender,
+        body: r.body,
+        country: r.country,
+        carrier: r.carrier,
+        received_at: r.received_at.toISOString(),
+      })),
+    };
   });

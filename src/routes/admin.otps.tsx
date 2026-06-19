@@ -9,10 +9,13 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { adminListOtpsFn } from "@/lib/admin.functions";
 import { MessageSquare, Search, RefreshCw, AlertTriangle, Calendar, X } from "lucide-react";
+import { Pager } from "@/components/Pager";
 
 const otpSearch = z.object({
   range: fallback(z.enum(["all", "today", "7d", "30d"]), "all").default("all"),
   q: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int().min(1), 1).default(1),
+  pageSize: fallback(z.enum(["25", "50", "100", "200"]), "50").default("50"),
 });
 
 export const Route = createFileRoute("/admin/otps")({
@@ -25,7 +28,9 @@ function AdminOtps() {
   const { user, token } = useAuth();
   const navigate = useNavigate({ from: "/admin/otps" });
   const search = Route.useSearch();
-  const { range, q: searchQ } = search;
+  const { range, q: searchQ, page, pageSize } = search;
+  const limit = Number(pageSize);
+  const offset = (page - 1) * limit;
   const [searchInput, setSearchInput] = useState(searchQ);
   useEffect(() => { setSearchInput(searchQ); }, [searchQ]);
 
@@ -33,15 +38,20 @@ function AdminOtps() {
   const isAdmin = !!user?.roles?.includes("admin");
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["admin-otps", range, searchQ],
-    queryFn: () => callList({ data: { token: token!, range, search: searchQ } }),
+    queryKey: ["admin-otps", range, searchQ, page, pageSize],
+    queryFn: () => callList({ data: { token: token!, range, search: searchQ, limit, offset } }),
     enabled: !!token && isAdmin,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
   });
 
   const setSearch = (patch: Partial<typeof search>) =>
-    navigate({ search: (prev: typeof search) => ({ ...prev, ...patch }) });
+    navigate({ search: (prev: typeof search) => {
+      const filterChanged = ("range" in patch) || ("q" in patch) || ("pageSize" in patch);
+      const next = { ...prev, ...patch };
+      if (filterChanged && !("page" in patch)) next.page = 1;
+      return next;
+    }});
 
   if (!isAdmin) {
     return (
@@ -136,9 +146,9 @@ function AdminOtps() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Loading…</td></tr>
-            ) : !data || data.length === 0 ? (
+            ) : !data || data.rows.length === 0 ? (
               <tr><td colSpan={7} className="p-10 text-center text-muted-foreground">No OTP messages match this filter.</td></tr>
-            ) : data.map((o) => (
+            ) : data.rows.map((o) => (
               <tr key={o.id} className="border-t border-border/40 transition-colors hover:bg-muted/30 align-top">
                 <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
                   {new Date(o.received_at).toLocaleString()}
@@ -160,7 +170,7 @@ function AdminOtps() {
                   {o.allocation_id ? (
                     <Link
                       to="/admin/allocations"
-                      search={{ status: "all", range: "all", q: o.number ?? "" }}
+                      search={{ status: "all", range: "all", q: o.number ?? "", page: 1, pageSize: "50" }}
                       className="text-primary hover:underline"
                     >
                       view →
@@ -171,10 +181,15 @@ function AdminOtps() {
             ))}
           </tbody>
         </table>
-        {data && data.length > 0 && (
-          <div className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
-            Showing {data.length} message{data.length === 1 ? "" : "s"}.
-          </div>
+        {data && (
+          <Pager
+            page={page}
+            pageSize={limit}
+            total={data.total}
+            shown={data.rows.length}
+            onPage={(p) => setSearch({ page: p })}
+            onPageSize={(s) => setSearch({ pageSize: s as any, page: 1 })}
+          />
         )}
       </div>
     </AppShell>
