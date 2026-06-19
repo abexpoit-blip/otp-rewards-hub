@@ -79,7 +79,13 @@ function AdminAllocations() {
   });
 
   const setSearch = (patch: Partial<typeof search>) =>
-    navigate({ search: (prev: typeof search) => ({ ...prev, ...patch }) });
+    navigate({ search: (prev: typeof search) => {
+      // Reset to page 1 when filters change (unless caller set page explicitly)
+      const filterChanged = ("status" in patch) || ("range" in patch) || ("q" in patch) || ("pageSize" in patch);
+      const next = { ...prev, ...patch };
+      if (filterChanged && !("page" in patch)) next.page = 1;
+      return next;
+    }});
 
   if (!isAdmin) {
     return (
