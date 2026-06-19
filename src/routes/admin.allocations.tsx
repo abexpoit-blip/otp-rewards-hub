@@ -103,7 +103,6 @@ function AdminAllocations() {
     { key: "pending", label: "Pending", Icon: Clock,         tone: "text-[color:var(--color-warning)]" },
     { key: "success", label: "Success", Icon: CheckCircle2,  tone: "text-[color:var(--color-success)]" },
     { key: "failed",  label: "Failed",  Icon: XCircle,       tone: "text-destructive" },
-    { key: "failed",  label: "Failed",  Icon: AlertTriangle, tone: "text-destructive" },
   ];
   const ranges: Array<{ key: typeof range; label: string }> = [
     { key: "today", label: "Today" },
