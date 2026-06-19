@@ -553,7 +553,7 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
     // guarantees the dashboard reflects reality, not stale poller state.
     await sql`
       UPDATE allocations
-      SET status = 'expired'
+      SET status = 'failed', completed_at = COALESCE(completed_at, now())
       WHERE status = 'pending' AND expires_at < now()
     `;
 
@@ -574,7 +574,7 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status='success')::int AS success,
         COUNT(*) FILTER (WHERE status='pending')::int AS pending,
-        COUNT(*) FILTER (WHERE status='expired')::int AS expired,
+        COUNT(*) FILTER (WHERE status IN ('failed','expired'))::int AS expired,
         COUNT(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today,
         COUNT(*) FILTER (WHERE status='success' AND completed_at >= date_trunc('day', now()))::int AS success_today
       FROM allocations
