@@ -73,6 +73,21 @@ export function NoticeBanner() {
 
   return (
     <>
+      {showMaintBanner && (
+        <div className="mb-3 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-amber-500/20 px-3 py-2 backdrop-blur-sm shadow-sm flex items-start gap-2.5 text-amber-900">
+          <Wrench className="size-4 mt-0.5 shrink-0 animate-pulse" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sm">Scheduled Maintenance</span>
+              <span className="text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800">live</span>
+            </div>
+            <p className="text-xs mt-0.5 opacity-90 whitespace-pre-wrap">
+              {pub?.maintenance_message || "We're performing maintenance. Some features may be temporarily unavailable."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {banners.map((n) => {
         const s = priorityStyles[n.priority];
         const Icon = s.icon;
