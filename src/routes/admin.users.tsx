@@ -11,9 +11,14 @@ import {
 } from "@/lib/admin.functions";
 import {
   Users, Ban, CheckCircle2, Plus, Minus, ShieldCheck, ShieldOff, Search, AlertTriangle,
-  Clock, LogOut, StickyNote, Trash2, UserCog, Sparkles,
+  Clock, LogOut, StickyNote, Trash2, UserCog, Sparkles, MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/admin/users")({
   head: () => ({ meta: [{ title: "Admin · Users — Nexus SMS" }] }),
