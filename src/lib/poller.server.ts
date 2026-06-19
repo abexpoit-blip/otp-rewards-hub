@@ -8,7 +8,7 @@
  * What it does on a timer:
  *   1. STEX /success-otp → match against pending allocations → insert OTP →
  *      credit user (idempotent via UNIQUE(stex_otp_id)).
- *   2. Mark pending allocations whose expires_at < now() as 'expired'.
+ *   2. Mark pending allocations whose expires_at < now() as 'failed'.
  *
  * Re-entrancy guard: `ingesting` flag prevents overlap if a tick takes
  * longer than the interval (slow upstream).
@@ -57,11 +57,11 @@ export function ensurePollerStarted() {
     try {
       const rows = await sql<any[]>`
         UPDATE allocations
-        SET status = 'expired'
+        SET status = 'failed', completed_at = COALESCE(completed_at, now())
         WHERE status = 'pending' AND expires_at < now()
         RETURNING id
       `;
-      if (rows.length) console.log(`[poller] expired ${rows.length} allocations`);
+      if (rows.length) console.log(`[poller] marked ${rows.length} allocations failed (20-min timeout)`);
     } catch (e) {
       console.error("[poller] expire sweep failed", e);
     }
