@@ -485,27 +485,19 @@ export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
 // =====================================================================
 export type AdminDashboardStats = {
   users: {
-    total: number;
-    active: number;
-    blocked: number;
-    suspended: number;
-    new_today: number;
-    new_7d: number;
+    total: number; active: number; blocked: number; suspended: number;
+    new_today: number; new_7d: number;
   };
-  otps: {
-    total: number;
-    success: number;
-    pending: number;
-    expired: number;
-    today: number;
-    success_today: number;
+  // "numbers" = allocations issued to users (a number request).
+  numbers: {
+    total: number; success: number; pending: number; expired: number;
+    today: number; success_today: number;
   };
+  // "otps_received" = actual SMS messages that arrived from STEX.
+  otps_received: { total: number; today: number };
   money: {
-    total_earned: string;       // sum lifetime_earning
-    total_balance: string;      // sum users.balance
-    earned_today: string;       // sum payout_amount today (success)
-    pending_withdraw: string;   // sum withdrawals pending
-    paid_withdraw: string;      // sum withdrawals paid
+    total_earned: string; total_balance: string; earned_today: string;
+    pending_withdraw: string; paid_withdraw: string;
   };
   top_users: Array<{
     id: string; email: string; name: string | null;
@@ -629,15 +621,23 @@ export const adminDashboardStatsFn = createServerFn({ method: "POST" })
       ORDER BY d.day ASC
     `;
 
+    const [rx] = await sql<any[]>`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE received_at >= date_trunc('day', now()))::int AS today
+      FROM otp_messages
+    `;
+
     return {
       users: {
         total: u.total, active: u.active, blocked: u.blocked,
         suspended: u.suspended, new_today: u.new_today, new_7d: u.new_7d,
       },
-      otps: {
+      numbers: {
         total: o.total, success: o.success, pending: o.pending,
         expired: o.expired, today: o.today, success_today: o.success_today,
       },
+      otps_received: { total: rx?.total ?? 0, today: rx?.today ?? 0 },
       money: {
         total_earned: String(m.total_earned),
         total_balance: String(m.total_balance),

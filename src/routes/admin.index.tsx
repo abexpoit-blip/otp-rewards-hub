@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
-  PieChart, Pie, Cell, Bar, BarChart, CartesianGrid,
+  PieChart, Pie, Cell, CartesianGrid,
 } from "recharts";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
@@ -11,7 +11,7 @@ import { adminDashboardStatsFn } from "@/lib/admin.functions";
 import {
   ShieldCheck, Users, Hash, Wallet, TrendingUp, AlertTriangle,
   Activity, CheckCircle2, Clock, XCircle, DollarSign, Crown,
-  ArrowUpRight, Sparkles, Zap, Trophy,
+  ArrowUpRight, Sparkles, MessageSquare, Trophy,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/")({
@@ -26,18 +26,25 @@ const fmt = (v: string | number) => {
 const bdt = (v: string | number) => `৳${fmt(v)}`;
 
 // ────────────────────────────────────────────────────────────────────────────
-// Premium gradient hero KPI card with optional sparkline
+// Theme-aware hero KPI — uses brand primary + chart tokens, no raw colors
 // ────────────────────────────────────────────────────────────────────────────
 function HeroKpi({
-  label, value, delta, icon, gradient, spark,
+  label, value, delta, icon, accent = "primary", spark,
 }: {
   label: string;
   value: string;
   delta?: string;
   icon: React.ReactNode;
-  gradient: string;
+  accent?: "primary" | "chart-2" | "chart-3" | "chart-4";
   spark?: number[];
 }) {
+  const accentVar = {
+    primary: "var(--color-primary)",
+    "chart-2": "var(--color-chart-2)",
+    "chart-3": "var(--color-chart-3)",
+    "chart-4": "var(--color-chart-4)",
+  }[accent];
+
   const points = spark && spark.length > 1 ? spark : null;
   const max = points ? Math.max(...points, 1) : 1;
   const path = points
@@ -48,20 +55,42 @@ function HeroKpi({
       }).join(" ")
     : null;
 
-  return (
-    <div className={`relative overflow-hidden rounded-3xl p-5 text-white shadow-xl ${gradient}`}>
-      <div className="absolute -right-8 -top-8 size-32 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute -bottom-10 -left-6 size-28 rounded-full bg-white/10 blur-2xl" />
+  const gradId = `sg-${label.replace(/\s+/g, "-")}`;
 
+  return (
+    <div
+      className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm"
+      style={{
+        backgroundImage: `linear-gradient(135deg, color-mix(in oklab, ${accentVar} 10%, transparent), transparent 60%)`,
+      }}
+    >
+      <div
+        className="absolute -right-10 -top-10 size-32 rounded-full opacity-30 blur-3xl"
+        style={{ background: accentVar }}
+      />
       <div className="relative flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/80">
-            {icon}
+        <div className="flex-1">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <span
+              className="inline-flex size-6 items-center justify-center rounded-lg"
+              style={{
+                background: `color-mix(in oklab, ${accentVar} 15%, transparent)`,
+                color: accentVar,
+              }}
+            >
+              {icon}
+            </span>
             <span>{label}</span>
           </div>
-          <div className="mt-2 text-3xl font-extrabold tracking-tight">{value}</div>
+          <div className="mt-2 text-3xl font-extrabold tracking-tight text-foreground">{value}</div>
           {delta && (
-            <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold backdrop-blur">
+            <div
+              className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+              style={{
+                background: `color-mix(in oklab, ${accentVar} 12%, transparent)`,
+                color: accentVar,
+              }}
+            >
               <ArrowUpRight className="size-3" /> {delta}
             </div>
           )}
@@ -71,13 +100,13 @@ function HeroKpi({
       {path && (
         <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="relative mt-3 h-12 w-full">
           <defs>
-            <linearGradient id={`sg-${label}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.6)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={accentVar} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={accentVar} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <path d={`${path} L100,40 L0,40 Z`} fill={`url(#sg-${label})`} />
-          <path d={path} fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={`${path} L100,40 L0,40 Z`} fill={`url(#${gradId})`} />
+          <path d={path} fill="none" stroke={accentVar} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
     </div>
@@ -85,22 +114,23 @@ function HeroKpi({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Compact stat tile (secondary metrics)
+// Compact stat tile (secondary metrics) — fully token-driven
 // ────────────────────────────────────────────────────────────────────────────
 function StatTile({
   label, value, icon, tone = "default",
 }: {
   label: string; value: string; icon: React.ReactNode;
-  tone?: "default" | "success" | "warn" | "danger";
+  tone?: "default" | "success" | "warn" | "danger" | "info";
 }) {
-  const tones = {
-    default: "from-slate-50 to-white border-slate-200/70 text-slate-700",
-    success: "from-emerald-50 to-white border-emerald-200/70 text-emerald-700",
-    warn:    "from-amber-50 to-white border-amber-200/70 text-amber-700",
-    danger:  "from-red-50 to-white border-red-200/70 text-red-700",
-  }[tone];
+  const tones: Record<string, string> = {
+    default: "border-border bg-card text-foreground",
+    success: "border-[color:color-mix(in_oklab,var(--color-success)_25%,transparent)] bg-[color:color-mix(in_oklab,var(--color-success)_8%,var(--color-card))] text-[color:var(--color-success)]",
+    warn:    "border-[color:color-mix(in_oklab,var(--color-warning)_25%,transparent)] bg-[color:color-mix(in_oklab,var(--color-warning)_8%,var(--color-card))] text-[color:var(--color-warning)]",
+    danger:  "border-[color:color-mix(in_oklab,var(--color-destructive)_25%,transparent)] bg-[color:color-mix(in_oklab,var(--color-destructive)_8%,var(--color-card))] text-[color:var(--color-destructive)]",
+    info:    "border-[color:color-mix(in_oklab,var(--color-info)_25%,transparent)] bg-[color:color-mix(in_oklab,var(--color-info)_8%,var(--color-card))] text-[color:var(--color-info)]",
+  };
   return (
-    <div className={`rounded-2xl border bg-gradient-to-br p-4 shadow-sm ${tones}`}>
+    <div className={`rounded-2xl border p-4 shadow-sm ${tones[tone]}`}>
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{label}</span>
         <span className="opacity-80">{icon}</span>
@@ -112,28 +142,32 @@ function StatTile({
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    success: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
-    pending: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
-    expired: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
-    failed:  "bg-red-100 text-red-700 ring-1 ring-red-200",
+    success: "bg-[color:color-mix(in_oklab,var(--color-success)_15%,transparent)] text-[color:var(--color-success)] ring-1 ring-[color:color-mix(in_oklab,var(--color-success)_30%,transparent)]",
+    pending: "bg-[color:color-mix(in_oklab,var(--color-warning)_15%,transparent)] text-[color:var(--color-warning)] ring-1 ring-[color:color-mix(in_oklab,var(--color-warning)_30%,transparent)]",
+    expired: "bg-muted text-muted-foreground ring-1 ring-border",
+    failed:  "bg-[color:color-mix(in_oklab,var(--color-destructive)_15%,transparent)] text-[color:var(--color-destructive)] ring-1 ring-[color:color-mix(in_oklab,var(--color-destructive)_30%,transparent)]",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${map[status] ?? "bg-slate-100 text-slate-600"}`}>
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${map[status] ?? "bg-muted text-muted-foreground"}`}>
       {status}
     </span>
   );
 }
 
 function RankBadge({ rank }: { rank: number }) {
+  if (rank === 0) return (
+    <span className="inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 text-yellow-900 shadow-lg shadow-amber-300/40">
+      <Trophy className="size-3.5" />
+    </span>
+  );
   const styles = [
-    "bg-gradient-to-br from-amber-300 to-yellow-500 text-yellow-900 shadow-lg shadow-amber-300/50",
     "bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800 shadow-md",
     "bg-gradient-to-br from-orange-300 to-amber-600 text-orange-900 shadow-md",
   ];
-  const cls = rank < 3 ? styles[rank] : "bg-slate-100 text-slate-500";
+  const cls = rank < 3 ? styles[rank - 1] : "bg-muted text-muted-foreground";
   return (
     <span className={`inline-flex size-7 items-center justify-center rounded-full text-xs font-extrabold ${cls}`}>
-      {rank === 0 ? <Trophy className="size-3.5" /> : rank + 1}
+      {rank + 1}
     </span>
   );
 }
@@ -163,19 +197,17 @@ function AdminHome() {
 
   const d = stats.data;
 
-  // Sparkline data
   const trendTotal   = d?.trend_7d.map((x) => x.total)   ?? [];
   const trendSuccess = d?.trend_7d.map((x) => x.success) ?? [];
   const trendEarned  = d?.trend_7d.map((x) => x.earned)  ?? [];
 
-  // Donut data
   const donutData = d ? [
-    { name: "Success", value: d.otps.success, color: "#10b981" },
-    { name: "Pending", value: d.otps.pending, color: "#f59e0b" },
-    { name: "Expired", value: d.otps.expired, color: "#94a3b8" },
+    { name: "Success", value: d.numbers.success, color: "var(--color-success)" },
+    { name: "Pending", value: d.numbers.pending, color: "var(--color-warning)" },
+    { name: "Expired", value: d.numbers.expired, color: "var(--color-muted-foreground)" },
   ] : [];
   const totalAll = donutData.reduce((s, x) => s + x.value, 0);
-  const successRate = totalAll > 0 ? Math.round((d!.otps.success / totalAll) * 100) : 0;
+  const successRate = totalAll > 0 ? Math.round((d!.numbers.success / totalAll) * 100) : 0;
 
   const maxRangeCount = Math.max(1, ...(d?.top_ranges.map((r) => r.count) ?? []));
 
@@ -184,13 +216,13 @@ function AdminHome() {
       <PageHeader
         icon={<ShieldCheck className="size-6" />}
         title="Admin Command Center"
-        subtitle="Live operations overview — users, allocations, earnings, and trends."
+        subtitle="Live operations — users, numbers (allocations), OTP messages, and earnings."
       />
 
       {stats.isLoading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-36 animate-pulse rounded-3xl bg-slate-100" />
+            <div key={i} className="h-36 animate-pulse rounded-3xl bg-muted" />
           ))}
         </div>
       )}
@@ -203,52 +235,56 @@ function AdminHome() {
 
       {d && (
         <>
-          {/* ═══ HERO KPIs — gradient cards with sparklines ═══ */}
+          {/* ═══ HERO KPIs ═══ */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <HeroKpi
               label="Total Users"
               value={fmt(d.users.total)}
               delta={`+${d.users.new_7d} this week`}
               icon={<Users className="size-3.5" />}
-              gradient="bg-gradient-to-br from-indigo-500 via-blue-600 to-sky-600"
+              accent="primary"
+              spark={trendSuccess}
             />
             <HeroKpi
-              label="OTPs Today"
-              value={fmt(d.otps.today)}
-              delta={`${d.otps.success_today} success`}
-              icon={<Zap className="size-3.5" />}
-              gradient="bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600"
+              label="Numbers Today"
+              value={fmt(d.numbers.today)}
+              delta={`${d.numbers.success_today} success`}
+              icon={<Hash className="size-3.5" />}
+              accent="chart-2"
               spark={trendTotal}
+            />
+            <HeroKpi
+              label="OTPs Received"
+              value={fmt(d.otps_received.today)}
+              delta={`${fmt(d.otps_received.total)} all-time`}
+              icon={<MessageSquare className="size-3.5" />}
+              accent="chart-3"
             />
             <HeroKpi
               label="Earned Today"
               value={bdt(d.money.earned_today)}
               delta={`${bdt(d.money.total_earned)} lifetime`}
               icon={<Sparkles className="size-3.5" />}
-              gradient="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600"
+              accent="chart-4"
               spark={trendEarned}
-            />
-            <HeroKpi
-              label="Pending Payout"
-              value={bdt(d.money.pending_withdraw)}
-              delta={`${bdt(d.money.paid_withdraw)} paid`}
-              icon={<Wallet className="size-3.5" />}
-              gradient="bg-gradient-to-br from-orange-500 via-rose-600 to-pink-600"
             />
           </div>
 
-          {/* ═══ CHARTS row: Area + Donut ═══ */}
+          {/* ═══ CHARTS row ═══ */}
           <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {/* 7-day Area chart */}
             <div className="glass-panel-strong overflow-hidden lg:col-span-2">
               <div className="flex items-center justify-between border-b border-border/50 p-4">
                 <div>
-                  <h3 className="font-bold">OTP Activity — Last 7 days</h3>
-                  <p className="text-xs text-muted-foreground">Total vs successful allocations per day</p>
+                  <h3 className="font-bold">Number Activity — Last 7 days</h3>
+                  <p className="text-xs text-muted-foreground">Total allocations vs successful (OTP delivered)</p>
                 </div>
                 <div className="flex items-center gap-3 text-[11px] font-semibold">
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-indigo-500" /> Total</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" /> Success</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full" style={{ background: "var(--color-primary)" }} /> Total
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full" style={{ background: "var(--color-success)" }} /> Success
+                  </span>
                 </div>
               </div>
               <div className="h-64 w-full p-3">
@@ -256,74 +292,73 @@ function AdminHome() {
                   <AreaChart data={d.trend_7d} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5} />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                        <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.45} />
+                        <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="gradSuccess" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.5} />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                        <stop offset="0%" stopColor="var(--color-success)" stopOpacity={0.45} />
+                        <stop offset="100%" stopColor="var(--color-success)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                     <XAxis
                       dataKey="day"
-                      stroke="#94a3b8"
+                      stroke="var(--color-muted-foreground)"
                       fontSize={11}
                       tickFormatter={(v) => new Date(v).toLocaleDateString("en-BD", { day: "numeric", month: "short" })}
                     />
-                    <YAxis stroke="#94a3b8" fontSize={11} allowDecimals={false} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{
-                        background: "rgba(15, 23, 42, 0.95)",
-                        border: "none",
+                        background: "var(--color-popover)",
+                        border: "1px solid var(--color-border)",
                         borderRadius: "12px",
-                        color: "white",
+                        color: "var(--color-popover-foreground)",
                         fontSize: "12px",
-                        boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
                       }}
                       labelFormatter={(v) => new Date(v as string).toLocaleDateString("en-BD", { weekday: "short", day: "numeric", month: "short" })}
                     />
-                    <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5} fill="url(#gradTotal)" />
-                    <Area type="monotone" dataKey="success" stroke="#10b981" strokeWidth={2.5} fill="url(#gradSuccess)" />
+                    <Area type="monotone" dataKey="total" stroke="var(--color-primary)" strokeWidth={2.5} fill="url(#gradTotal)" />
+                    <Area type="monotone" dataKey="success" stroke="var(--color-success)" strokeWidth={2.5} fill="url(#gradSuccess)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Donut + success rate */}
             <div className="glass-panel-strong overflow-hidden">
               <div className="border-b border-border/50 p-4">
                 <h3 className="font-bold">Status Mix</h3>
-                <p className="text-xs text-muted-foreground">All-time distribution</p>
+                <p className="text-xs text-muted-foreground">All-time allocation distribution</p>
               </div>
               <div className="relative h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={donutData.length ? donutData : [{ name: "—", value: 1, color: "#e2e8f0" }]}
+                      data={totalAll > 0 ? donutData : [{ name: "—", value: 1, color: "var(--color-muted)" }]}
                       innerRadius={60}
                       outerRadius={90}
                       paddingAngle={3}
                       dataKey="value"
                       stroke="none"
                     >
-                      {(donutData.length ? donutData : [{ color: "#e2e8f0" }]).map((entry, i) => (
+                      {(totalAll > 0 ? donutData : [{ color: "var(--color-muted)" }]).map((entry, i) => (
                         <Cell key={i} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        background: "rgba(15, 23, 42, 0.95)",
-                        border: "none",
+                        background: "var(--color-popover)",
+                        border: "1px solid var(--color-border)",
                         borderRadius: "10px",
-                        color: "white",
+                        color: "var(--color-popover-foreground)",
                         fontSize: "12px",
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-3xl font-extrabold accent-text">{successRate}%</div>
+                  <div className="text-3xl font-extrabold text-primary">{successRate}%</div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Success Rate</div>
                 </div>
               </div>
@@ -345,24 +380,24 @@ function AdminHome() {
             <StatTile label="Active" value={fmt(d.users.active)} icon={<CheckCircle2 className="size-4" />} tone="success" />
             <StatTile label="Blocked" value={fmt(d.users.blocked)} icon={<XCircle className="size-4" />} tone="danger" />
             <StatTile label="Suspended" value={fmt(d.users.suspended)} icon={<Clock className="size-4" />} tone="warn" />
-            <StatTile label="New Today" value={fmt(d.users.new_today)} icon={<TrendingUp className="size-4" />} />
+            <StatTile label="New Today" value={fmt(d.users.new_today)} icon={<TrendingUp className="size-4" />} tone="info" />
           </div>
 
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Allocations</h3>
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Numbers &amp; OTPs</h3>
           <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatTile label="Total OTPs" value={fmt(d.otps.total)} icon={<Hash className="size-4" />} />
-            <StatTile label="Success" value={fmt(d.otps.success)} icon={<CheckCircle2 className="size-4" />} tone="success" />
-            <StatTile label="Pending" value={fmt(d.otps.pending)} icon={<Clock className="size-4" />} tone="warn" />
+            <StatTile label="Total Numbers" value={fmt(d.numbers.total)} icon={<Hash className="size-4" />} />
+            <StatTile label="Success" value={fmt(d.numbers.success)} icon={<CheckCircle2 className="size-4" />} tone="success" />
+            <StatTile label="Pending (≤20m)" value={fmt(d.numbers.pending)} icon={<Clock className="size-4" />} tone="warn" />
             <StatTile label="Wallet Balance" value={bdt(d.money.total_balance)} icon={<DollarSign className="size-4" />} />
           </div>
 
-          {/* ═══ Top Earners (premium leaderboard) + Recent Users ═══ */}
+          {/* ═══ Top Earners + Top Ranges ═══ */}
           <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="glass-panel-strong overflow-hidden">
               <div className="flex items-center gap-2 border-b border-border/50 p-4">
                 <Crown className="size-4 text-amber-500" />
                 <h3 className="font-bold">Top Earners</h3>
-                <Link to="/admin/users" className="ml-auto text-[11px] accent-text hover:underline">All users →</Link>
+                <Link to="/admin/users" className="ml-auto text-[11px] text-primary hover:underline">All users →</Link>
               </div>
               <div className="divide-y divide-border/30">
                 {d.top_users.length === 0 && (
@@ -376,10 +411,13 @@ function AdminHome() {
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold">{u.name || u.email.split("@")[0]}</div>
                         <div className="truncate text-[11px] text-muted-foreground">{u.email}</div>
-                        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all"
-                            style={{ width: `${successPct}%` }}
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${successPct}%`,
+                              background: "linear-gradient(90deg, color-mix(in oklab, var(--color-success) 70%, transparent), var(--color-success))",
+                            }}
                           />
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
@@ -389,7 +427,7 @@ function AdminHome() {
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className="font-extrabold accent-text">{bdt(u.lifetime_earning)}</div>
+                        <div className="font-extrabold text-primary">{bdt(u.lifetime_earning)}</div>
                         <div className="text-[10px] text-muted-foreground">bal: {bdt(u.balance)}</div>
                       </div>
                     </div>
@@ -398,10 +436,9 @@ function AdminHome() {
               </div>
             </div>
 
-            {/* Top Ranges with horizontal bars */}
             <div className="glass-panel-strong overflow-hidden">
               <div className="flex items-center gap-2 border-b border-border/50 p-4">
-                <TrendingUp className="size-4 accent-text" />
+                <TrendingUp className="size-4 text-primary" />
                 <h3 className="font-bold">Top Ranges</h3>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">last 30 days</span>
               </div>
@@ -420,10 +457,13 @@ function AdminHome() {
                           <span className="font-bold text-foreground">{r.count}</span> · {rate}% ✓
                         </span>
                       </div>
-                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-indigo-400 via-violet-500 to-fuchsia-500 transition-all duration-500"
-                          style={{ width: `${width}%` }}
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${width}%`,
+                            background: "linear-gradient(90deg, color-mix(in oklab, var(--color-primary) 60%, transparent), var(--color-primary))",
+                          }}
                         />
                       </div>
                     </div>
@@ -433,21 +473,21 @@ function AdminHome() {
             </div>
           </div>
 
-          {/* ═══ Recent OTPs + Recently Joined ═══ */}
+          {/* ═══ Recent Numbers + Recently Joined ═══ */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="glass-panel-strong overflow-hidden">
               <div className="flex items-center gap-2 border-b border-border/50 p-4">
-                <Activity className="size-4 accent-text" />
-                <h3 className="font-bold">Recent OTPs</h3>
+                <Activity className="size-4 text-primary" />
+                <h3 className="font-bold">Recent Numbers</h3>
                 <span className="relative ml-2 flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ background: "var(--color-success)" }} />
+                  <span className="relative inline-flex size-2 rounded-full" style={{ background: "var(--color-success)" }} />
                 </span>
-                <Link to="/admin/allocations" className="ml-auto text-[11px] accent-text hover:underline">View all →</Link>
+                <Link to="/admin/allocations" className="ml-auto text-[11px] text-primary hover:underline">View all →</Link>
               </div>
               <div className="max-h-[420px] overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-white/80 text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur">
+                  <thead className="sticky top-0 bg-card/90 text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur">
                     <tr>
                       <th className="px-3 py-2 text-left">Number</th>
                       <th className="px-3 py-2 text-left">User</th>
@@ -457,10 +497,10 @@ function AdminHome() {
                   </thead>
                   <tbody>
                     {d.recent_otps.length === 0 && (
-                      <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No OTPs yet.</td></tr>
+                      <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No numbers yet.</td></tr>
                     )}
                     {d.recent_otps.map((a) => (
-                      <tr key={a.id} className="border-t border-border/30 transition-colors hover:bg-slate-50/50">
+                      <tr key={a.id} className="border-t border-border/30 transition-colors hover:bg-muted/40">
                         <td className="px-3 py-2 font-mono text-xs">{a.full_number}</td>
                         <td className="px-3 py-2 text-[11px] text-muted-foreground">{a.user_email}</td>
                         <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
@@ -474,7 +514,7 @@ function AdminHome() {
 
             <div className="glass-panel-strong overflow-hidden">
               <div className="flex items-center gap-2 border-b border-border/50 p-4">
-                <Users className="size-4 accent-text" />
+                <Users className="size-4 text-primary" />
                 <h3 className="font-bold">Recently Joined</h3>
               </div>
               <div className="divide-y divide-border/30">
@@ -485,7 +525,10 @@ function AdminHome() {
                   const initial = (u.name || u.email).charAt(0).toUpperCase();
                   return (
                     <div key={u.id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-600 text-sm font-bold text-white shadow-md">
+                      <div
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-primary-foreground shadow-md"
+                        style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in oklab, var(--color-primary) 60%, var(--color-chart-2)))" }}
+                      >
                         {initial}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -493,7 +536,7 @@ function AdminHome() {
                         <div className="truncate text-[11px] text-muted-foreground">{u.email}</div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className="text-xs font-bold">{u.total_count} OTP</div>
+                        <div className="text-xs font-bold">{u.total_count} numbers</div>
                         <div className="text-[10px] text-muted-foreground">
                           {new Date(u.created_at).toLocaleDateString("en-BD", { day: "numeric", month: "short" })}
                         </div>
