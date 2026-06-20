@@ -89,7 +89,7 @@ export function NoticeBanner() {
       )}
 
       {banners.map((n) => {
-        const s = priorityStyles[n.priority];
+        const s = priorityStyles[n.priority] ?? priorityStyles.info;
         const Icon = s.icon;
         return (
           <div
@@ -122,7 +122,7 @@ export function NoticeBanner() {
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
-              const s = priorityStyles[openPopup.priority];
+              const s = priorityStyles[openPopup.priority] ?? priorityStyles.info;
               const Icon = s.icon;
               return (
                 <>
