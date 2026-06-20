@@ -75,16 +75,31 @@ async function ingestOnce() {
   if (r.meta.code !== 200 || !r.data) return;
 
   for (const otp of r.data.otps) {
+    // Normalize to digits-only on both sides — STEX may return the number
+    // in a different format (with/without +, with/without country code)
+    // than what we stored at allocation time. Match if the upstream digits
+    // equal OR end-with any of our stored variants' digits.
+    const otpDigits = String(otp.number || "").replace(/\D/g, "");
+    if (!otpDigits) continue;
     const matches = await sql<any[]>`
-      SELECT id, user_id, sid, country FROM allocations
+      SELECT id, user_id, sid, country, full_number, no_plus_number, national_number
+      FROM allocations
       WHERE status = 'pending'
-        AND (no_plus_number = ${otp.number}
-             OR national_number = ${otp.number}
-             OR full_number = ${"+" + otp.number})
+        AND (
+             regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
+          OR regexp_replace(COALESCE(no_plus_number,''),  '\D','','g') = ${otpDigits}
+          OR regexp_replace(COALESCE(national_number,''), '\D','','g') = ${otpDigits}
+          OR ${otpDigits} LIKE '%' || regexp_replace(COALESCE(national_number,''), '\D','','g')
+          OR regexp_replace(COALESCE(full_number,''),     '\D','','g') LIKE '%' || ${otpDigits}
+        )
       ORDER BY created_at DESC LIMIT 1
     `;
-    if (matches.length === 0) continue;
+    if (matches.length === 0) {
+      console.log(`[poller] no pending allocation matches OTP number=${otp.number} (digits=${otpDigits})`);
+      continue;
+    }
     const alloc = matches[0];
+    console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number})`);
 
     // De-dup: UNIQUE(stex_otp_id) + ON CONFLICT DO NOTHING. RETURNING is
     // empty when a parallel insert already won → we skip crediting.
