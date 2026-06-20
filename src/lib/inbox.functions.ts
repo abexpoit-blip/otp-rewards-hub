@@ -30,6 +30,8 @@ export const getOtpsFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
+    const { triggerPollerIngest } = await import("./poller.server");
+    await triggerPollerIngest("inbox-refresh");
     const rows = await sql`
       SELECT id, number, sender, body, carrier, country, received_at
       FROM otp_messages
