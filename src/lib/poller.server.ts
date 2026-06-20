@@ -72,6 +72,12 @@ export async function triggerPollerIngest(reason = "manual") {
   await runIngest(state, reason);
 }
 
+/** Bypass throttle — used by STEX webhook for instant delivery. */
+export async function forcePollerIngest(reason = "webhook") {
+  const state = ensurePollerStarted();
+  await runIngest(state, reason);
+}
+
 async function runIngest(state: PollerState, source: string) {
   if (state.ingestPromise) return state.ingestPromise;
 
