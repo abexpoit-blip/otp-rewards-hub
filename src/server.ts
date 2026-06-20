@@ -8,6 +8,18 @@ type ServerEntry = {
 };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
+let backgroundJobsStarted = false;
+
+function ensureBackgroundJobsStarted() {
+  if (backgroundJobsStarted) return;
+  backgroundJobsStarted = true;
+
+  if (!process.env.DATABASE_URL || process.env.DISABLE_STEX_POLLER === "1") return;
+
+  void import("./lib/poller.server")
+    .then(({ ensurePollerStarted }) => ensurePollerStarted())
+    .catch((error) => console.error("[server] failed to start background poller", error));
+}
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -40,6 +52,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      ensureBackgroundJobsStarted();
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
