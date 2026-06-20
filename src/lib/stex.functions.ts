@@ -103,10 +103,20 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
     let credited = 0;
 
     for (const otp of r.data.otps) {
+      // Normalize to digits-only on both sides — STEX may return number in
+      // different format than what we stored (kept in sync with poller.server.ts)
+      const otpDigits = String(otp.number || "").replace(/\D/g, "");
+      if (!otpDigits) continue;
       const matches = await sql<any[]>`
         SELECT id, user_id, sid, country FROM allocations
         WHERE status = 'pending'
-          AND (no_plus_number = ${otp.number} OR national_number = ${otp.number} OR full_number = ${"+" + otp.number})
+          AND (
+               regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
+            OR regexp_replace(COALESCE(no_plus_number,''),  '\D','','g') = ${otpDigits}
+            OR regexp_replace(COALESCE(national_number,''), '\D','','g') = ${otpDigits}
+            OR ${otpDigits} LIKE '%' || regexp_replace(COALESCE(national_number,''), '\D','','g')
+            OR regexp_replace(COALESCE(full_number,''),     '\D','','g') LIKE '%' || ${otpDigits}
+          )
         ORDER BY created_at DESC LIMIT 1
       `;
       if (matches.length === 0) continue;
