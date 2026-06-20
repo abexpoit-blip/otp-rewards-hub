@@ -105,10 +105,13 @@ async function ingestOnce() {
     // equal OR end-with any of our stored variants' digits.
     const otpDigits = String(otp.number || "").replace(/\D/g, "");
     if (!otpDigits) continue;
+    const otpReceivedAt = new Date(Number(otp.time) || Date.now());
     const matches = await sql<any[]>`
-      SELECT id, user_id, sid, country, full_number, no_plus_number, national_number
+      SELECT id, user_id, sid, country, full_number, no_plus_number, national_number, status
       FROM allocations
-      WHERE status = 'pending'
+      WHERE status IN ('pending', 'failed', 'expired')
+        AND created_at >= now() - interval '24 hours'
+        AND ${otpReceivedAt} >= created_at - interval '2 minutes'
         AND (
              regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
           OR regexp_replace(COALESCE(no_plus_number,''),  '\D','','g') = ${otpDigits}
@@ -139,11 +142,12 @@ async function ingestOnce() {
     // Flat rate: every successful OTP pays the configured default_payout.
     const payout = defaultPayout;
 
-    // Only credit if allocation was still pending (race-safe via WHERE).
+    // Credit only if allocation is still not success (race-safe via WHERE).
+    // This also recovers OTPs missed while the poller was previously offline.
     const updated = await sql<any[]>`
       UPDATE allocations
       SET status = 'success', payout_amount = ${payout}, completed_at = now()
-      WHERE id = ${alloc.id} AND status = 'pending'
+      WHERE id = ${alloc.id} AND status IN ('pending', 'failed', 'expired')
       RETURNING id
     `;
     if (updated.length === 0) continue; // already credited by parallel worker

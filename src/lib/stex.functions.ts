@@ -109,9 +109,12 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
       // different format than what we stored (kept in sync with poller.server.ts)
       const otpDigits = String(otp.number || "").replace(/\D/g, "");
       if (!otpDigits) continue;
+      const otpReceivedAt = new Date(Number(otp.time) || Date.now());
       const matches = await sql<any[]>`
         SELECT id, user_id, sid, country FROM allocations
-        WHERE status = 'pending'
+        WHERE status IN ('pending', 'failed', 'expired')
+          AND created_at >= now() - interval '24 hours'
+          AND ${otpReceivedAt} >= created_at - interval '2 minutes'
           AND (
                regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
             OR regexp_replace(COALESCE(no_plus_number,''),  '\D','','g') = ${otpDigits}
@@ -136,7 +139,13 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
       // Flat rate: every successful OTP pays default_payout.
       const payout = defaultPayout;
 
-      await sql`UPDATE allocations SET status='success', payout_amount=${payout}, completed_at=now() WHERE id=${alloc.id}`;
+      const updated = await sql<any[]>`
+        UPDATE allocations
+        SET status='success', payout_amount=${payout}, completed_at=now()
+        WHERE id=${alloc.id} AND status IN ('pending', 'failed', 'expired')
+        RETURNING id
+      `;
+      if (updated.length === 0) continue;
       await sql`UPDATE users SET balance=balance+${payout}, lifetime_earning=lifetime_earning+${payout} WHERE id=${alloc.user_id}`;
       credited += 1;
     }
