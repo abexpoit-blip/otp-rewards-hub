@@ -36,6 +36,7 @@ import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAllocationsRouteImport } from './routes/admin.allocations'
 import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
+import { Route as ApiPublicStexWebhookRouteImport } from './routes/api/public/stex.webhook'
 import { Route as ApiPublicCronCleanupOldAllocationsRouteImport } from './routes/api/public/cron.cleanup-old-allocations'
 import { Route as ApiPublicCronCleanupInactiveRouteImport } from './routes/api/public/cron.cleanup-inactive'
 
@@ -174,6 +175,11 @@ const ApiInboxStreamRoute = ApiInboxStreamRouteImport.update({
   path: '/api/inbox/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicStexWebhookRoute = ApiPublicStexWebhookRouteImport.update({
+  id: '/api/public/stex/webhook',
+  path: '/api/public/stex/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCronCleanupOldAllocationsRoute =
   ApiPublicCronCleanupOldAllocationsRouteImport.update({
     id: '/api/public/cron/cleanup-old-allocations',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/api/inbox/stream': typeof ApiInboxStreamRoute
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
+  '/api/public/stex/webhook': typeof ApiPublicStexWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/api/inbox/stream': typeof ApiInboxStreamRoute
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
+  '/api/public/stex/webhook': typeof ApiPublicStexWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/api/inbox/stream': typeof ApiInboxStreamRoute
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
+  '/api/public/stex/webhook': typeof ApiPublicStexWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -313,6 +322,7 @@ export interface FileRouteTypes {
     | '/api/inbox/stream'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
+    | '/api/public/stex/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/api/inbox/stream'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
+    | '/api/public/stex/webhook'
   id:
     | '__root__'
     | '/'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/api/inbox/stream'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
+    | '/api/public/stex/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -407,6 +419,7 @@ export interface RootRouteChildren {
   ApiInboxStreamRoute: typeof ApiInboxStreamRoute
   ApiPublicCronCleanupInactiveRoute: typeof ApiPublicCronCleanupInactiveRoute
   ApiPublicCronCleanupOldAllocationsRoute: typeof ApiPublicCronCleanupOldAllocationsRoute
+  ApiPublicStexWebhookRoute: typeof ApiPublicStexWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -600,6 +613,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInboxStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/stex/webhook': {
+      id: '/api/public/stex/webhook'
+      path: '/api/public/stex/webhook'
+      fullPath: '/api/public/stex/webhook'
+      preLoaderRoute: typeof ApiPublicStexWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/cleanup-old-allocations': {
       id: '/api/public/cron/cleanup-old-allocations'
       path: '/api/public/cron/cleanup-old-allocations'
@@ -648,6 +668,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronCleanupInactiveRoute: ApiPublicCronCleanupInactiveRoute,
   ApiPublicCronCleanupOldAllocationsRoute:
     ApiPublicCronCleanupOldAllocationsRoute,
+  ApiPublicStexWebhookRoute: ApiPublicStexWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
