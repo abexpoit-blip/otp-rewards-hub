@@ -70,6 +70,8 @@ export const allocateNumberFn = createServerFn({ method: "POST" })
       VALUES (${auth.sub}, ${data.rid}, ${data.sid ?? null}, ${n.full_number}, ${n.national_number}, ${n.no_plus_number}, ${n.country}, ${n.operator}, 'pending', ${JSON.stringify(r)}::jsonb, ${JSON.stringify(flags)}::jsonb)
       RETURNING id, full_number, national_number, no_plus_number, country, operator, created_at
     `;
+    const { ensurePollerStarted } = await import("./poller.server");
+    ensurePollerStarted();
     return {
       id: row.id,
       full_number: row.full_number,
