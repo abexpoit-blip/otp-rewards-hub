@@ -119,7 +119,7 @@ export function NoticeBanner() {
       {openPopup && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setOpenPopup(null)}>
           <div
-            className="max-w-md w-full glass-panel-strong rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95"
+            className="max-w-md w-full glass-panel-strong rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
@@ -127,17 +127,29 @@ export function NoticeBanner() {
               const Icon = s.icon;
               return (
                 <>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`size-10 rounded-xl flex items-center justify-center ${s.chip}`}><Icon className="size-5" /></div>
-                    <div>
-                      <div className={`text-[9px] uppercase tracking-widest font-bold ${s.chip} inline-block px-1.5 py-0.5 rounded`}>{openPopup.priority}</div>
-                      <h3 className="font-bold text-lg leading-tight">{openPopup.title}</h3>
+                  {/* Branded header with Nexus 2.0 logo */}
+                  <div className="relative bg-gradient-to-br from-primary/20 via-chart-2/15 to-chart-3/20 px-6 pt-6 pb-5 border-b border-white/10">
+                    <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15), transparent 50%)" }} />
+                    <div className="relative flex items-center gap-3">
+                      <img src={nexusLogo} alt="Nexus 2.0" className="h-10 w-auto drop-shadow-lg" />
+                      <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-primary/80 px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
+                        Announcement
+                      </div>
                     </div>
                   </div>
-                  {openPopup.body && <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">{openPopup.body}</p>}
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => { dismiss(openPopup.id); setOpenPopup(null); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2">Don't show again</button>
-                    <button onClick={() => setOpenPopup(null)} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-bold shadow-md shadow-primary/25 hover:bg-primary/90">Got it</button>
+                  <div className="p-6">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${s.chip}`}><Icon className="size-5" /></div>
+                      <div className="min-w-0">
+                        <div className={`text-[9px] uppercase tracking-widest font-bold ${s.chip} inline-block px-1.5 py-0.5 rounded mb-1`}>{openPopup.priority}</div>
+                        <h3 className="font-bold text-lg leading-tight">{openPopup.title}</h3>
+                      </div>
+                    </div>
+                    {openPopup.body && <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">{openPopup.body}</p>}
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => { dismiss(openPopup.id); setOpenPopup(null); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2">Don't show again</button>
+                      <button onClick={() => setOpenPopup(null)} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-bold shadow-md shadow-primary/25 hover:bg-primary/90">Got it 🚀</button>
+                    </div>
                   </div>
                 </>
               );
