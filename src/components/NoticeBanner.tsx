@@ -5,6 +5,7 @@ import { AlertTriangle, Info, Megaphone, Wrench, X } from "lucide-react";
 import { listActiveNoticesFn, type NoticeRow } from "@/lib/notices.functions";
 import { getPublicSettingsFn } from "@/lib/settings.functions";
 import { useAuth } from "@/lib/auth";
+import nexusLogo from "@/assets/nexus-logo.png";
 
 const DISMISS_KEY = "nexus_dismissed_notices_v1";
 const LAST_POPUP_KEY = "nexus_last_popup_seen_v1"; // stores id of last popup shown this device
