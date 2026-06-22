@@ -80,7 +80,7 @@ function AgentSettings() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.personal_email.trim())) e.personal_email = "Enter a valid email address.";
     else if (f.personal_email.trim().toLowerCase() === (user?.email ?? "").toLowerCase()) e.personal_email = "Must differ from your agent login email.";
     if (f.address.trim().length < 5) e.address = "Address must be at least 5 characters.";
-    if (f.group_link.trim() && !/^https?:\/\/.+/i.test(f.group_link.trim())) e.group_link = "Group link must start with http(s)://";
+    // group_link is free text — no http(s):// requirement
     return e;
   };
 
