@@ -104,6 +104,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
   const isAgentUser = !!user?.roles?.includes("agent");
   const inAdminArea = pathname.startsWith("/admin");
   const inAgentArea = pathname.startsWith("/agent");
+  // Pure agents (not admin) only see the agent panel — no dialer/api/dashboard.
   const sections = isAdminUser
     ? inAdminArea
       ? [adminSection]
@@ -111,9 +112,7 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
         ? [agentSection]
         : [...baseSections, agentSection, adminSection]
     : isAgentUser
-      ? inAgentArea
-        ? [agentSection]
-        : [...baseSections, agentSection]
+      ? [agentSection]
       : baseSections;
   const authLoading = loading || !user;
 
