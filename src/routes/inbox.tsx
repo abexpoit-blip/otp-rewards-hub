@@ -18,6 +18,9 @@ type OtpRow = {
   body: string;
   country: string | null;
   received_at: string;
+  payout_amount?: string | null;
+  agent_commission?: string | null;
+  agent_id?: string | null;
 };
 
 type Status = "connecting" | "live" | "reconnecting" | "offline";
@@ -293,20 +296,41 @@ function InboxPage() {
                   <th className="py-2">Sender</th>
                   <th className="py-2">Message</th>
                   <th className="py-2">Country</th>
+                  <th className="py-2 text-right">Earnings (BDT)</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredOtps.map((o) => (
-                  <tr key={o.id} className="border-t border-border">
-                    <td className="py-2 font-mono text-xs whitespace-nowrap">
-                      {new Date(o.received_at).toLocaleString()}
-                    </td>
-                    <td className="py-2 font-mono text-xs">{o.number || "—"}</td>
-                    <td className="py-2 font-semibold">{o.sender || "—"}</td>
-                    <td className="py-2 max-w-md break-words">{o.body}</td>
-                    <td className="py-2 text-xs text-muted-foreground">{o.country || "—"}</td>
-                  </tr>
-                ))}
+                {filteredOtps.map((o) => {
+                  const userPay = o.payout_amount != null ? Number(o.payout_amount) : null;
+                  const agentPay = o.agent_commission != null ? Number(o.agent_commission) : 0;
+                  return (
+                    <tr key={o.id} className="border-t border-border">
+                      <td className="py-2 font-mono text-xs whitespace-nowrap">
+                        {new Date(o.received_at).toLocaleString()}
+                      </td>
+                      <td className="py-2 font-mono text-xs">{o.number || "—"}</td>
+                      <td className="py-2 font-semibold">{o.sender || "—"}</td>
+                      <td className="py-2 max-w-md break-words">{o.body}</td>
+                      <td className="py-2 text-xs text-muted-foreground">{o.country || "—"}</td>
+                      <td className="py-2 text-right whitespace-nowrap">
+                        {userPay != null ? (
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                              You +৳{userPay.toFixed(2)}
+                            </span>
+                            {agentPay > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                                Agent +৳{agentPay.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
