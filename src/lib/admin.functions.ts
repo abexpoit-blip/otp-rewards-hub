@@ -868,8 +868,8 @@ export const adminCreateAgentFn = createServerFn({ method: "POST" })
 
     const hash = await hashPassword(data.password);
     const [u] = await sql<any[]>`
-      INSERT INTO users (email, password_hash, name, status, otp_rate, agent_active)
-      VALUES (${email}, ${hash}, ${data.name ?? null}, 'active', ${data.otp_rate}::numeric, true)
+      INSERT INTO users (email, password_hash, name, status, otp_rate, agent_active, must_change_password)
+      VALUES (${email}, ${hash}, ${data.name ?? null}, 'active', ${data.otp_rate}::numeric, true, true)
       RETURNING id
     `;
     await sql`INSERT INTO user_roles (user_id, role) VALUES (${u.id}, 'agent'), (${u.id}, 'user') ON CONFLICT DO NOTHING`;
@@ -926,7 +926,7 @@ export const adminUpdateAgentFn = createServerFn({ method: "POST" })
     }
     if (data.password) {
       const hash = await hashPassword(data.password);
-      await sql`UPDATE users SET password_hash = ${hash}, tokens_invalidated_at = now() WHERE id = ${data.agent_id}`;
+      await sql`UPDATE users SET password_hash = ${hash}, must_change_password = true, tokens_invalidated_at = now() WHERE id = ${data.agent_id}`;
     }
     await audit(admin.sub, "agent.update", { type: "user", id: data.agent_id }, { fields: Object.keys(data).filter(k => k !== "token" && k !== "agent_id" && k !== "password") });
     return { ok: true as const };

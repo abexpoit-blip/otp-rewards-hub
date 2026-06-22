@@ -186,6 +186,7 @@ export type AgentProfileDTO = {
   address: string | null;
   group_link: string | null;
   profile_complete: boolean;
+  must_change_password: boolean;
 };
 
 export const agentGetProfileFn = createServerFn({ method: "POST" })
@@ -196,6 +197,7 @@ export const agentGetProfileFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const [u] = await sql<any[]>`
       SELECT name, phone, telegram, personal_email, address, group_link,
+             must_change_password,
              is_agent_profile_complete(id) AS profile_complete
       FROM users WHERE id = ${auth.sub}
     `;
@@ -207,6 +209,7 @@ export const agentGetProfileFn = createServerFn({ method: "POST" })
       address: u?.address ?? null,
       group_link: u?.group_link ?? null,
       profile_complete: !!u?.profile_complete,
+      must_change_password: !!u?.must_change_password,
     };
   });
 
@@ -238,6 +241,34 @@ export const agentSaveProfileFn = createServerFn({ method: "POST" })
       WHERE id = ${auth.sub}
     `;
     return { ok: true as const, profile_complete: true };
+  });
+
+// First-login: replace admin-issued temporary password with the agent's own.
+// No current-password check (admin set it). Requires authenticated session.
+const changeTempPwSchema = z.object({
+  token: z.string().min(1),
+  new_password: z.string().min(6).max(200),
+});
+
+export const agentChangeTempPasswordFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => changeTempPwSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    const { hashPassword } = await import("./password.server");
+    const [u] = await sql<{ must_change_password: boolean }[]>`
+      SELECT must_change_password FROM users WHERE id = ${auth.sub}
+    `;
+    if (!u?.must_change_password) {
+      throw new Error("Password is already set.");
+    }
+    const hash = await hashPassword(data.new_password);
+    await sql`
+      UPDATE users SET password_hash = ${hash}, must_change_password = false
+      WHERE id = ${auth.sub}
+    `;
+    return { ok: true as const };
   });
 
 
