@@ -7,6 +7,7 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { adminListAgentsFn, adminCreateAgentFn, adminUpdateAgentFn, adminImpersonateFn, adminGetAgentDomainFn, type AdminAgentRow } from "@/lib/admin.functions";
 import { UserCog, Plus, Pencil, AlertTriangle, ShieldCheck, ShieldOff, Sparkles, AtSign } from "lucide-react";
+import { PerfBadge } from "@/components/PerfBadge";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 
