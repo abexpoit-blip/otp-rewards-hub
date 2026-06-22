@@ -80,7 +80,7 @@ function AgentSettings() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.personal_email.trim())) e.personal_email = "Enter a valid email address.";
     else if (f.personal_email.trim().toLowerCase() === (user?.email ?? "").toLowerCase()) e.personal_email = "Must differ from your agent login email.";
     if (f.address.trim().length < 5) e.address = "Address must be at least 5 characters.";
-    if (f.group_link.trim() && !/^https?:\/\/.+/i.test(f.group_link.trim())) e.group_link = "Group link must start with http(s)://";
+    // group_link is free text — no http(s):// requirement
     return e;
   };
 
@@ -126,24 +126,39 @@ function AgentSettings() {
     <AppShell>
       <PageHeader icon={<Settings className="size-6" />} title="Agent Profile" subtitle="Complete your personal details. Required before approving any user." />
 
-      {!complete && (
-        <div className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 p-4 flex items-start gap-3">
-          <AlertTriangle className="size-5 text-amber-600 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-bold text-amber-800 dark:text-amber-300">Profile incomplete</p>
-            <p className="text-amber-700 dark:text-amber-400/90 text-xs mt-0.5">
-              You must fill all required fields (marked <span className="text-rose-500">*</span>) before you can approve users under your agent account.
-            </p>
+      {/* Progress + status badge */}
+      {(() => {
+        const requiredKeys: (keyof Form)[] = ["name","phone","telegram","personal_email","address"];
+        const filled = requiredKeys.filter((k) => (form[k] ?? "").trim().length > 0 && !errors[k]).length;
+        const pct = Math.round((filled / requiredKeys.length) * 100);
+        return (
+          <div className={`mb-4 rounded-xl border p-4 ${complete ? "border-emerald-300/60 bg-emerald-50 dark:bg-emerald-950/30" : "border-amber-300/60 bg-amber-50 dark:bg-amber-950/30"}`}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2.5">
+                {complete ? <CheckCircle2 className="size-5 text-emerald-600" /> : <AlertTriangle className="size-5 text-amber-600" />}
+                <div>
+                  <p className={`text-sm font-bold ${complete ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>
+                    {complete ? "Profile complete" : "Profile incomplete"}
+                  </p>
+                  <p className={`text-[11px] ${complete ? "text-emerald-700/90" : "text-amber-700/90"}`}>
+                    {complete ? "You can manage and approve users now." : "Finish required fields to unlock user approvals."}
+                  </p>
+                </div>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${complete ? "bg-emerald-100 border-emerald-300 text-emerald-800" : "bg-amber-100 border-amber-300 text-amber-800"}`}>
+                {filled}/{requiredKeys.length} fields · {pct}%
+              </span>
+            </div>
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+              <div
+                className={`h-full transition-all duration-500 ${complete ? "bg-gradient-to-r from-emerald-400 to-emerald-600" : "bg-gradient-to-r from-amber-400 to-rose-400"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {complete && (
-        <div className="mb-4 rounded-xl border border-emerald-300/60 bg-emerald-50 dark:bg-emerald-950/30 p-4 flex items-center gap-3">
-          <CheckCircle2 className="size-5 text-emerald-600" />
-          <p className="text-sm text-emerald-800 dark:text-emerald-300 font-bold">Profile complete — you can manage users.</p>
-        </div>
-      )}
 
       <div className="glass-panel-strong p-6 max-w-2xl">
         <dl className="mb-5 grid grid-cols-2 gap-3 text-xs">

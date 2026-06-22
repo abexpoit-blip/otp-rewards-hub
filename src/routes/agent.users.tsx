@@ -9,7 +9,9 @@ import {
   agentListUsersFn, agentApproveUserFn, agentBulkApproveFn,
   agentSetUserStatusFn, agentUserDetailsFn, type AgentUserRow,
 } from "@/lib/agent.functions";
-import { Users, Check, X, Search, Eye, Clock, Ban, ShieldCheck, CheckSquare } from "lucide-react";
+import { Users, Check, X, Search, Eye, Clock, Ban, ShieldCheck, CheckSquare, Crown } from "lucide-react";
+import { PerfBadge } from "@/components/PerfBadge";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/agent/users")({
@@ -112,7 +114,13 @@ function AgentUsers() {
 
   return (
     <AppShell>
-      <PageHeader icon={<Users className="size-6" />} title="My Users" subtitle="Approve signups under your agent email. You can ban/unban and set per-user OTP rate." />
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+        <PageHeader icon={<Users className="size-6" />} title="My Users" subtitle="Approve signups under your agent email. You can ban/unban and set per-user OTP rate." />
+        <Link to="/agent/top" className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-300/60 bg-gradient-to-r from-amber-100 to-yellow-50 px-3 py-1.5 text-xs font-bold text-amber-800 shadow-sm hover:shadow-md transition">
+          <Crown className="size-3.5" /> Top performers
+        </Link>
+      </div>
+
 
       <div className="glass-panel-strong p-3 mb-4 flex items-center gap-2 flex-wrap">
         <Search className="size-4 text-muted-foreground" />
@@ -168,9 +176,13 @@ function AgentUsers() {
                   ) : null}
                 </td>
                 <td className="p-3">
-                  <div className="font-medium">{u.email}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{u.email}</span>
+                    <PerfBadge count={u.success_allocations} size="xs" />
+                  </div>
                   {u.name && <div className="text-xs text-muted-foreground">{u.name}</div>}
                 </td>
+
                 <td className="p-3">
                   {u.status === "pending" ? (
                     <span className="text-xs font-bold rounded px-2 py-0.5 bg-amber-100 text-amber-700 inline-flex items-center gap-1"><Clock className="size-3" /> pending</span>

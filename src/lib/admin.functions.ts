@@ -799,6 +799,7 @@ export type AdminAgentRow = {
   id: string; email: string; name: string | null;
   otp_rate: string; agent_active: boolean; status: string;
   users_under: number; pending_under: number;
+  otps_total: number; otps_7d: number;
   created_at: string; last_login_at: string | null;
 };
 
@@ -813,17 +814,26 @@ export const adminListAgentsFn = createServerFn({ method: "POST" })
              u.otp_rate::text AS otp_rate, u.agent_active,
              u.status::text AS status, u.created_at, u.last_login_at,
              (SELECT COUNT(*)::int FROM users x WHERE x.agent_id = u.id) AS users_under,
-             (SELECT COUNT(*)::int FROM users x WHERE x.agent_id = u.id AND x.status = 'pending') AS pending_under
+             (SELECT COUNT(*)::int FROM users x WHERE x.agent_id = u.id AND x.status = 'pending') AS pending_under,
+             (SELECT COUNT(*)::int FROM allocations a
+                JOIN users x ON x.id = a.user_id
+               WHERE x.agent_id = u.id AND a.status = 'success') AS otps_total,
+             (SELECT COUNT(*)::int FROM allocations a
+                JOIN users x ON x.id = a.user_id
+               WHERE x.agent_id = u.id AND a.status = 'success'
+                 AND a.completed_at >= now() - interval '7 days') AS otps_7d
       FROM users u
       WHERE EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role = 'agent')
-      ORDER BY u.created_at DESC
+      ORDER BY otps_total DESC, u.created_at DESC
     `;
     return rows.map((r) => ({
       ...r, otp_rate: String(r.otp_rate),
+      otps_total: Number(r.otps_total), otps_7d: Number(r.otps_7d),
       created_at: r.created_at.toISOString(),
       last_login_at: r.last_login_at ? r.last_login_at.toISOString() : null,
     })) as AdminAgentRow[];
   });
+
 
 const createAgentSchema = z.object({
   token: z.string().min(1),

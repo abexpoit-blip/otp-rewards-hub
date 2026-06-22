@@ -27,6 +27,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AgentWithdrawalsRouteImport } from './routes/agent.withdrawals'
 import { Route as AgentUsersRouteImport } from './routes/agent.users'
+import { Route as AgentTopRouteImport } from './routes/agent.top'
 import { Route as AgentSupportRouteImport } from './routes/agent.support'
 import { Route as AgentSettingsRouteImport } from './routes/agent.settings'
 import { Route as AdminWithdrawalsRouteImport } from './routes/admin.withdrawals'
@@ -139,6 +140,11 @@ const AgentWithdrawalsRoute = AgentWithdrawalsRouteImport.update({
 const AgentUsersRoute = AgentUsersRouteImport.update({
   id: '/agent/users',
   path: '/agent/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentTopRoute = AgentTopRouteImport.update({
+  id: '/agent/top',
+  path: '/agent/top',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentSupportRoute = AgentSupportRouteImport.update({
@@ -288,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/agent/settings': typeof AgentSettingsRoute
   '/agent/support': typeof AgentSupportRoute
+  '/agent/top': typeof AgentTopRoute
   '/agent/users': typeof AgentUsersRoute
   '/agent/withdrawals': typeof AgentWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
@@ -331,6 +338,7 @@ export interface FileRoutesByTo {
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/agent/settings': typeof AgentSettingsRoute
   '/agent/support': typeof AgentSupportRoute
+  '/agent/top': typeof AgentTopRoute
   '/agent/users': typeof AgentUsersRoute
   '/agent/withdrawals': typeof AgentWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
@@ -375,6 +383,7 @@ export interface FileRoutesById {
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
   '/agent/settings': typeof AgentSettingsRoute
   '/agent/support': typeof AgentSupportRoute
+  '/agent/top': typeof AgentTopRoute
   '/agent/users': typeof AgentUsersRoute
   '/agent/withdrawals': typeof AgentWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
@@ -420,6 +429,7 @@ export interface FileRouteTypes {
     | '/admin/withdrawals'
     | '/agent/settings'
     | '/agent/support'
+    | '/agent/top'
     | '/agent/users'
     | '/agent/withdrawals'
     | '/api/health'
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
     | '/admin/withdrawals'
     | '/agent/settings'
     | '/agent/support'
+    | '/agent/top'
     | '/agent/users'
     | '/agent/withdrawals'
     | '/api/health'
@@ -506,6 +517,7 @@ export interface FileRouteTypes {
     | '/admin/withdrawals'
     | '/agent/settings'
     | '/agent/support'
+    | '/agent/top'
     | '/agent/users'
     | '/agent/withdrawals'
     | '/api/health'
@@ -550,6 +562,7 @@ export interface RootRouteChildren {
   AdminWithdrawalsRoute: typeof AdminWithdrawalsRoute
   AgentSettingsRoute: typeof AgentSettingsRoute
   AgentSupportRoute: typeof AgentSupportRoute
+  AgentTopRoute: typeof AgentTopRoute
   AgentUsersRoute: typeof AgentUsersRoute
   AgentWithdrawalsRoute: typeof AgentWithdrawalsRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -690,6 +703,13 @@ declare module '@tanstack/react-router' {
       path: '/agent/users'
       fullPath: '/agent/users'
       preLoaderRoute: typeof AgentUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent/top': {
+      id: '/agent/top'
+      path: '/agent/top'
+      fullPath: '/agent/top'
+      preLoaderRoute: typeof AgentTopRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agent/support': {
@@ -897,6 +917,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminWithdrawalsRoute: AdminWithdrawalsRoute,
   AgentSettingsRoute: AgentSettingsRoute,
   AgentSupportRoute: AgentSupportRoute,
+  AgentTopRoute: AgentTopRoute,
   AgentUsersRoute: AgentUsersRoute,
   AgentWithdrawalsRoute: AgentWithdrawalsRoute,
   ApiHealthRoute: ApiHealthRoute,
