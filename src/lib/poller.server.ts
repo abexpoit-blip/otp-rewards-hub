@@ -105,10 +105,6 @@ async function ingestOnce() {
   if (r.data.otps.length) console.log(`[poller] fetched ${r.data.otps.length} OTP(s) from STEX`);
 
   for (const otp of r.data.otps) {
-    // Normalize to digits-only on both sides — STEX may return the number
-    // in a different format (with/without +, with/without country code)
-    // than what we stored at allocation time. Match if the upstream digits
-    // equal OR end-with any of our stored variants' digits.
     const otpDigits = String(otp.number || "").replace(/\D/g, "");
     if (!otpDigits) continue;
     const otpReceivedAt = new Date(Number(otp.time) || Date.now());
@@ -134,8 +130,6 @@ async function ingestOnce() {
     const alloc = matches[0];
     console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number})`);
 
-    // De-dup: UNIQUE(stex_otp_id) + ON CONFLICT DO NOTHING. RETURNING is
-    // empty when a parallel insert already won → we skip crediting.
     const inserted = await sql<any[]>`
       INSERT INTO otp_messages (allocation_id, user_id, number, body, stex_otp_id, received_at)
       VALUES (${alloc.id}, ${alloc.user_id}, ${otp.number}, ${otp.message},
@@ -145,18 +139,17 @@ async function ingestOnce() {
     `;
     if (inserted.length === 0) continue;
 
-    // Flat rate: every successful OTP pays the configured default_payout.
-    const payout = defaultPayout;
+    // Per-user rate (set by agent/admin); fallback to global default_payout.
+    const [u] = await sql<any[]>`SELECT otp_rate::text AS rate FROM users WHERE id = ${alloc.user_id}`;
+    const payout = u?.rate != null ? Number(u.rate) : defaultPayout;
 
-    // Credit only if allocation is still not success (race-safe via WHERE).
-    // This also recovers OTPs missed while the poller was previously offline.
     const updated = await sql<any[]>`
       UPDATE allocations
       SET status = 'success', payout_amount = ${payout}, completed_at = now()
       WHERE id = ${alloc.id} AND status IN ('pending', 'failed', 'expired')
       RETURNING id
     `;
-    if (updated.length === 0) continue; // already credited by parallel worker
+    if (updated.length === 0) continue;
     await sql`
       UPDATE users
       SET balance = balance + ${payout}, lifetime_earning = lifetime_earning + ${payout}

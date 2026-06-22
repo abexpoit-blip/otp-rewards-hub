@@ -22,6 +22,7 @@ const empty: EditState = {
   _editing: true,
   type: "banner",
   priority: "info",
+  audience: "user",
   title: "",
   body: "",
   active: true,
@@ -138,6 +139,13 @@ function AdminNotices() {
                   </select>
                 </label>
               </div>
+              <label className="block text-xs"><span className="font-bold mb-1 block">Audience</span>
+                <select value={edit.audience || "user"} onChange={(e) => setEdit({ ...edit, audience: e.target.value as any })} className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-sm">
+                  <option value="user">Users only</option>
+                  <option value="agent">Agents only</option>
+                  <option value="both">Both users and agents</option>
+                </select>
+              </label>
               <label className="block text-xs"><span className="font-bold mb-1 block">Title</span>
                 <input value={edit.title || ""} onChange={(e) => setEdit({ ...edit, title: e.target.value })} className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-sm" />
               </label>
@@ -189,6 +197,7 @@ function AdminNotices() {
                   upsert.mutate({
                     id: edit.id ?? undefined,
                     type: edit.type, priority: edit.priority,
+                    audience: (edit.audience || "user"),
                     title: (edit.title || "").trim(),
                     body: edit.body || "",
                     active: !!edit.active,

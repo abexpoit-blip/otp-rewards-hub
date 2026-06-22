@@ -23,7 +23,7 @@ const priorityStyles: Record<NoticeRow["priority"], { bar: string; icon: any; ch
   critical: { bar: "from-rose-500/15 to-rose-500/5 border-rose-400/40 text-rose-900",   icon: AlertTriangle,  chip: "bg-rose-500/15 text-rose-700" },
 };
 
-export function NoticeBanner() {
+export function NoticeBanner({ surface = "user" }: { surface?: "user" | "agent" } = {}) {
   const { token } = useAuth();
   const call = useServerFn(listActiveNoticesFn);
   const callPublic = useServerFn(getPublicSettingsFn);
@@ -31,8 +31,8 @@ export function NoticeBanner() {
   const [openPopup, setOpenPopup] = useState<NoticeRow | null>(null);
 
   const { data } = useQuery({
-    queryKey: ["active-notices"],
-    queryFn: () => call({ data: { token: token! } }),
+    queryKey: ["active-notices", surface],
+    queryFn: () => call({ data: { token: token!, surface } }),
     enabled: !!token,
     refetchInterval: 60_000,
     staleTime: 30_000,

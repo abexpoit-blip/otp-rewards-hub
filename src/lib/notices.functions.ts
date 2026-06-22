@@ -13,6 +13,7 @@ export type NoticeRow = {
   id: string;
   type: "banner" | "popup";
   priority: "info" | "warning" | "critical";
+  audience: "user" | "agent" | "both";
   title: string;
   body: string;
   active: boolean;
@@ -46,6 +47,7 @@ export const adminListNoticesFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const rows = await sql<any[]>`
       SELECT n.id, n.type::text AS type, n.priority::text AS priority,
+             n.audience::text AS audience,
              n.title, n.body, n.active, n.starts_at, n.ends_at,
              n.target_user_ids, n.created_at, n.updated_at,
              COALESCE(
@@ -74,6 +76,7 @@ const upsertNoticeSchema = z.object({
   id: z.string().uuid().optional().nullable(),
   type: z.enum(["banner", "popup"]),
   priority: z.enum(["info", "warning", "critical"]),
+  audience: z.enum(["user", "agent", "both"]).default("user"),
   title: z.string().trim().min(1).max(200),
   body: z.string().trim().max(4000).default(""),
   active: z.boolean().default(true),
@@ -107,6 +110,7 @@ export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
         UPDATE notices SET
           type = ${data.type}::notice_type,
           priority = ${data.priority}::notice_priority,
+          audience = ${data.audience}::notice_audience,
           title = ${data.title}, body = ${data.body},
           active = ${data.active},
           starts_at = ${data.starts_at ?? null},
@@ -120,8 +124,9 @@ export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
       id = row.id;
     } else {
       const [row] = await sql<any[]>`
-        INSERT INTO notices (type, priority, title, body, active, starts_at, ends_at, target_user_ids, created_by)
+        INSERT INTO notices (type, priority, audience, title, body, active, starts_at, ends_at, target_user_ids, created_by)
         VALUES (${data.type}::notice_type, ${data.priority}::notice_priority,
+                ${data.audience}::notice_audience,
                 ${data.title}, ${data.body}, ${data.active},
                 ${data.starts_at ?? null}, ${data.ends_at ?? null},
                 ${target_user_ids as any}, ${admin.sub})
@@ -152,20 +157,24 @@ export const adminDeleteNoticeFn = createServerFn({ method: "POST" })
 // Public (authenticated): active notices for current user
 // =====================================================================
 export const listActiveNoticesFn = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ token: z.string().min(1) }).parse(d))
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().min(1),
+    surface: z.enum(["user", "agent"]).default("user"),
+  }).parse(d))
   .handler(async ({ data }): Promise<NoticeRow[]> => {
-    // requireAuth already enforces maintenance + ban; we just need a valid session
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
     const rows = await sql<any[]>`
       SELECT id, type::text AS type, priority::text AS priority,
+             audience::text AS audience,
              title, body, active, starts_at, ends_at, target_user_ids,
              created_at, updated_at
       FROM notices
       WHERE active = true
         AND (starts_at IS NULL OR starts_at <= now())
         AND (ends_at   IS NULL OR ends_at   >= now())
+        AND (audience::text = ${data.surface} OR audience = 'both')
         AND (target_user_ids IS NULL
              OR cardinality(target_user_ids) = 0
              OR ${auth.sub}::uuid = ANY(target_user_ids))

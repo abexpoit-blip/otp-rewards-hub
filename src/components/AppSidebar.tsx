@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Tags,
   User,
+  UserCog,
   Users,
   Wallet,
   Activity,
@@ -63,6 +64,8 @@ const adminSection: NavSection = {
   items: [
     { to: "/admin", icon: ShieldCheck, label: "Admin Home" },
     { to: "/admin/users", icon: Users, label: "Users" },
+    { to: "/admin/agents", icon: UserCog, label: "Agents" },
+    { to: "/admin/support", icon: MessageSquare, label: "Support Inbox" },
     { to: "/admin/notices", icon: Radio, label: "Notices" },
     { to: "/admin/maintenance", icon: Settings, label: "Maintenance" },
     { to: "/admin/audit", icon: Activity, label: "Audit Log" },
@@ -73,6 +76,17 @@ const adminSection: NavSection = {
     { to: "/admin/payouts", icon: DollarSign, label: "Payouts" },
     { to: "/admin/report", icon: LineChart, label: "Daily Report" },
     { to: "/admin/settings", icon: Settings, label: "Settings" },
+  ],
+};
+
+const agentSection: NavSection = {
+  label: "Agent Panel",
+  items: [
+    { to: "/agent", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/agent/users", icon: Users, label: "My Users" },
+    { to: "/agent/withdrawals", icon: Wallet, label: "Withdrawals" },
+    { to: "/agent/support", icon: MessageSquare, label: "Support" },
+    { to: "/agent/settings", icon: Settings, label: "Settings" },
   ],
 };
 
@@ -87,12 +101,20 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
     navigate({ to: "/login" });
   };
   const isAdminUser = !!user?.roles?.includes("admin");
+  const isAgentUser = !!user?.roles?.includes("agent");
   const inAdminArea = pathname.startsWith("/admin");
+  const inAgentArea = pathname.startsWith("/agent");
   const sections = isAdminUser
     ? inAdminArea
-      ? [adminSection]                          // admin viewing admin → admin only
-      : [...baseSections, adminSection]         // admin viewing user pages → both
-    : baseSections;                             // regular user → user only
+      ? [adminSection]
+      : inAgentArea
+        ? [agentSection]
+        : [...baseSections, agentSection, adminSection]
+    : isAgentUser
+      ? inAgentArea
+        ? [agentSection]
+        : [...baseSections, agentSection]
+      : baseSections;
   const authLoading = loading || !user;
 
   return (

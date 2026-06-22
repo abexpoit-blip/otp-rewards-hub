@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -12,7 +12,7 @@ import {
 } from "@/components/AuthShell";
 import { useAuth } from "@/lib/auth";
 import { getPublicSettingsFn } from "@/lib/settings.functions";
-import { Lock, Wrench } from "lucide-react";
+import { Lock, Wrench, CheckCircle2, UserCheck } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -30,11 +30,12 @@ function SignupPage() {
     email: "",
     phone: "",
     password: "",
+    agent_email: "",
   });
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const { signup } = useAuth();
-  const navigate = useNavigate();
   const callPublic = useServerFn(getPublicSettingsFn);
   const { data: pub } = useQuery({
     queryKey: ["public-settings-signup"],
@@ -55,16 +56,40 @@ function SignupPage() {
       setErr("Password must be at least 6 characters.");
       return;
     }
+    if (!form.agent_email.trim()) {
+      setErr("Agent email is required.");
+      return;
+    }
     setLoading(true);
     try {
-      await signup(form);
-      navigate({ to: "/" });
+      const r = await signup(form);
+      setSuccess(r.message);
     } catch (e: any) {
       setErr(e?.message || "Could not create account.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <AuthShell
+        title="Account submitted!"
+        subtitle="Awaiting agent approval"
+        footer={
+          <Link to="/login" className="font-semibold accent-text hover:underline">Back to login</Link>
+        }
+      >
+        <div className="rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-5 text-center">
+          <CheckCircle2 className="mx-auto size-12 text-emerald-600 mb-2" />
+          <p className="text-sm font-medium text-emerald-900 whitespace-pre-wrap">{success}</p>
+        </div>
+        <p className="mt-4 text-xs text-muted-foreground text-center">
+          You'll be able to log in once your agent approves the account.
+        </p>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell
@@ -90,72 +115,62 @@ function SignupPage() {
           </div>
         </div>
       )}
+
+      <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-start gap-2.5">
+        <UserCheck className="size-5 mt-0.5 shrink-0 text-primary" />
+        <div className="text-xs">
+          <div className="font-bold text-sm mb-0.5">Agent email required</div>
+          <p className="opacity-90">
+            You must enter your <b>agent's email</b> below. Without a valid agent email no account can be created.
+            After signup, your agent will approve your account.
+          </p>
+        </div>
+      </div>
+
       <form onSubmit={onSubmit} className="space-y-4">
         <fieldset disabled={signupBlocked} className="space-y-4 disabled:opacity-60">
         <Field label="Full Name">
-
-          <TextInput
-            required
-            placeholder="Jon Doe"
-            value={form.name}
-            onChange={set("name")}
-          />
+          <TextInput required placeholder="Jon Doe" value={form.name} onChange={set("name")} />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Email">
-            <TextInput
-              type="email"
-              required
-              placeholder="name@nexus.io"
-              value={form.email}
-              onChange={set("email")}
-            />
+            <TextInput type="email" required placeholder="name@nexus.io" value={form.email} onChange={set("email")} />
           </Field>
           <Field label="Phone">
-            <TextInput
-              type="tel"
-              required
-              placeholder="+1…"
-              value={form.phone}
-              onChange={set("phone")}
-            />
+            <TextInput type="tel" required placeholder="+1…" value={form.phone} onChange={set("phone")} />
           </Field>
         </div>
 
-        <Field label="Password">
+        <Field label="Agent Email (required)">
           <TextInput
-            type="password"
-            autoComplete="new-password"
+            type="email"
             required
-            minLength={6}
-            placeholder="At least 6 characters"
-            value={form.password}
-            onChange={set("password")}
+            placeholder="agent@v2.nexus-x.site"
+            value={form.agent_email}
+            onChange={set("agent_email")}
           />
+        </Field>
+
+        <Field label="Password">
+          <TextInput type="password" autoComplete="new-password" required minLength={6} placeholder="At least 6 characters" value={form.password} onChange={set("password")} />
         </Field>
 
         <div className="rounded-md border border-amber-400/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-[11px] leading-relaxed p-2.5 flex gap-2">
           <span className="text-base leading-none">⚠️</span>
           <span>
             <b>Inactivity policy:</b> if you don't log in for <b>14 consecutive days</b>, your account will be
-            automatically deleted along with all data, API keys, and any zero-balance history. Keep your balance positive
-            or log in regularly to stay active.
+            automatically deleted along with all data.
           </span>
         </div>
-
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          By creating an account you accept the operator terms and live-monitoring policy.
-        </p>
 
         <ErrorBox>{err}</ErrorBox>
 
         <PrimaryButton type="submit" loading={loading} disabled={signupBlocked}>
-          {signupBlocked ? "Signups closed" : "Create Account"}
+          {signupBlocked ? "Signups closed" : "Request Account"}
         </PrimaryButton>
         </fieldset>
       </form>
     </AuthShell>
   );
-
 }
