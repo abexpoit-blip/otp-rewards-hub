@@ -51,6 +51,9 @@ function AdminUsers() {
   const [days, setDays] = useState("1");
   const [note, setNote] = useState("");
   const [deleteEmail, setDeleteEmail] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  useEffect(() => { setPage(1); }, [search, pageSize]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users", search],
