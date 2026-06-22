@@ -114,7 +114,13 @@ function AgentUsers() {
 
   return (
     <AppShell>
-      <PageHeader icon={<Users className="size-6" />} title="My Users" subtitle="Approve signups under your agent email. You can ban/unban and set per-user OTP rate." />
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+        <PageHeader icon={<Users className="size-6" />} title="My Users" subtitle="Approve signups under your agent email. You can ban/unban and set per-user OTP rate." />
+        <Link to="/agent/top" className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-300/60 bg-gradient-to-r from-amber-100 to-yellow-50 px-3 py-1.5 text-xs font-bold text-amber-800 shadow-sm hover:shadow-md transition">
+          <Crown className="size-3.5" /> Top performers
+        </Link>
+      </div>
+
 
       <div className="glass-panel-strong p-3 mb-4 flex items-center gap-2 flex-wrap">
         <Search className="size-4 text-muted-foreground" />
