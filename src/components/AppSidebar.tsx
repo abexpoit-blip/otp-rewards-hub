@@ -19,7 +19,9 @@ import {
   Wallet,
   Activity,
   Banknote,
+  Crown,
   DollarSign,
+
 } from "lucide-react";
 import { TweaksPanel } from "./TweaksPanel";
 import { useTweaks } from "@/lib/tweaks";
