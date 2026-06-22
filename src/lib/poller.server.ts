@@ -108,11 +108,13 @@ async function ingestOnce() {
     const otpDigits = String(otp.number || "").replace(/\D/g, "");
     if (!otpDigits) continue;
     const otpReceivedAt = new Date(Number(otp.time) || Date.now());
+    // Match against the most recent allocation for this number (any status, last 24h).
+    // - 'pending'/'failed'/'expired' → first OTP pays out
+    // - 'success' → duplicate OTP; we still SAVE it (inbox visible) but DO NOT pay again
     const matches = await sql<any[]>`
-      SELECT id, user_id, sid, country, full_number, no_plus_number, national_number, status
+      SELECT id, user_id, sid, country, full_number, no_plus_number, national_number, status::text AS status
       FROM allocations
-      WHERE status IN ('pending', 'failed', 'expired')
-        AND created_at >= now() - interval '24 hours'
+      WHERE created_at >= now() - interval '24 hours'
         AND ${otpReceivedAt} >= created_at - interval '2 minutes'
         AND (
              regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
@@ -124,12 +126,13 @@ async function ingestOnce() {
       ORDER BY created_at DESC LIMIT 1
     `;
     if (matches.length === 0) {
-      console.log(`[poller] no pending allocation matches OTP number=${otp.number} (digits=${otpDigits})`);
+      console.log(`[poller] no allocation matches OTP number=${otp.number} (digits=${otpDigits})`);
       continue;
     }
     const alloc = matches[0];
-    console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number})`);
+    console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number}) status=${alloc.status}`);
 
+    // Always insert the message — duplicates are blocked only via stex_otp_id uniqueness.
     const inserted = await sql<any[]>`
       INSERT INTO otp_messages (allocation_id, user_id, number, body, stex_otp_id, received_at)
       VALUES (${alloc.id}, ${alloc.user_id}, ${otp.number}, ${otp.message},
@@ -138,6 +141,13 @@ async function ingestOnce() {
       RETURNING id
     `;
     if (inserted.length === 0) continue;
+
+    // If allocation is already 'success', this is a 2nd/3rd OTP from the same number.
+    // Show it in inbox (already inserted above) but NO additional payout.
+    if (alloc.status === "success") {
+      console.log(`[poller] duplicate OTP for already-paid allocation ${alloc.id} — no extra payout`);
+      continue;
+    }
 
     // Per-user rate (set by agent/admin); fallback to global default_payout.
     const [u] = await sql<any[]>`SELECT otp_rate::text AS rate FROM users WHERE id = ${alloc.user_id}`;

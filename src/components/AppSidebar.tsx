@@ -64,6 +64,7 @@ const adminSection: NavSection = {
   items: [
     { to: "/admin", icon: ShieldCheck, label: "Admin Home" },
     { to: "/admin/users", icon: Users, label: "Users" },
+    { to: "/agent/users", icon: UserCog, label: "Pending Approvals" },
     { to: "/admin/agents", icon: UserCog, label: "Agents" },
     { to: "/admin/support", icon: MessageSquare, label: "Support Inbox" },
     { to: "/admin/notices", icon: Radio, label: "Notices" },
