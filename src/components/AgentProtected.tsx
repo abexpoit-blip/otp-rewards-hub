@@ -1,19 +1,45 @@
 import { type ReactNode, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
+import { agentGetProfileFn } from "@/lib/agent.functions";
 import { AlertTriangle } from "lucide-react";
 
 /**
  * Agent-only client guard. Admin also passes (admin has 'agent' role).
+ * Also forces profile completion before letting agents into other pages.
+ * Pass `allowIncompleteProfile` for the settings page itself.
  */
-export function AgentProtected({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+export function AgentProtected({
+  children,
+  allowIncompleteProfile = false,
+}: { children: ReactNode; allowIncompleteProfile?: boolean }) {
+  const { user, token, loading } = useAuth();
   const navigate = useNavigate();
+  const callProfile = useServerFn(agentGetProfileFn);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [user, loading, navigate]);
+
+  const isAgent = !!(user?.roles?.includes("agent") || user?.roles?.includes("admin"));
+  const isAdmin = !!user?.roles?.includes("admin");
+
+  const profile = useQuery({
+    queryKey: ["agent-profile"],
+    queryFn: () => callProfile({ data: { token: token! } }),
+    enabled: !!token && isAgent && !isAdmin && !allowIncompleteProfile,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (allowIncompleteProfile || isAdmin) return;
+    if (profile.data && !profile.data.profile_complete) {
+      navigate({ to: "/agent/settings" });
+    }
+  }, [profile.data, allowIncompleteProfile, isAdmin, navigate]);
 
   if (loading || !user) {
     return (
@@ -22,7 +48,6 @@ export function AgentProtected({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  const isAgent = user.roles?.includes("agent") || user.roles?.includes("admin");
   if (!isAgent) {
     return (
       <AppShell>

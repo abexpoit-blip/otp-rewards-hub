@@ -827,7 +827,11 @@ export const adminListAgentsFn = createServerFn({ method: "POST" })
 
 const createAgentSchema = z.object({
   token: z.string().min(1),
-  email: z.string().trim().toLowerCase().email().max(255),
+  // Admin enters a short username (letters/digits/dot/dash/underscore).
+  // Server appends the configured domain (default v2.nexus-x.site).
+  username: z.string().trim().toLowerCase()
+    .min(2).max(64)
+    .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i, "Username: letters, digits, dot, dash, underscore only"),
   password: z.string().min(6).max(200),
   name: z.string().trim().max(120).optional().nullable(),
   otp_rate: z.number().min(0).max(0.70),
@@ -835,7 +839,7 @@ const createAgentSchema = z.object({
 
 export const adminCreateAgentFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createAgentSchema.parse(d))
-  .handler(async ({ data }): Promise<{ ok: true; id: string }> => {
+  .handler(async ({ data }): Promise<{ ok: true; id: string; email: string }> => {
     const { requireAdmin } = await import("./admin-guard.server");
     const admin = await requireAdmin(data.token);
     const { sql } = await import("./db.server");
@@ -846,18 +850,32 @@ export const adminCreateAgentFn = createServerFn({ method: "POST" })
     const cap = Number(await getSetting("max_agent_otp_rate", 0.70));
     if (data.otp_rate > cap) throw new Error(`OTP rate exceeds cap of ৳${cap}`);
 
-    const existing = await sql`SELECT id FROM users WHERE email = ${data.email}`;
-    if (existing.length > 0) throw new Error("Email already in use.");
+    const domainRaw = String(await getSetting("agent_email_domain", "v2.nexus-x.site")).trim().replace(/^@+/, "");
+    const email = `${data.username}@${domainRaw}`.toLowerCase();
+
+    const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
+    if (existing.length > 0) throw new Error(`Username already taken (${email}).`);
 
     const hash = await hashPassword(data.password);
     const [u] = await sql<any[]>`
       INSERT INTO users (email, password_hash, name, status, otp_rate, agent_active)
-      VALUES (${data.email}, ${hash}, ${data.name ?? null}, 'active', ${data.otp_rate}::numeric, true)
+      VALUES (${email}, ${hash}, ${data.name ?? null}, 'active', ${data.otp_rate}::numeric, true)
       RETURNING id
     `;
     await sql`INSERT INTO user_roles (user_id, role) VALUES (${u.id}, 'agent'), (${u.id}, 'user') ON CONFLICT DO NOTHING`;
-    await audit(admin.sub, "agent.create", { type: "user", id: u.id }, { email: data.email, otp_rate: data.otp_rate });
-    return { ok: true as const, id: u.id };
+    await audit(admin.sub, "agent.create", { type: "user", id: u.id }, { email, otp_rate: data.otp_rate });
+    return { ok: true as const, id: u.id, email };
+  });
+
+// Public read: which domain to show in admin UI as a preview.
+export const adminGetAgentDomainFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => tokenSchema.parse(d))
+  .handler(async ({ data }): Promise<{ domain: string }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { getSetting } = await import("./settings.server");
+    const d = String(await getSetting("agent_email_domain", "v2.nexus-x.site")).trim().replace(/^@+/, "");
+    return { domain: d };
   });
 
 const updateAgentSchema = z.object({
