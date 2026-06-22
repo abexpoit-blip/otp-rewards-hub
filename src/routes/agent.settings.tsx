@@ -66,17 +66,61 @@ function AgentSettings() {
   const complete = !!profile.data?.profile_complete;
   const isAdmin = user?.roles?.includes("admin");
 
-  const Field = ({ label, value, onChange, type = "text", required = true, placeholder, hint, textarea }: any) => (
-    <label className="block">
-      <span className="text-xs font-bold mb-1 block">{label}{required && <span className="text-rose-500 ml-0.5">*</span>}</span>
-      {textarea ? (
-        <textarea rows={2} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm" />
-      ) : (
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm" />
-      )}
-      {hint && <p className="text-[10px] text-muted-foreground mt-1">{hint}</p>}
-    </label>
-  );
+  // ---- inline validation ----
+  const [touched, setTouched] = useState<Partial<Record<keyof Form, boolean>>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const validate = (f: Form): Partial<Record<keyof Form, string>> => {
+    const e: Partial<Record<keyof Form, string>> = {};
+    if (f.name.trim().length < 2) e.name = "Name must be at least 2 characters.";
+    const phoneDigits = f.phone.replace(/\D/g, "");
+    if (phoneDigits.length < 7) e.phone = "Enter a valid phone number (digits only, min 7).";
+    const tg = f.telegram.trim().replace(/^@/, "");
+    if (!/^[a-zA-Z0-9_]{3,32}$/.test(tg)) e.telegram = "Telegram username: 3–32 chars, letters/digits/underscore.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.personal_email.trim())) e.personal_email = "Enter a valid email address.";
+    else if (f.personal_email.trim().toLowerCase() === (user?.email ?? "").toLowerCase()) e.personal_email = "Must differ from your agent login email.";
+    if (f.address.trim().length < 5) e.address = "Address must be at least 5 characters.";
+    if (f.group_link.trim() && !/^https?:\/\/.+/i.test(f.group_link.trim())) e.group_link = "Group link must start with http(s)://";
+    return e;
+  };
+
+  const errors = validate(form);
+  const hasErrors = Object.keys(errors).length > 0;
+  const showErr = (k: keyof Form) => (submitted || touched[k]) && errors[k];
+
+  const Field = ({ name, label, value, onChange, type = "text", required = true, placeholder, hint, textarea }: {
+    name: keyof Form; label: string; value: string; onChange: (v: string) => void;
+    type?: string; required?: boolean; placeholder?: string; hint?: string; textarea?: boolean;
+  }) => {
+    const err = showErr(name);
+    const cls = `w-full bg-background border rounded-md px-3 py-2 text-sm transition ${err ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-200" : "border-border focus:border-primary/60 focus:ring-2 focus:ring-primary/20"}`;
+    return (
+      <label className="block">
+        <span className="text-xs font-bold mb-1 block">{label}{required && <span className="text-rose-500 ml-0.5">*</span>}</span>
+        {textarea ? (
+          <textarea rows={2} value={value} onChange={(e) => onChange(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, [name]: true }))} placeholder={placeholder} className={cls} />
+        ) : (
+          <input type={type} value={value} onChange={(e) => onChange(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, [name]: true }))} placeholder={placeholder} className={cls} />
+        )}
+        {err ? (
+          <p className="text-[11px] text-rose-600 mt-1 font-medium">{errors[name]}</p>
+        ) : hint ? (
+          <p className="text-[10px] text-muted-foreground mt-1">{hint}</p>
+        ) : null}
+      </label>
+    );
+  };
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+    const errs = validate(form);
+    if (Object.keys(errs).length > 0) {
+      toast.error("Please fix the highlighted fields before saving.");
+      return;
+    }
+    save.mutate();
+  };
 
   return (
     <AppShell>
@@ -113,31 +157,40 @@ function AgentSettings() {
           </div>
         </dl>
 
-        <form
-          onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-        >
-          <Field label="Full Name" value={form.name} onChange={(v: string) => setForm({ ...form, name: v })} placeholder="e.g. Rakib Hasan" />
-          <Field label="Phone Number" value={form.phone} onChange={(v: string) => setForm({ ...form, phone: v })} placeholder="+8801XXXXXXXXX" />
-          <Field label="Telegram ID / Username" value={form.telegram} onChange={(v: string) => setForm({ ...form, telegram: v })} placeholder="@yourhandle" />
-          <Field label="Personal Email" type="email" value={form.personal_email} onChange={(v: string) => setForm({ ...form, personal_email: v })} placeholder="you@gmail.com" hint="Different from your agent login email." />
+        <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field name="name" label="Full Name" value={form.name} onChange={(v: string) => setForm({ ...form, name: v })} placeholder="e.g. Rakib Hasan" />
+          <Field name="phone" label="Phone Number" value={form.phone} onChange={(v: string) => setForm({ ...form, phone: v })} placeholder="+8801XXXXXXXXX" />
+          <Field name="telegram" label="Telegram ID / Username" value={form.telegram} onChange={(v: string) => setForm({ ...form, telegram: v })} placeholder="@yourhandle" hint="Without spaces. We strip the leading @ automatically." />
+          <Field name="personal_email" label="Personal Email" type="email" value={form.personal_email} onChange={(v: string) => setForm({ ...form, personal_email: v })} placeholder="you@gmail.com" hint="Different from your agent login email." />
           <div className="sm:col-span-2">
-            <Field label="Address" value={form.address} onChange={(v: string) => setForm({ ...form, address: v })} placeholder="House, road, area, city, country" textarea />
+            <Field name="address" label="Address" value={form.address} onChange={(v: string) => setForm({ ...form, address: v })} placeholder="House, road, area, city, country" textarea />
           </div>
           <div className="sm:col-span-2">
-            <Field label="Group Link (optional)" required={false} value={form.group_link} onChange={(v: string) => setForm({ ...form, group_link: v })} placeholder="https://t.me/yourgroup" hint="If you run a Telegram/WhatsApp/FB group for your users, share the link." />
+            <Field name="group_link" label="Group Link (optional)" required={false} value={form.group_link} onChange={(v: string) => setForm({ ...form, group_link: v })} placeholder="https://t.me/yourgroup" hint="If you run a Telegram/WhatsApp/FB group for your users, share the link." />
           </div>
+
+          {submitted && hasErrors && (
+            <div className="sm:col-span-2 rounded-lg border border-rose-300/60 bg-rose-50 dark:bg-rose-950/30 p-3 text-xs text-rose-700 dark:text-rose-300">
+              {Object.keys(errors).length} field(s) need attention. Scroll up and fix the red highlighted inputs.
+            </div>
+          )}
 
           <div className="sm:col-span-2 flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
             {isAdmin && (
               <button type="button" onClick={() => navigate({ to: "/agent/users" })} className="text-xs px-3 py-2 rounded-lg hover:bg-accent">Skip (admin)</button>
             )}
-            <button type="submit" disabled={save.isPending} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-xs font-bold shadow-md shadow-primary/25 disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={save.isPending || hasErrors}
+              title={hasErrors ? "Fix the highlighted fields first" : "Save profile"}
+              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-xs font-bold shadow-md shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Save className="size-3.5" /> {save.isPending ? "Saving…" : "Save profile"}
             </button>
           </div>
         </form>
       </div>
+
     </AppShell>
   );
 }
