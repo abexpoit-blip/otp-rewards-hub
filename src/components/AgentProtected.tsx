@@ -1,15 +1,17 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { agentGetProfileFn } from "@/lib/agent.functions";
+import { TempPasswordModal } from "@/components/TempPasswordModal";
 import { AlertTriangle } from "lucide-react";
 
 /**
  * Agent-only client guard. Admin also passes (admin has 'agent' role).
- * Also forces profile completion before letting agents into other pages.
+ * - Forces a temporary-password change (admin-issued) before anything else.
+ * - Then forces profile completion before letting agents into other pages.
  * Pass `allowIncompleteProfile` for the settings page itself.
  */
 export function AgentProtected({
@@ -19,6 +21,7 @@ export function AgentProtected({
   const { user, token, loading } = useAuth();
   const navigate = useNavigate();
   const callProfile = useServerFn(agentGetProfileFn);
+  const [pwDoneOverride, setPwDoneOverride] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -27,19 +30,23 @@ export function AgentProtected({
   const isAgent = !!(user?.roles?.includes("agent") || user?.roles?.includes("admin"));
   const isAdmin = !!user?.roles?.includes("admin");
 
+  // Fetch profile for all agent pages so we can detect must_change_password.
   const profile = useQuery({
     queryKey: ["agent-profile"],
     queryFn: () => callProfile({ data: { token: token! } }),
-    enabled: !!token && isAgent && !isAdmin && !allowIncompleteProfile,
+    enabled: !!token && isAgent && !isAdmin,
     staleTime: 30_000,
   });
 
+  const mustChangePw = !!profile.data?.must_change_password && !pwDoneOverride;
+
   useEffect(() => {
     if (allowIncompleteProfile || isAdmin) return;
+    if (mustChangePw) return; // password modal takes priority
     if (profile.data && !profile.data.profile_complete) {
       navigate({ to: "/agent/settings" });
     }
-  }, [profile.data, allowIncompleteProfile, isAdmin, navigate]);
+  }, [profile.data, allowIncompleteProfile, isAdmin, navigate, mustChangePw]);
 
   if (loading || !user) {
     return (
@@ -59,5 +66,12 @@ export function AgentProtected({
       </AppShell>
     );
   }
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {mustChangePw && !isAdmin && (
+        <TempPasswordModal onDone={() => setPwDoneOverride(true)} />
+      )}
+    </>
+  );
 }
