@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Pager } from "@/components/Pager";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
@@ -50,6 +51,9 @@ function AdminUsers() {
   const [days, setDays] = useState("1");
   const [note, setNote] = useState("");
   const [deleteEmail, setDeleteEmail] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  useEffect(() => { setPage(1); }, [search, pageSize]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users", search],
@@ -110,6 +114,13 @@ function AdminUsers() {
   };
 
 
+  const total = data?.length ?? 0;
+  const pagedData = useMemo(() => {
+    if (!data) return [];
+    const start = (page - 1) * pageSize;
+    return data.slice(start, start + pageSize);
+  }, [data, page, pageSize]);
+
   return (
     <AppShell>
       <PageHeader icon={<Users className="size-6" />} title="Users" subtitle="Manage user accounts, balance, ban/suspend, force-logout, notes." />
@@ -150,9 +161,9 @@ function AdminUsers() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
-            ) : data?.length === 0 ? (
+            ) : total === 0 ? (
               <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No users</td></tr>
-            ) : data?.map((u) => {
+            ) : pagedData.map((u) => {
               const suspended = u.banned_until && new Date(u.banned_until).getTime() > Date.now();
               const lastLoginMs = u.last_login_at ? new Date(u.last_login_at).getTime() : new Date(u.created_at).getTime();
               const daysIdle = Math.floor((Date.now() - lastLoginMs) / 86400000);
@@ -269,6 +280,16 @@ function AdminUsers() {
             })}
           </tbody>
         </table>
+        {total > 0 && (
+          <Pager
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            shown={pagedData.length}
+            onPage={setPage}
+            onPageSize={(s) => { setPageSize(Number(s)); setPage(1); }}
+          />
+        )}
       </div>
 
       {modal && (
