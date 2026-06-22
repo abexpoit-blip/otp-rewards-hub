@@ -117,6 +117,10 @@ export const agentApproveUserFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { audit } = await import("./audit.server");
 
+    // Block approvals until the agent has filled their own profile.
+    const [pc] = await sql<{ ok: boolean }[]>`SELECT is_agent_profile_complete(${auth.sub}::uuid) AS ok`;
+    if (!pc?.ok) throw new Error("Complete your agent profile first (Agent → Settings) before approving users.");
+
     const [u] = await sql<any[]>`
       SELECT id, email::text AS email, agent_id, status::text AS status
       FROM users WHERE id = ${data.user_id}
@@ -154,6 +158,10 @@ export const agentBulkApproveFn = createServerFn({ method: "POST" })
     const auth = await requireAgent(data.token);
     const { sql } = await import("./db.server");
     const { audit } = await import("./audit.server");
+
+    const [pc] = await sql<{ ok: boolean }[]>`SELECT is_agent_profile_complete(${auth.sub}::uuid) AS ok`;
+    if (!pc?.ok) throw new Error("Complete your agent profile first (Agent → Settings) before approving users.");
+
     const rows = await sql<{ id: string }[]>`
       UPDATE users
       SET status = 'active', otp_rate = ${data.otp_rate}::numeric
@@ -166,6 +174,72 @@ export const agentBulkApproveFn = createServerFn({ method: "POST" })
       { count: rows.length, rate: data.otp_rate });
     return { ok: true as const, approved: rows.length };
   });
+
+// =====================================================================
+// Agent profile (self) — must be complete before approving users
+// =====================================================================
+export type AgentProfileDTO = {
+  name: string | null;
+  phone: string | null;
+  telegram: string | null;
+  personal_email: string | null;
+  address: string | null;
+  group_link: string | null;
+  profile_complete: boolean;
+};
+
+export const agentGetProfileFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => tokenSchema.parse(d))
+  .handler(async ({ data }): Promise<AgentProfileDTO> => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    const [u] = await sql<any[]>`
+      SELECT name, phone, telegram, personal_email, address, group_link,
+             is_agent_profile_complete(id) AS profile_complete
+      FROM users WHERE id = ${auth.sub}
+    `;
+    return {
+      name: u?.name ?? null,
+      phone: u?.phone ?? null,
+      telegram: u?.telegram ?? null,
+      personal_email: u?.personal_email ?? null,
+      address: u?.address ?? null,
+      group_link: u?.group_link ?? null,
+      profile_complete: !!u?.profile_complete,
+    };
+  });
+
+const saveProfileSchema = z.object({
+  token: z.string().min(1),
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().min(3).max(40),
+  telegram: z.string().trim().min(2).max(80),
+  personal_email: z.string().trim().toLowerCase().email().max(255),
+  address: z.string().trim().min(3).max(500),
+  group_link: z.string().trim().max(300).optional().nullable(),
+});
+
+export const agentSaveProfileFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => saveProfileSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; profile_complete: boolean }> => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    await sql`
+      UPDATE users SET
+        name = ${data.name},
+        phone = ${data.phone},
+        telegram = ${data.telegram},
+        personal_email = ${data.personal_email},
+        address = ${data.address},
+        group_link = ${data.group_link ?? null},
+        agent_profile_completed_at = COALESCE(agent_profile_completed_at, now())
+      WHERE id = ${auth.sub}
+    `;
+    return { ok: true as const, profile_complete: true };
+  });
+
 
 // =====================================================================
 // Ban / Unban under-agent user
