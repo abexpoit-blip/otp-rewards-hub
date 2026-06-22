@@ -167,8 +167,8 @@ function AdminAgents() {
               <label className="block text-xs"><span className="font-bold mb-1 block">Name (optional, shown internally)</span>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm" placeholder="e.g. Rakib Hasan" />
               </label>
-              <label className="block text-xs"><span className="font-bold mb-1 block">Password {modal.kind === "edit" && "(leave blank to keep current)"}</span>
-                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm" placeholder={modal.kind === "edit" ? "•••••• (unchanged)" : "Min 6 chars"} />
+              <label className="block text-xs"><span className="font-bold mb-1 block">Temporary password {modal.kind === "edit" ? "(leave blank to keep current; setting a new value re-arms first-login change)" : "(agent must change on first login)"}</span>
+                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm" placeholder={modal.kind === "edit" ? "•••••• (unchanged)" : "Min 6 chars — agent will replace this"} />
               </label>
               <label className="block text-xs"><span className="font-bold mb-1 block">OTP Rate (BDT, max 0.70)</span>
                 <input type="number" step="0.01" min="0" max="0.70" value={form.otp_rate} onChange={(e) => setForm({ ...form, otp_rate: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono" />
