@@ -232,41 +232,76 @@ function InboxPage() {
       </div>
 
       {/* Date filter + Download */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 glass-panel-strong p-3 rounded-xl">
-        <div className="inline-flex items-center gap-1.5 text-muted-foreground">
-          <Calendar className="size-4" />
-          <span className="text-[10px] uppercase tracking-widest font-bold">Range</span>
-        </div>
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          className="bg-background/80 border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition"
-        />
-        <span className="text-muted-foreground text-xs">→</span>
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          className="bg-background/80 border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition"
-        />
-        {(fromDate || toDate) && (
+      <div className="mb-4 glass-panel-strong rounded-2xl p-3 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Quick presets */}
+          <div className="inline-flex items-center gap-1 rounded-xl bg-background/60 p-1 ring-1 ring-border">
+            {([
+              { key: "today", label: "Today", days: 0 },
+              { key: "7d", label: "Last 7d", days: 6 },
+              { key: "30d", label: "Last 30d", days: 29 },
+            ] as const).map((p) => {
+              const today = new Date(); today.setHours(0,0,0,0);
+              const from = new Date(today); from.setDate(today.getDate() - p.days);
+              const fmt = (d: Date) => d.toISOString().slice(0, 10);
+              const isActive = fromDate === fmt(from) && toDate === fmt(today);
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => { setFromDate(fmt(from)); setToDate(fmt(today)); }}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/50"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="hidden sm:block h-6 w-px bg-border" />
+
+          {/* Custom range */}
+          <div className="inline-flex items-center gap-2 rounded-xl bg-background/60 px-2.5 py-1.5 ring-1 ring-border">
+            <Calendar className="size-3.5 text-muted-foreground" />
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="bg-transparent w-[120px] text-xs font-mono outline-none"
+              aria-label="From date"
+            />
+            <span className="text-muted-foreground text-xs">→</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="bg-transparent w-[120px] text-xs font-mono outline-none"
+              aria-label="To date"
+            />
+            {(fromDate || toDate) && (
+              <button
+                onClick={() => { setFromDate(""); setToDate(""); }}
+                className="ml-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                title="Clear range"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           <button
-            onClick={() => { setFromDate(""); setToDate(""); }}
-            className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition"
+            onClick={downloadTxt}
+            disabled={!filteredOtps.length}
+            className="ml-auto group inline-flex items-center gap-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground px-4 py-2 rounded-xl text-xs font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-sm transition-all duration-200"
+            title="Download Number|OTP pairs as .txt"
           >
-            Clear
+            <Download className="size-3.5 group-hover:translate-y-0.5 transition-transform" />
+            Download <span className="font-mono opacity-80">Number|OTP</span>
           </button>
-        )}
-        <button
-          onClick={downloadTxt}
-          disabled={!filteredOtps.length}
-          className="ml-auto group inline-flex items-center gap-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground px-4 py-2 rounded-lg text-xs font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-sm transition-all duration-200"
-          title="Download Number|OTP pairs as .txt"
-        >
-          <Download className="size-3.5 group-hover:translate-y-0.5 transition-transform" />
-          Download <span className="font-mono opacity-80">Number|OTP</span>
-        </button>
+        </div>
       </div>
 
       {lastError && status !== "live" && (
