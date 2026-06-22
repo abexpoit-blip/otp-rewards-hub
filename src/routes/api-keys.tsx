@@ -6,7 +6,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import { listApiKeysFn, createApiKeyFn, revokeApiKeyFn } from "@/lib/api-keys.functions";
-import { Key, Plus, Copy, Check } from "lucide-react";
+import { Key, Plus, Copy, Check, BookOpen, Terminal, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/api-keys")({
