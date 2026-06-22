@@ -11,12 +11,18 @@
 
 BEGIN;
 
+-- NOTE: Run this file as-is. The enum ADD VALUE must commit BEFORE the value
+-- can be used, so we end the implicit transaction with COMMIT and start a
+-- fresh BEGIN before the rest of the migration.
+
 -- ============================================================
--- 1. 'agent' role
+-- 1. 'agent' role  (must be its own transaction)
 -- ============================================================
-DO $$ BEGIN
-  ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'agent';
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+COMMIT;
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'agent';
+BEGIN;
+
+
 
 -- ============================================================
 -- 2. users: per-user rate + referring agent
