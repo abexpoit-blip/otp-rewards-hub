@@ -22,10 +22,16 @@ import { Route as BulkAllocateRouteImport } from './routes/bulk-allocate'
 import { Route as ApiKeysRouteImport } from './routes/api-keys'
 import { Route as AccessListRouteImport } from './routes/access-list'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgentIndexRouteImport } from './routes/agent.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as AgentWithdrawalsRouteImport } from './routes/agent.withdrawals'
+import { Route as AgentUsersRouteImport } from './routes/agent.users'
+import { Route as AgentSupportRouteImport } from './routes/agent.support'
+import { Route as AgentSettingsRouteImport } from './routes/agent.settings'
 import { Route as AdminWithdrawalsRouteImport } from './routes/admin.withdrawals'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminReportRouteImport } from './routes/admin.report'
 import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
@@ -35,6 +41,7 @@ import { Route as AdminMaintenanceRouteImport } from './routes/admin.maintenance
 import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAllocationsRouteImport } from './routes/admin.allocations'
+import { Route as AdminAgentsRouteImport } from './routes/admin.agents'
 import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
 import { Route as ApiPublicStexWebhookRouteImport } from './routes/api/public/stex.webhook'
 import { Route as ApiPublicCronCleanupOldAllocationsRouteImport } from './routes/api/public/cron.cleanup-old-allocations'
@@ -105,6 +112,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentIndexRoute = AgentIndexRouteImport.update({
+  id: '/agent/',
+  path: '/agent/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -115,6 +127,26 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentWithdrawalsRoute = AgentWithdrawalsRouteImport.update({
+  id: '/agent/withdrawals',
+  path: '/agent/withdrawals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentUsersRoute = AgentUsersRouteImport.update({
+  id: '/agent/users',
+  path: '/agent/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentSupportRoute = AgentSupportRouteImport.update({
+  id: '/agent/support',
+  path: '/agent/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentSettingsRoute = AgentSettingsRouteImport.update({
+  id: '/agent/settings',
+  path: '/agent/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminWithdrawalsRoute = AdminWithdrawalsRouteImport.update({
   id: '/admin/withdrawals',
   path: '/admin/withdrawals',
@@ -123,6 +155,11 @@ const AdminWithdrawalsRoute = AdminWithdrawalsRouteImport.update({
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSupportRoute = AdminSupportRouteImport.update({
+  id: '/admin/support',
+  path: '/admin/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
@@ -170,6 +207,11 @@ const AdminAllocationsRoute = AdminAllocationsRouteImport.update({
   path: '/admin/allocations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAgentsRoute = AdminAgentsRouteImport.update({
+  id: '/admin/agents',
+  path: '/admin/agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiInboxStreamRoute = ApiInboxStreamRouteImport.update({
   id: '/api/inbox/stream',
   path: '/api/inbox/stream',
@@ -207,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/agents': typeof AdminAgentsRoute
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/gateways': typeof AdminGatewaysRoute
@@ -216,10 +259,16 @@ export interface FileRoutesByFullPath {
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
+  '/agent/settings': typeof AgentSettingsRoute
+  '/agent/support': typeof AgentSupportRoute
+  '/agent/users': typeof AgentUsersRoute
+  '/agent/withdrawals': typeof AgentWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
   '/admin/': typeof AdminIndexRoute
+  '/agent/': typeof AgentIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
@@ -239,6 +288,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/agents': typeof AdminAgentsRoute
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/gateways': typeof AdminGatewaysRoute
@@ -248,10 +298,16 @@ export interface FileRoutesByTo {
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
+  '/agent/settings': typeof AgentSettingsRoute
+  '/agent/support': typeof AgentSupportRoute
+  '/agent/users': typeof AgentUsersRoute
+  '/agent/withdrawals': typeof AgentWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
   '/admin': typeof AdminIndexRoute
+  '/agent': typeof AgentIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
@@ -272,6 +328,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/withdrawals': typeof WithdrawalsRoute
+  '/admin/agents': typeof AdminAgentsRoute
   '/admin/allocations': typeof AdminAllocationsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/gateways': typeof AdminGatewaysRoute
@@ -281,10 +338,16 @@ export interface FileRoutesById {
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/report': typeof AdminReportRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/withdrawals': typeof AdminWithdrawalsRoute
+  '/agent/settings': typeof AgentSettingsRoute
+  '/agent/support': typeof AgentSupportRoute
+  '/agent/users': typeof AgentUsersRoute
+  '/agent/withdrawals': typeof AgentWithdrawalsRoute
   '/api/health': typeof ApiHealthRoute
   '/admin/': typeof AdminIndexRoute
+  '/agent/': typeof AgentIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
@@ -306,6 +369,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/agents'
     | '/admin/allocations'
     | '/admin/audit'
     | '/admin/gateways'
@@ -315,10 +379,16 @@ export interface FileRouteTypes {
     | '/admin/payouts'
     | '/admin/report'
     | '/admin/settings'
+    | '/admin/support'
     | '/admin/users'
     | '/admin/withdrawals'
+    | '/agent/settings'
+    | '/agent/support'
+    | '/agent/users'
+    | '/agent/withdrawals'
     | '/api/health'
     | '/admin/'
+    | '/agent/'
     | '/api/inbox/stream'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
@@ -338,6 +408,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/agents'
     | '/admin/allocations'
     | '/admin/audit'
     | '/admin/gateways'
@@ -347,10 +418,16 @@ export interface FileRouteTypes {
     | '/admin/payouts'
     | '/admin/report'
     | '/admin/settings'
+    | '/admin/support'
     | '/admin/users'
     | '/admin/withdrawals'
+    | '/agent/settings'
+    | '/agent/support'
+    | '/agent/users'
+    | '/agent/withdrawals'
     | '/api/health'
     | '/admin'
+    | '/agent'
     | '/api/inbox/stream'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
@@ -370,6 +447,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/summary'
     | '/withdrawals'
+    | '/admin/agents'
     | '/admin/allocations'
     | '/admin/audit'
     | '/admin/gateways'
@@ -379,10 +457,16 @@ export interface FileRouteTypes {
     | '/admin/payouts'
     | '/admin/report'
     | '/admin/settings'
+    | '/admin/support'
     | '/admin/users'
     | '/admin/withdrawals'
+    | '/agent/settings'
+    | '/agent/support'
+    | '/agent/users'
+    | '/agent/withdrawals'
     | '/api/health'
     | '/admin/'
+    | '/agent/'
     | '/api/inbox/stream'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
@@ -403,6 +487,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SummaryRoute: typeof SummaryRoute
   WithdrawalsRoute: typeof WithdrawalsRoute
+  AdminAgentsRoute: typeof AdminAgentsRoute
   AdminAllocationsRoute: typeof AdminAllocationsRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminGatewaysRoute: typeof AdminGatewaysRoute
@@ -412,10 +497,16 @@ export interface RootRouteChildren {
   AdminPayoutsRoute: typeof AdminPayoutsRoute
   AdminReportRoute: typeof AdminReportRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSupportRoute: typeof AdminSupportRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminWithdrawalsRoute: typeof AdminWithdrawalsRoute
+  AgentSettingsRoute: typeof AgentSettingsRoute
+  AgentSupportRoute: typeof AgentSupportRoute
+  AgentUsersRoute: typeof AgentUsersRoute
+  AgentWithdrawalsRoute: typeof AgentWithdrawalsRoute
   ApiHealthRoute: typeof ApiHealthRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AgentIndexRoute: typeof AgentIndexRoute
   ApiInboxStreamRoute: typeof ApiInboxStreamRoute
   ApiPublicCronCleanupInactiveRoute: typeof ApiPublicCronCleanupInactiveRoute
   ApiPublicCronCleanupOldAllocationsRoute: typeof ApiPublicCronCleanupOldAllocationsRoute
@@ -515,6 +606,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agent/': {
+      id: '/agent/'
+      path: '/agent'
+      fullPath: '/agent/'
+      preLoaderRoute: typeof AgentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/admin'
@@ -529,6 +627,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agent/withdrawals': {
+      id: '/agent/withdrawals'
+      path: '/agent/withdrawals'
+      fullPath: '/agent/withdrawals'
+      preLoaderRoute: typeof AgentWithdrawalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent/users': {
+      id: '/agent/users'
+      path: '/agent/users'
+      fullPath: '/agent/users'
+      preLoaderRoute: typeof AgentUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent/support': {
+      id: '/agent/support'
+      path: '/agent/support'
+      fullPath: '/agent/support'
+      preLoaderRoute: typeof AgentSupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent/settings': {
+      id: '/agent/settings'
+      path: '/agent/settings'
+      fullPath: '/agent/settings'
+      preLoaderRoute: typeof AgentSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/withdrawals': {
       id: '/admin/withdrawals'
       path: '/admin/withdrawals'
@@ -541,6 +667,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/support': {
+      id: '/admin/support'
+      path: '/admin/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AdminSupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/settings': {
@@ -606,6 +739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAllocationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/agents': {
+      id: '/admin/agents'
+      path: '/admin/agents'
+      fullPath: '/admin/agents'
+      preLoaderRoute: typeof AdminAgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/inbox/stream': {
       id: '/api/inbox/stream'
       path: '/api/inbox/stream'
@@ -651,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SummaryRoute: SummaryRoute,
   WithdrawalsRoute: WithdrawalsRoute,
+  AdminAgentsRoute: AdminAgentsRoute,
   AdminAllocationsRoute: AdminAllocationsRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminGatewaysRoute: AdminGatewaysRoute,
@@ -660,10 +801,16 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPayoutsRoute: AdminPayoutsRoute,
   AdminReportRoute: AdminReportRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminSupportRoute: AdminSupportRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminWithdrawalsRoute: AdminWithdrawalsRoute,
+  AgentSettingsRoute: AgentSettingsRoute,
+  AgentSupportRoute: AgentSupportRoute,
+  AgentUsersRoute: AgentUsersRoute,
+  AgentWithdrawalsRoute: AgentWithdrawalsRoute,
   ApiHealthRoute: ApiHealthRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AgentIndexRoute: AgentIndexRoute,
   ApiInboxStreamRoute: ApiInboxStreamRoute,
   ApiPublicCronCleanupInactiveRoute: ApiPublicCronCleanupInactiveRoute,
   ApiPublicCronCleanupOldAllocationsRoute:
@@ -673,13 +820,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
