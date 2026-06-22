@@ -42,7 +42,11 @@ import { Route as AdminGatewaysRouteImport } from './routes/admin.gateways'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAllocationsRouteImport } from './routes/admin.allocations'
 import { Route as AdminAgentsRouteImport } from './routes/admin.agents'
+import { Route as ApiV1NumbersRouteImport } from './routes/api/v1/numbers'
+import { Route as ApiV1InboxRouteImport } from './routes/api/v1/inbox'
+import { Route as ApiV1BalanceRouteImport } from './routes/api/v1/balance'
 import { Route as ApiInboxStreamRouteImport } from './routes/api/inbox/stream'
+import { Route as ApiV1NumbersIdRouteImport } from './routes/api/v1/numbers.$id'
 import { Route as ApiPublicStexWebhookRouteImport } from './routes/api/public/stex.webhook'
 import { Route as ApiPublicCronCleanupOldAllocationsRouteImport } from './routes/api/public/cron.cleanup-old-allocations'
 import { Route as ApiPublicCronCleanupInactiveRouteImport } from './routes/api/public/cron.cleanup-inactive'
@@ -212,10 +216,30 @@ const AdminAgentsRoute = AdminAgentsRouteImport.update({
   path: '/admin/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1NumbersRoute = ApiV1NumbersRouteImport.update({
+  id: '/api/v1/numbers',
+  path: '/api/v1/numbers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1InboxRoute = ApiV1InboxRouteImport.update({
+  id: '/api/v1/inbox',
+  path: '/api/v1/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BalanceRoute = ApiV1BalanceRouteImport.update({
+  id: '/api/v1/balance',
+  path: '/api/v1/balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiInboxStreamRoute = ApiInboxStreamRouteImport.update({
   id: '/api/inbox/stream',
   path: '/api/inbox/stream',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1NumbersIdRoute = ApiV1NumbersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV1NumbersRoute,
 } as any)
 const ApiPublicStexWebhookRoute = ApiPublicStexWebhookRouteImport.update({
   id: '/api/public/stex/webhook',
@@ -270,9 +294,13 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/agent/': typeof AgentIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
+  '/api/v1/balance': typeof ApiV1BalanceRoute
+  '/api/v1/inbox': typeof ApiV1InboxRoute
+  '/api/v1/numbers': typeof ApiV1NumbersRouteWithChildren
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
   '/api/public/stex/webhook': typeof ApiPublicStexWebhookRoute
+  '/api/v1/numbers/$id': typeof ApiV1NumbersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -309,9 +337,13 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/agent': typeof AgentIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
+  '/api/v1/balance': typeof ApiV1BalanceRoute
+  '/api/v1/inbox': typeof ApiV1InboxRoute
+  '/api/v1/numbers': typeof ApiV1NumbersRouteWithChildren
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
   '/api/public/stex/webhook': typeof ApiPublicStexWebhookRoute
+  '/api/v1/numbers/$id': typeof ApiV1NumbersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -349,9 +381,13 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/agent/': typeof AgentIndexRoute
   '/api/inbox/stream': typeof ApiInboxStreamRoute
+  '/api/v1/balance': typeof ApiV1BalanceRoute
+  '/api/v1/inbox': typeof ApiV1InboxRoute
+  '/api/v1/numbers': typeof ApiV1NumbersRouteWithChildren
   '/api/public/cron/cleanup-inactive': typeof ApiPublicCronCleanupInactiveRoute
   '/api/public/cron/cleanup-old-allocations': typeof ApiPublicCronCleanupOldAllocationsRoute
   '/api/public/stex/webhook': typeof ApiPublicStexWebhookRoute
+  '/api/v1/numbers/$id': typeof ApiV1NumbersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -390,9 +426,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/agent/'
     | '/api/inbox/stream'
+    | '/api/v1/balance'
+    | '/api/v1/inbox'
+    | '/api/v1/numbers'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
     | '/api/public/stex/webhook'
+    | '/api/v1/numbers/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -429,9 +469,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agent'
     | '/api/inbox/stream'
+    | '/api/v1/balance'
+    | '/api/v1/inbox'
+    | '/api/v1/numbers'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
     | '/api/public/stex/webhook'
+    | '/api/v1/numbers/$id'
   id:
     | '__root__'
     | '/'
@@ -468,9 +512,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/agent/'
     | '/api/inbox/stream'
+    | '/api/v1/balance'
+    | '/api/v1/inbox'
+    | '/api/v1/numbers'
     | '/api/public/cron/cleanup-inactive'
     | '/api/public/cron/cleanup-old-allocations'
     | '/api/public/stex/webhook'
+    | '/api/v1/numbers/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -508,6 +556,9 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AgentIndexRoute: typeof AgentIndexRoute
   ApiInboxStreamRoute: typeof ApiInboxStreamRoute
+  ApiV1BalanceRoute: typeof ApiV1BalanceRoute
+  ApiV1InboxRoute: typeof ApiV1InboxRoute
+  ApiV1NumbersRoute: typeof ApiV1NumbersRouteWithChildren
   ApiPublicCronCleanupInactiveRoute: typeof ApiPublicCronCleanupInactiveRoute
   ApiPublicCronCleanupOldAllocationsRoute: typeof ApiPublicCronCleanupOldAllocationsRoute
   ApiPublicStexWebhookRoute: typeof ApiPublicStexWebhookRoute
@@ -746,12 +797,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/numbers': {
+      id: '/api/v1/numbers'
+      path: '/api/v1/numbers'
+      fullPath: '/api/v1/numbers'
+      preLoaderRoute: typeof ApiV1NumbersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/inbox': {
+      id: '/api/v1/inbox'
+      path: '/api/v1/inbox'
+      fullPath: '/api/v1/inbox'
+      preLoaderRoute: typeof ApiV1InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/balance': {
+      id: '/api/v1/balance'
+      path: '/api/v1/balance'
+      fullPath: '/api/v1/balance'
+      preLoaderRoute: typeof ApiV1BalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/inbox/stream': {
       id: '/api/inbox/stream'
       path: '/api/inbox/stream'
       fullPath: '/api/inbox/stream'
       preLoaderRoute: typeof ApiInboxStreamRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/numbers/$id': {
+      id: '/api/v1/numbers/$id'
+      path: '/$id'
+      fullPath: '/api/v1/numbers/$id'
+      preLoaderRoute: typeof ApiV1NumbersIdRouteImport
+      parentRoute: typeof ApiV1NumbersRoute
     }
     '/api/public/stex/webhook': {
       id: '/api/public/stex/webhook'
@@ -776,6 +855,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ApiV1NumbersRouteChildren {
+  ApiV1NumbersIdRoute: typeof ApiV1NumbersIdRoute
+}
+
+const ApiV1NumbersRouteChildren: ApiV1NumbersRouteChildren = {
+  ApiV1NumbersIdRoute: ApiV1NumbersIdRoute,
+}
+
+const ApiV1NumbersRouteWithChildren = ApiV1NumbersRoute._addFileChildren(
+  ApiV1NumbersRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -812,6 +903,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AgentIndexRoute: AgentIndexRoute,
   ApiInboxStreamRoute: ApiInboxStreamRoute,
+  ApiV1BalanceRoute: ApiV1BalanceRoute,
+  ApiV1InboxRoute: ApiV1InboxRoute,
+  ApiV1NumbersRoute: ApiV1NumbersRouteWithChildren,
   ApiPublicCronCleanupInactiveRoute: ApiPublicCronCleanupInactiveRoute,
   ApiPublicCronCleanupOldAllocationsRoute:
     ApiPublicCronCleanupOldAllocationsRoute,
