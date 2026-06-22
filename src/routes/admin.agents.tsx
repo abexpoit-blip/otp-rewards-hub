@@ -90,26 +90,32 @@ function AdminAgents() {
           <thead className="bg-muted/50 text-xs uppercase">
             <tr>
               <th className="text-left p-3">Agent</th>
+              <th className="text-left p-3">Badge</th>
               <th className="text-right p-3">OTP Rate</th>
               <th className="text-right p-3">Users</th>
               <th className="text-right p-3">Pending</th>
+              <th className="text-right p-3">OTPs (all)</th>
+              <th className="text-right p-3">OTPs (7d)</th>
               <th className="text-left p-3">Status</th>
               <th className="text-left p-3">Last login</th>
               <th className="text-right p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {list.isLoading ? <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr> :
-              !list.data?.length ? <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No agents yet.</td></tr> :
+            {list.isLoading ? <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr> :
+              !list.data?.length ? <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No agents yet.</td></tr> :
                 list.data.map((a) => (
                   <tr key={a.id} className="border-t border-border">
                     <td className="p-3">
                       <div className="font-medium">{a.email}</div>
                       {a.name && <div className="text-xs text-muted-foreground">{a.name}</div>}
                     </td>
+                    <td className="p-3"><PerfBadge count={a.otps_total} size="sm" /></td>
                     <td className="p-3 text-right font-mono font-bold">৳{Number(a.otp_rate).toFixed(2)}</td>
                     <td className="p-3 text-right">{a.users_under}</td>
                     <td className="p-3 text-right">{a.pending_under > 0 ? <span className="rounded px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold">{a.pending_under}</span> : "—"}</td>
+                    <td className="p-3 text-right font-mono font-bold tabular-nums">{a.otps_total.toLocaleString()}</td>
+                    <td className="p-3 text-right font-mono text-muted-foreground tabular-nums">{a.otps_7d.toLocaleString()}</td>
                     <td className="p-3">{a.agent_active ? <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700"><ShieldCheck className="size-3" /> active</span> : <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700"><ShieldOff className="size-3" /> inactive</span>}</td>
                     <td className="p-3 text-xs text-muted-foreground">{a.last_login_at ? new Date(a.last_login_at).toLocaleString() : "Never"}</td>
                     <td className="p-3 text-right">
@@ -121,6 +127,7 @@ function AdminAgents() {
                   </tr>
                 ))
             }
+
           </tbody>
         </table>
       </div>
