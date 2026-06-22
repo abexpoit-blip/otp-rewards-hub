@@ -168,9 +168,13 @@ function AgentUsers() {
                   ) : null}
                 </td>
                 <td className="p-3">
-                  <div className="font-medium">{u.email}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{u.email}</span>
+                    <PerfBadge count={u.success_allocations} size="xs" />
+                  </div>
                   {u.name && <div className="text-xs text-muted-foreground">{u.name}</div>}
                 </td>
+
                 <td className="p-3">
                   {u.status === "pending" ? (
                     <span className="text-xs font-bold rounded px-2 py-0.5 bg-amber-100 text-amber-700 inline-flex items-center gap-1"><Clock className="size-3" /> pending</span>
