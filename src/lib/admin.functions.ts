@@ -791,3 +791,126 @@ export const adminListOtpsFn = createServerFn({ method: "POST" })
       })),
     };
   });
+
+// =====================================================================
+// AGENTS — admin manages sub-admin (agent) accounts
+// =====================================================================
+export type AdminAgentRow = {
+  id: string; email: string; name: string | null;
+  otp_rate: string; agent_active: boolean; status: string;
+  users_under: number; pending_under: number;
+  created_at: string; last_login_at: string | null;
+};
+
+export const adminListAgentsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => tokenSchema.parse(d))
+  .handler(async ({ data }): Promise<AdminAgentRow[]> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const rows = await sql<any[]>`
+      SELECT u.id, u.email::text AS email, u.name,
+             u.otp_rate::text AS otp_rate, u.agent_active,
+             u.status::text AS status, u.created_at, u.last_login_at,
+             (SELECT COUNT(*)::int FROM users x WHERE x.agent_id = u.id) AS users_under,
+             (SELECT COUNT(*)::int FROM users x WHERE x.agent_id = u.id AND x.status = 'pending') AS pending_under
+      FROM users u
+      WHERE EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role = 'agent')
+      ORDER BY u.created_at DESC
+    `;
+    return rows.map((r) => ({
+      ...r, otp_rate: String(r.otp_rate),
+      created_at: r.created_at.toISOString(),
+      last_login_at: r.last_login_at ? r.last_login_at.toISOString() : null,
+    })) as AdminAgentRow[];
+  });
+
+const createAgentSchema = z.object({
+  token: z.string().min(1),
+  email: z.string().trim().toLowerCase().email().max(255),
+  password: z.string().min(6).max(200),
+  name: z.string().trim().max(120).optional().nullable(),
+  otp_rate: z.number().min(0).max(0.70),
+});
+
+export const adminCreateAgentFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => createAgentSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; id: string }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { hashPassword } = await import("./password.server");
+    const { audit } = await import("./audit.server");
+    const { getSetting } = await import("./settings.server");
+
+    const cap = Number(await getSetting("max_agent_otp_rate", 0.70));
+    if (data.otp_rate > cap) throw new Error(`OTP rate exceeds cap of ৳${cap}`);
+
+    const existing = await sql`SELECT id FROM users WHERE email = ${data.email}`;
+    if (existing.length > 0) throw new Error("Email already in use.");
+
+    const hash = await hashPassword(data.password);
+    const [u] = await sql<any[]>`
+      INSERT INTO users (email, password_hash, name, status, otp_rate, agent_active)
+      VALUES (${data.email}, ${hash}, ${data.name ?? null}, 'active', ${data.otp_rate}::numeric, true)
+      RETURNING id
+    `;
+    await sql`INSERT INTO user_roles (user_id, role) VALUES (${u.id}, 'agent'), (${u.id}, 'user') ON CONFLICT DO NOTHING`;
+    await audit(admin.sub, "agent.create", { type: "user", id: u.id }, { email: data.email, otp_rate: data.otp_rate });
+    return { ok: true as const, id: u.id };
+  });
+
+const updateAgentSchema = z.object({
+  token: z.string().min(1),
+  agent_id: z.string().uuid(),
+  otp_rate: z.number().min(0).max(0.70).optional(),
+  agent_active: z.boolean().optional(),
+  password: z.string().min(6).max(200).optional(),
+  name: z.string().trim().max(120).optional().nullable(),
+});
+
+export const adminUpdateAgentFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => updateAgentSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { hashPassword } = await import("./password.server");
+    const { audit } = await import("./audit.server");
+    const { getSetting } = await import("./settings.server");
+
+    const [a] = await sql<any[]>`
+      SELECT u.id, u.email::text AS email FROM users u WHERE u.id = ${data.agent_id}
+        AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role = 'agent')
+    `;
+    if (!a) throw new Error("Agent not found");
+
+    if (data.otp_rate !== undefined) {
+      const cap = Number(await getSetting("max_agent_otp_rate", 0.70));
+      if (data.otp_rate > cap) throw new Error(`OTP rate exceeds cap of ৳${cap}`);
+      await sql`UPDATE users SET otp_rate = ${data.otp_rate}::numeric WHERE id = ${data.agent_id}`;
+    }
+    if (data.agent_active !== undefined) {
+      await sql`UPDATE users SET agent_active = ${data.agent_active} WHERE id = ${data.agent_id}`;
+    }
+    if (data.name !== undefined) {
+      await sql`UPDATE users SET name = ${data.name} WHERE id = ${data.agent_id}`;
+    }
+    if (data.password) {
+      const hash = await hashPassword(data.password);
+      await sql`UPDATE users SET password_hash = ${hash}, tokens_invalidated_at = now() WHERE id = ${data.agent_id}`;
+    }
+    await audit(admin.sub, "agent.update", { type: "user", id: data.agent_id }, { fields: Object.keys(data).filter(k => k !== "token" && k !== "agent_id" && k !== "password") });
+    return { ok: true as const };
+  });
+
+export const adminToggleSupportFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(1), enabled: z.boolean() }).parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; enabled: boolean }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { setSetting } = await import("./settings.server");
+    await setSetting("support_enabled", data.enabled, admin.sub);
+    return { ok: true as const, enabled: data.enabled };
+  });
+

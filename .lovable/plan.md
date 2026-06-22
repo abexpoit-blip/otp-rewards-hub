@@ -1,92 +1,106 @@
+# Agent System — Plan
 
-# Phase 1 — Backend Foundation (Auth + Database)
+Boro change, ektu boro plan. Approve korle build shuru korbo.
 
-ভালো খবর: আপনার TanStack Start app ই backend handle করতে পারবে — আলাদা API container লাগবে না। এতে deployment অনেক simple, existing nginx config পরিবর্তন লাগবে না।
+## 1. Agent (sub-admin) role
 
-## Architecture (simple)
+- Notun role `agent` add hobe (`user_roles` enum-e).
+- Current admin (`admnin@v2.nexus-x.site`) **auto agent** o hye jabe — same account, sudhu role add.
+- Admin agent account create kortey parbe: email + password + **agent_otp_rate** (max 0.70 BDT) set kore.
+- Admin agent account **edit** korte parbe anytime (rate, password, active/inactive).
+- Admin agent account-e **login/impersonate** korte parbe (jemon ekhon user account-e dhoke).
 
-```
-Browser → nginx (v2.nexus-x.site) → nexus_v2_app (TanStack Start)
-                                       ├─ React UI
-                                       └─ /api/* server routes  ─→ nexus_db (Postgres, nexus_v2 database)
-                                                                  └─ stex API (Phase 2)
-```
+## 2. Signup flow — agent email mandatory
 
-- ✅ Existing `nexus_db` Postgres reuse (DB `nexus_v2` already init-db.sql এ define করা)
-- ✅ Existing nginx route already correct
-- ✅ শুধু `nexus_v2_app` rebuild + push — no new container
+- Signup form-e notun field: **"Agent Email"** (required, 100%).
+- User je agent email dibe, sei agent er under-e jabe (`users.agent_id`).
+- Admin email diteo parbe (admin = agent o, tai works).
+- Notun user create hobe `status='pending'` — login kortey parbena jotokkhon approve na hoy.
 
-## এই Phase এ যা হবে
+## 3. Approval system
 
-### 1. Database schema (`deployment/migrations/001_init.sql`)
+- Agent dashboard-e **Pending Users** list — accept / reject.
+- **Admin tar nijer agent email diye signup kora user accept korte parbe**, kintu **onno agent er under er user accept korte parbena** (sudhu sei agent-i parbe). Eta tomar requirement onujayi.
+- Accept hole `status='active'`, reject hole delete.
 
-8টা table grants + RLS-free (we control access in code):
-- `users` — id, email, password_hash, name, phone, balance, lifetime_earning, status (active/blocked), created_at, last_login_at
-- `user_roles` — separate table, enum `app_role` (user/teamlead/admin), `has_role()` helper
-- `sessions` — login history (id, user_id, ip, ua, created_at)
-- `announcements` — admin global banner (id, message, severity, active, created_at)
-- `ranges` — cached from stex liveaccess (sender_id, range_pattern, country, operator, last_seen_at)
-- `allocations` — number requests (id, user_id, rid, full_number, country, operator, status: pending/success/failed/expired, stex_response, created_at)
-- `otp_messages` — incoming OTPs (id, allocation_id, sender, body, received_at)
-- `withdrawals` — id, user_id, amount, gateway, address, status (pending/approved/rejected), tx_id, admin_note, created_at, processed_at
-- `api_keys` — id, user_id, key_hash, label, last_used_at, revoked_at
+## 4. Agent panel (notun)
 
-Plus migration runner: `deployment/migrations/run.sh`
+`/agent/*` routes — sudhu agent role accessible:
 
-### 2. Backend packages
-```
-bun add postgres bcryptjs jsonwebtoken zod
-bun add -D @types/bcryptjs @types/jsonwebtoken
-```
+- **Dashboard** — stats (under user count, today's OTP, earning summary)
+- **Users** — under user list, profile details, approve pending, **OTP details dekhte parbe kintu OTP code dekhte parbena** (masked: `••••`)
+- **Withdraw Requests** — under user der withdraw approve/reject
+- **Settings** — nijer profile/password
+- **Support Inbox** — sudhu admin ke message, reply thread
 
-### 3. Server-side files
-- `src/lib/db.server.ts` — postgres-js client (singleton, reads `DATABASE_URL`)
-- `src/lib/jwt.server.ts` — sign/verify JWT (reads `JWT_SECRET`)
-- `src/lib/password.server.ts` — bcrypt hash/compare
-- `src/lib/auth.functions.ts` — `signupFn`, `loginFn`, `meFn`, `logoutFn` (createServerFn)
-- `src/routes/api/health.ts` — `GET /api/health` (DB ping)
+User account / OTP / number — agent monitor matro, change kichui korte parbena.
 
-### 4. Frontend rewrite
-- `src/lib/auth.tsx` — REST fetch বাদ দিয়ে `useServerFn(loginFn)` etc use করব
-- `src/routes/login.tsx` / `signup.tsx` — existing form behaviour same থাকবে, just calls change
+## 5. Per-agent OTP rate
 
-### 5. Deployment files
-- `.env.example` — `DATABASE_URL`, `JWT_SECRET`, `SESSION_SECRET` (stex API key Phase 2 এ add হবে)
-- `deployment/migrations/run.sh` — script that runs all `*.sql` in order against `nexus_db`
-- `Dockerfile` — ensure env vars passed at runtime
+- `users.agent_id` + `users.otp_rate` (agent jokhon user accept kore, agent er current rate user-e copy hoy).
+- Rate cap: **0.70 BDT**.
+- Admin agent rate change korle **notun user theke** apply hobe (existing user rate untouched — safer).
 
-### 6. First-admin seed
-`deployment/seed-admin.sql` — আপনার email কে admin role দেওয়ার জন্য একটা manual SQL (signup করার পর run করবেন)
+## 6. Support Inbox
 
-## Phase 1 শেষে যা কাজ করবে
+- Notun table `support_threads` + `support_messages`.
+- Sudhu **agent ↔ admin** (user der jonne na).
+- Admin er jonne global toggle: **support service on/off** (admin settings page-e switch). Off thakle agent message pathate parbena.
 
-- ✅ `/signup` real account create করবে (Postgres এ user row)
-- ✅ `/login` JWT issue করবে, localStorage এ save হবে
-- ✅ Dashboard load হলে `meFn` call → token validate → user info show
-- ✅ Logout → token clear
-- ✅ Admin role check function ready (Phase 3 admin panel এর জন্য)
-- ✅ Database প্রস্তুত — Phase 2 এ stex integration বসবে
+## 7. Notices split
 
-## যা Phase 1 এ হবে না (পরের phase)
+- `notices` table-e column `audience` add: `user` | `agent` | `both` (default `user` — backward compatible).
+- User-side NoticeBanner sudhu `user` + `both` dekhabe.
+- Agent panel-e notun NoticeBanner — sudhu `agent` + `both`.
+- Admin notice create form-e audience dropdown.
 
-- Phase 2: stex API integration, Get Number page (real numbers), Live Console (real OTPs), Summary stats
-- Phase 3: Withdrawal flow, Payment addresses, API key generation
-- Phase 4: Admin panel (user/range/withdrawal/announcement management)
+## 8. Admin email = agent email auto-shift
 
-## Deploy commands (Phase 1 শেষে যা চালাবেন)
-
-```bash
-# এক বার: migration apply
-cd /opt/nexus-v2 && git pull
-docker exec -i nexus_db sh -c 'psql -U "$POSTGRES_USER" -d nexus_v2' < deployment/migrations/001_init.sql
-
-# তারপর প্রতি bার:
-docker compose -f deployment/docker-compose.yml up -d --build nexus_v2_app
-docker logs --tail 80 nexus_v2_app
-```
-
-প্রতিটা backend change এর সাথে আমি exact command দিব।
+- Migration-e current admin user-er `user_roles`-e `agent` role add.
+- Admin er nijer **otp_rate = 0.60** (current flat rate) set hobe agent hisebe.
+- Tomar existing admin email/password kichu change hobena.
 
 ---
 
-**Approve করলে এখনই Phase 1 build শুরু করছি।** Stex API key Phase 2 এ লাগবে — তখন আপনাকে VPS এর `.env` এ add করতে বলব।
+## Technical (skip korle problem nai)
+
+**Migration `015_agent_system.sql`:**
+- `app_role` enum-e `agent` add
+- `users`: `agent_id uuid REFERENCES users(id)`, `otp_rate numeric(6,4) DEFAULT 0.60`
+- `users.status` default `pending` for new signups via agent flow
+- `notices.audience` enum column
+- `support_threads`, `support_messages` tables + grants + RLS-free (server-fn checked)
+- Helper fn `can_accept_user(agent_id, user_id)` — true if admin OR signup_agent_id matches
+- Seed: current admin -> add `agent` role, set otp_rate=0.60
+
+**Server functions:**
+- `agent.functions.ts` — listMyUsers, approveUser, rejectUser, listMyWithdrawals, approveWithdrawal, getUserDetails (OTP masked), dashboardStats, listMyNotices
+- `admin.functions.ts` extend — listAgents, createAgent, updateAgent, impersonateAgent, toggleSupportService
+- `support.functions.ts` — agentSendMessage, adminListThreads, adminReply, getThread
+- `auth.functions.ts` signup — require `agent_email`, lookup agent, set `agent_id` + `status=pending` + copy `otp_rate`
+- `auth.functions.ts` login — block `status=pending` with "Awaiting agent approval"
+- `notices.functions.ts` — filter by audience
+
+**Routes:**
+- `/agent/` layout + dashboard/users/withdrawals/settings/support
+- `/admin/agents` — list/create/edit/impersonate
+- Admin settings — support on/off toggle
+- Admin notices form — audience selector
+- Signup form — Agent Email field
+
+**Deploy command (per always):**
+```bash
+cd /opt/nexus-v2 && git pull && \
+docker exec -i nexus_db psql -U nexus_v2 nexus_v2 < deployment/migrations/015_agent_system.sql && \
+docker compose -f deployment/docker-compose.yml up -d --build nexus_v2_app && \
+docker logs --tail=60 nexus_v2_app
+```
+
+---
+
+## Confirm korar age 2 ta question:
+
+1. **Existing pending users nai dhore nicchi** — sob current user `active` thakbe, sudhu **notun signup** theke approval flow shuru hobe. OK?
+2. **Agent rate update** — existing user der rate **change hobena**, sudhu notun signup theke notun rate. OK? (Naki sob under-user er rate ek shathe update hobe?)
+
+Approve korle migration + sob code ek shathe build kore dibo.

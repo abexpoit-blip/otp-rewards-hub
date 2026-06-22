@@ -10,7 +10,7 @@ type AuthState = {
   loading: boolean;
   impersonating: { adminEmail: string } | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (data: { name: string; email: string; phone: string; password: string }) => Promise<void>;
+  signup: (data: { name: string; email: string; phone: string; password: string; agent_email: string }) => Promise<{ pending: true; message: string }>;
   logout: () => void;
   /** Swap into another user's session. Backs up admin token so we can exit later. */
   enterImpersonation: (token: string, user: AuthUser) => void;
@@ -73,9 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup: AuthState["signup"] = async (data) => {
     const r = await callSignup({ data });
-    localStorage.removeItem(IMP_BACKUP);
-    setImpersonating(null);
-    persist(r.token, r.user);
+    // Signup is now pending-approval — do NOT auto-login.
+    return { pending: true as const, message: r.message };
   };
 
   const logout = () => {
