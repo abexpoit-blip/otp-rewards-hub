@@ -280,6 +280,16 @@ function AdminUsers() {
             })}
           </tbody>
         </table>
+        {total > 0 && (
+          <Pager
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            shown={pagedData.length}
+            onPage={setPage}
+            onPageSize={(s) => { setPageSize(Number(s)); setPage(1); }}
+          />
+        )}
       </div>
 
       {modal && (
