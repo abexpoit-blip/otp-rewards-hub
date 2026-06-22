@@ -15,7 +15,7 @@ const otpSearch = z.object({
   range: fallback(z.enum(["all", "today", "7d", "30d"]), "all").default("all"),
   q: fallback(z.string(), "").default(""),
   page: fallback(z.number().int().min(1), 1).default(1),
-  pageSize: fallback(z.enum(["25", "50", "100", "200"]), "50").default("50"),
+  pageSize: fallback(z.enum(["25", "50", "100", "200"]), "25").default("25"),
 });
 
 export const Route = createFileRoute("/admin/otps")({
