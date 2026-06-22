@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { NoticeBanner } from "./NoticeBanner";
@@ -6,9 +7,10 @@ import { ImpersonationBanner } from "./ImpersonationBanner";
 import { AppFooter } from "./AppFooter";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const surface: "user" | "agent" = pathname.startsWith("/agent") ? "agent" : "user";
   return (
     <div className="relative min-h-screen w-full mesh-canvas text-foreground">
-      {/* Floating ambient blobs for extra depth */}
       <div className="pointer-events-none fixed -top-32 -left-32 h-[480px] w-[480px] rounded-full bg-primary/15 blur-[120px]" />
       <div className="pointer-events-none fixed -bottom-32 -right-32 h-[520px] w-[520px] rounded-full bg-chart-2/15 blur-[120px]" />
       <div className="pointer-events-none fixed top-1/3 left-1/2 h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-chart-3/10 blur-[100px]" />
@@ -18,7 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col gap-3 sm:gap-4 lg:gap-6">
           <TopBar />
           <main className="flex-1">
-            <NoticeBanner />
+            <NoticeBanner surface={surface} />
             <ImpersonationBanner />
             {children}
           </main>
