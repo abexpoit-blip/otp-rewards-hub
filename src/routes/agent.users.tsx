@@ -9,7 +9,9 @@ import {
   agentListUsersFn, agentApproveUserFn, agentBulkApproveFn,
   agentSetUserStatusFn, agentUserDetailsFn, type AgentUserRow,
 } from "@/lib/agent.functions";
-import { Users, Check, X, Search, Eye, Clock, Ban, ShieldCheck, CheckSquare } from "lucide-react";
+import { Users, Check, X, Search, Eye, Clock, Ban, ShieldCheck, CheckSquare, Crown } from "lucide-react";
+import { PerfBadge } from "@/components/PerfBadge";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/agent/users")({
