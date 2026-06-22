@@ -926,7 +926,7 @@ export const adminUpdateAgentFn = createServerFn({ method: "POST" })
     }
     if (data.password) {
       const hash = await hashPassword(data.password);
-      await sql`UPDATE users SET password_hash = ${hash}, tokens_invalidated_at = now() WHERE id = ${data.agent_id}`;
+      await sql`UPDATE users SET password_hash = ${hash}, must_change_password = true, tokens_invalidated_at = now() WHERE id = ${data.agent_id}`;
     }
     await audit(admin.sub, "agent.update", { type: "user", id: data.agent_id }, { fields: Object.keys(data).filter(k => k !== "token" && k !== "agent_id" && k !== "password") });
     return { ok: true as const };
