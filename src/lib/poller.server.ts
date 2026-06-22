@@ -149,21 +149,40 @@ async function ingestOnce() {
       continue;
     }
 
-    // Per-user rate (set by agent/admin); fallback to global default_payout.
-    const [u] = await sql<any[]>`SELECT otp_rate::text AS rate FROM users WHERE id = ${alloc.user_id}`;
-    const payout = u?.rate != null ? Number(u.rate) : defaultPayout;
+    // Per-user rate (set by agent/admin) + agent commission split.
+    // Full platform rate = default_payout (0.70). User gets their otp_rate.
+    // Agent (if any, and not self) gets max(0, full - user_rate).
+    const [u] = await sql<any[]>`
+      SELECT otp_rate::text AS rate, agent_id FROM users WHERE id = ${alloc.user_id}
+    `;
+    const userPayout = u?.rate != null ? Number(u.rate) : defaultPayout;
+    const fullRate = defaultPayout;
+    const agentId: string | null = u?.agent_id && u.agent_id !== alloc.user_id ? u.agent_id : null;
+    const commission = agentId ? Math.max(0, Number((fullRate - userPayout).toFixed(4))) : 0;
 
     const updated = await sql<any[]>`
       UPDATE allocations
-      SET status = 'success', payout_amount = ${payout}, completed_at = now()
+      SET status = 'success',
+          payout_amount = ${userPayout},
+          agent_id = ${agentId},
+          agent_commission = ${commission},
+          completed_at = now()
       WHERE id = ${alloc.id} AND status IN ('pending', 'failed', 'expired')
       RETURNING id
     `;
     if (updated.length === 0) continue;
     await sql`
       UPDATE users
-      SET balance = balance + ${payout}, lifetime_earning = lifetime_earning + ${payout}
+      SET balance = balance + ${userPayout}, lifetime_earning = lifetime_earning + ${userPayout}
       WHERE id = ${alloc.user_id}
     `;
+    if (agentId && commission > 0) {
+      await sql`
+        UPDATE users
+        SET balance = balance + ${commission}, lifetime_earning = lifetime_earning + ${commission}
+        WHERE id = ${agentId}
+      `;
+      console.log(`[poller] agent commission ৳${commission} → agent ${agentId} (user rate ৳${userPayout}, full ৳${fullRate})`);
+    }
   }
 }
