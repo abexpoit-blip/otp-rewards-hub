@@ -111,7 +111,7 @@ function AgentSettings() {
     );
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
     const errs = validate(form);
