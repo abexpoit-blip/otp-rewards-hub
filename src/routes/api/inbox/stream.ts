@@ -72,16 +72,23 @@ export const Route = createFileRoute("/api/inbox/stream")({
 
             try {
               const backlog = await sql<any[]>`
-                SELECT id, number, sender, body, country, received_at
-                FROM otp_messages
-                WHERE user_id = ${userId}
-                ORDER BY received_at DESC LIMIT 20
+                SELECT om.id, om.number, om.sender, om.body, om.country, om.received_at,
+                       a.payout_amount::text AS payout_amount,
+                       a.agent_commission::text AS agent_commission,
+                       a.agent_id::text AS agent_id
+                FROM otp_messages om
+                LEFT JOIN allocations a ON a.id = om.allocation_id
+                WHERE om.user_id = ${userId}
+                ORDER BY om.received_at DESC LIMIT 20
               `;
               if (backlog.length) {
                 send("backlog", backlog.map((r) => ({
                   id: r.id, number: r.number, sender: r.sender,
                   body: r.body, country: r.country,
                   received_at: r.received_at.toISOString(),
+                  payout_amount: r.payout_amount,
+                  agent_commission: r.agent_commission,
+                  agent_id: r.agent_id,
                 })));
                 cursor = backlog[0].received_at;
               }
@@ -94,16 +101,23 @@ export const Route = createFileRoute("/api/inbox/stream")({
               if (stopped) return;
               try {
                 const rows = await sql<any[]>`
-                  SELECT id, number, sender, body, country, received_at
-                  FROM otp_messages
-                  WHERE user_id = ${userId} AND received_at > ${cursor}
-                  ORDER BY received_at ASC LIMIT 50
+                  SELECT om.id, om.number, om.sender, om.body, om.country, om.received_at,
+                         a.payout_amount::text AS payout_amount,
+                         a.agent_commission::text AS agent_commission,
+                         a.agent_id::text AS agent_id
+                  FROM otp_messages om
+                  LEFT JOIN allocations a ON a.id = om.allocation_id
+                  WHERE om.user_id = ${userId} AND om.received_at > ${cursor}
+                  ORDER BY om.received_at ASC LIMIT 50
                 `;
                 if (rows.length) {
                   send("otp", rows.map((r) => ({
                     id: r.id, number: r.number, sender: r.sender,
                     body: r.body, country: r.country,
                     received_at: r.received_at.toISOString(),
+                    payout_amount: r.payout_amount,
+                    agent_commission: r.agent_commission,
+                    agent_id: r.agent_id,
                   })));
                   cursor = rows[rows.length - 1].received_at;
                 }
