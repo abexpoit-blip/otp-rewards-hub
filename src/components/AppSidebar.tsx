@@ -85,11 +85,13 @@ const agentSection: NavSection = {
   items: [
     { to: "/agent", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/agent/users", icon: Users, label: "My Users" },
+    { to: "/agent/top", icon: Crown, label: "Top Performers" },
     { to: "/agent/withdrawals", icon: Wallet, label: "Withdrawals" },
     { to: "/agent/support", icon: MessageSquare, label: "Support" },
     { to: "/agent/settings", icon: Settings, label: "Settings" },
   ],
 };
+
 
 export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mobile" } = {}) {
   const { sidebar } = useTweaks();
