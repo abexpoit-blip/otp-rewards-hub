@@ -114,6 +114,13 @@ function AdminUsers() {
   };
 
 
+  const total = data?.length ?? 0;
+  const pagedData = useMemo(() => {
+    if (!data) return [];
+    const start = (page - 1) * pageSize;
+    return data.slice(start, start + pageSize);
+  }, [data, page, pageSize]);
+
   return (
     <AppShell>
       <PageHeader icon={<Users className="size-6" />} title="Users" subtitle="Manage user accounts, balance, ban/suspend, force-logout, notes." />
