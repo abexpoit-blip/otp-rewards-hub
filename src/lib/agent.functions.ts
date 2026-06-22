@@ -407,3 +407,46 @@ export const agentUpdateWithdrawalFn = createServerFn({ method: "POST" })
       return { ok: true as const, status: newStatus };
     });
   });
+
+// =====================================================================
+// Top performers — users under this agent ranked by successful OTPs.
+// =====================================================================
+export type TopPerformerRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  status: string;
+  all_time: number;
+  last_7d: number;
+  lifetime_earning: string;
+};
+
+export const agentTopPerformersFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().min(1),
+    limit: z.number().int().min(1).max(100).optional(),
+  }).parse(d))
+  .handler(async ({ data }): Promise<TopPerformerRow[]> => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    const limit = data.limit ?? 25;
+    const rows = await sql<any[]>`
+      SELECT u.id, u.email::text AS email, u.name, u.status::text AS status,
+             u.lifetime_earning::text AS lifetime_earning,
+             COALESCE((SELECT COUNT(*)::int FROM allocations a
+                       WHERE a.user_id = u.id AND a.status = 'success'), 0) AS all_time,
+             COALESCE((SELECT COUNT(*)::int FROM allocations a
+                       WHERE a.user_id = u.id AND a.status = 'success'
+                         AND a.completed_at >= now() - interval '7 days'), 0) AS last_7d
+      FROM users u
+      WHERE u.agent_id = ${auth.sub}
+      ORDER BY all_time DESC, last_7d DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((r) => ({
+      id: r.id, email: r.email, name: r.name, status: r.status,
+      all_time: Number(r.all_time), last_7d: Number(r.last_7d),
+      lifetime_earning: String(r.lifetime_earning),
+    }));
+  });
