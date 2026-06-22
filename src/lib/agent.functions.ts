@@ -97,12 +97,16 @@ export const agentListUsersFn = createServerFn({ method: "POST" })
   });
 
 // =====================================================================
-// Approve / Reject pending users
+// Approve / Reject pending users (with per-approval rate prompt)
 // =====================================================================
+const RATE_CAP = 0.70;
+const RATE_DEFAULT = 0.60;
+
 const approveSchema = z.object({
   token: z.string().min(1),
   user_id: z.string().uuid(),
   action: z.enum(["approve","reject"]),
+  otp_rate: z.number().min(0).max(RATE_CAP).optional(),
 });
 
 export const agentApproveUserFn = createServerFn({ method: "POST" })
@@ -122,16 +126,83 @@ export const agentApproveUserFn = createServerFn({ method: "POST" })
     if (u.status !== "pending") throw new Error(`User is already ${u.status}`);
 
     if (data.action === "approve") {
-      await sql`UPDATE users SET status = 'active' WHERE id = ${data.user_id}`;
-      await audit(auth.sub, "agent.approve_user", { type: "user", id: data.user_id }, { email: u.email });
-      return { ok: true as const, status: "active" };
+      const rate = typeof data.otp_rate === "number" ? data.otp_rate : RATE_DEFAULT;
+      if (rate < 0 || rate > RATE_CAP) throw new Error(`Rate must be between 0 and ${RATE_CAP} BDT`);
+      await sql`UPDATE users SET status = 'active', otp_rate = ${rate}::numeric WHERE id = ${data.user_id}`;
+      await audit(auth.sub, "agent.approve_user", { type: "user", id: data.user_id }, { email: u.email, rate });
+      return { ok: true as const, status: "active", rate };
     } else {
-      // Reject = delete (no balance, no history yet)
       await sql`DELETE FROM users WHERE id = ${data.user_id}`;
       await audit(auth.sub, "agent.reject_user", { type: "user", id: data.user_id }, { email: u.email });
       return { ok: true as const, status: "rejected" };
     }
   });
+
+// =====================================================================
+// Bulk approve — single rate applied to many pending users
+// =====================================================================
+const bulkApproveSchema = z.object({
+  token: z.string().min(1),
+  user_ids: z.array(z.string().uuid()).min(1).max(200),
+  otp_rate: z.number().min(0).max(RATE_CAP).default(RATE_DEFAULT),
+});
+
+export const agentBulkApproveFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => bulkApproveSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+    const rows = await sql<{ id: string }[]>`
+      UPDATE users
+      SET status = 'active', otp_rate = ${data.otp_rate}::numeric
+      WHERE id = ANY(${data.user_ids}::uuid[])
+        AND agent_id = ${auth.sub}
+        AND status = 'pending'
+      RETURNING id
+    `;
+    await audit(auth.sub, "agent.bulk_approve", { type: "user", id: "bulk" },
+      { count: rows.length, rate: data.otp_rate });
+    return { ok: true as const, approved: rows.length };
+  });
+
+// =====================================================================
+// Ban / Unban under-agent user
+// =====================================================================
+const statusSchema = z.object({
+  token: z.string().min(1),
+  user_id: z.string().uuid(),
+  action: z.enum(["ban","unban"]),
+  reason: z.string().trim().max(500).optional(),
+});
+
+export const agentSetUserStatusFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => statusSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+
+    const [u] = await sql<any[]>`
+      SELECT id, email::text AS email, agent_id, status::text AS status
+      FROM users WHERE id = ${data.user_id}
+    `;
+    if (!u) throw new Error("User not found");
+    if (u.agent_id !== auth.sub) throw new Error("This user is not under your agent account");
+
+    if (data.action === "ban") {
+      await sql`UPDATE users SET status = 'blocked', ban_reason = ${data.reason ?? "Banned by agent"} WHERE id = ${data.user_id}`;
+      await audit(auth.sub, "agent.ban_user", { type: "user", id: data.user_id }, { email: u.email, reason: data.reason ?? null });
+      return { ok: true as const, status: "blocked" };
+    } else {
+      await sql`UPDATE users SET status = 'active', ban_reason = NULL, banned_until = NULL WHERE id = ${data.user_id}`;
+      await audit(auth.sub, "agent.unban_user", { type: "user", id: data.user_id }, { email: u.email });
+      return { ok: true as const, status: "active" };
+    }
+  });
+
 
 // =====================================================================
 // User details (read-only) — OTP body masked
