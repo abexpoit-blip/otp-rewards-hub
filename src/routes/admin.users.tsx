@@ -161,9 +161,9 @@ function AdminUsers() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
-            ) : data?.length === 0 ? (
+            ) : total === 0 ? (
               <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No users</td></tr>
-            ) : data?.map((u) => {
+            ) : pagedData.map((u) => {
               const suspended = u.banned_until && new Date(u.banned_until).getTime() > Date.now();
               const lastLoginMs = u.last_login_at ? new Date(u.last_login_at).getTime() : new Date(u.created_at).getTime();
               const daysIdle = Math.floor((Date.now() - lastLoginMs) / 86400000);
