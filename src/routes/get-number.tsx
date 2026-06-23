@@ -402,7 +402,9 @@ function GetNumberPage() {
                     <tbody>
                       {pageRows.map((r: any) => {
                         const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
-                        const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
+                        const otp = r.otp_body
+                          ? { body: r.otp_body, received_at: r.otp_received_at }
+                          : otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
                         return (
                           <tr key={r.id} className="border-t border-border hover:bg-accent/30 align-top">
                             <td className="py-3 px-4">
@@ -461,7 +463,9 @@ function GetNumberPage() {
                 <ul className="lg:hidden divide-y divide-border">
                   {pageRows.map((r: any) => {
                     const shown = noPlus ? r.no_plus_number : national ? r.national_number : r.full_number;
-                    const otp = otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
+                    const otp = r.otp_body
+                      ? { body: r.otp_body, received_at: r.otp_received_at }
+                      : otpByNumber.get(r.full_number) || otpByNumber.get(r.no_plus_number) || otpByNumber.get(r.national_number);
                     return (
                       <li key={r.id} className="p-4 hover:bg-accent/30 transition-colors">
                         <div className="min-w-0">
