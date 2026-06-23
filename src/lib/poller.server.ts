@@ -120,8 +120,10 @@ async function ingestOnce() {
              regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
           OR regexp_replace(COALESCE(no_plus_number,''),  '\D','','g') = ${otpDigits}
           OR regexp_replace(COALESCE(national_number,''), '\D','','g') = ${otpDigits}
-          OR ${otpDigits} LIKE '%' || regexp_replace(COALESCE(national_number,''), '\D','','g')
-          OR regexp_replace(COALESCE(full_number,''),     '\D','','g') LIKE '%' || ${otpDigits}
+          OR (regexp_replace(COALESCE(national_number,''), '\D','','g') <> ''
+              AND ${otpDigits} LIKE '%' || regexp_replace(COALESCE(national_number,''), '\D','','g'))
+          OR (regexp_replace(COALESCE(full_number,''),     '\D','','g') <> ''
+              AND regexp_replace(COALESCE(full_number,''),     '\D','','g') LIKE '%' || ${otpDigits})
         )
       ORDER BY created_at DESC LIMIT 1
     `;
@@ -149,39 +151,8 @@ async function ingestOnce() {
       continue;
     }
 
-    // Per-user rate (set by agent/admin) + agent commission split.
-    const [u] = await sql<any[]>`
-      SELECT otp_rate::text AS rate, agent_id FROM users WHERE id = ${alloc.user_id}
-    `;
-    const userPayout = u?.rate != null ? Number(u.rate) : defaultPayout;
-    const fullRate = defaultPayout;
-    const agentId: string | null = u?.agent_id && u.agent_id !== alloc.user_id ? u.agent_id : null;
-    const commission = agentId ? Math.max(0, Number((fullRate - userPayout).toFixed(4))) : 0;
-
-    const updated = await sql<any[]>`
-      UPDATE allocations
-      SET status = 'success',
-          payout_amount = ${userPayout},
-          agent_id = ${agentId},
-          agent_commission = ${commission},
-          completed_at = now()
-      WHERE id = ${alloc.id} AND status IN ('pending', 'failed', 'expired')
-      RETURNING id
-    `;
-    if (updated.length === 0) continue;
-    await sql`
-      UPDATE users
-      SET balance = balance + ${userPayout}, lifetime_earning = lifetime_earning + ${userPayout}
-      WHERE id = ${alloc.user_id}
-    `;
-    if (agentId && commission > 0) {
-      await sql`
-        UPDATE users
-        SET balance = balance + ${commission}, lifetime_earning = lifetime_earning + ${commission}
-        WHERE id = ${agentId}
-      `;
-      console.log(`[poller] agent commission ৳${commission} → agent ${agentId} (user rate ৳${userPayout}, full ৳${fullRate})`);
-    }
+    const settled = await settleAllocation(alloc.id, alloc.user_id, alloc.status, defaultPayout);
+    if (!settled) continue;
     if (alloc.status !== "pending") {
       console.log(`[poller] recovered allocation ${alloc.id} from '${alloc.status}' → success (OTP arrived after timeout)`);
     }
@@ -194,36 +165,80 @@ async function ingestOnce() {
     const orphans = await sql<any[]>`
       SELECT DISTINCT a.id, a.user_id, a.status::text AS status
       FROM allocations a
-      WHERE a.status IN ('failed', 'expired')
+      WHERE a.status IN ('pending', 'failed', 'expired')
         AND a.payout_amount = 0
         AND a.created_at >= now() - interval '24 hours'
-        AND EXISTS (SELECT 1 FROM otp_messages m WHERE m.allocation_id = a.id)
+        AND EXISTS (
+          SELECT 1 FROM otp_messages m
+          WHERE m.allocation_id = a.id
+             OR (m.user_id = a.user_id AND m.received_at >= a.created_at - interval '2 minutes' AND (
+                  regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.full_number,''), '\D','','g')
+               OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.no_plus_number,''), '\D','','g')
+               OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.national_number,''), '\D','','g')
+               OR (regexp_replace(COALESCE(a.national_number,''), '\D','','g') <> ''
+                   AND regexp_replace(COALESCE(m.number,''), '\D','','g') LIKE '%' || regexp_replace(COALESCE(a.national_number,''), '\D','','g'))
+             ))
+        )
       LIMIT 100
     `;
     for (const o of orphans) {
-      const [u] = await sql<any[]>`
-        SELECT otp_rate::text AS rate, agent_id FROM users WHERE id = ${o.user_id}
-      `;
-      const userPayout = u?.rate != null ? Number(u.rate) : defaultPayout;
-      const fullRate = defaultPayout;
-      const agentId: string | null = u?.agent_id && u.agent_id !== o.user_id ? u.agent_id : null;
-      const commission = agentId ? Math.max(0, Number((fullRate - userPayout).toFixed(4))) : 0;
-      const upd = await sql<any[]>`
-        UPDATE allocations
-        SET status='success', payout_amount=${userPayout},
-            agent_id=${agentId}, agent_commission=${commission},
-            completed_at=COALESCE(completed_at, now())
-        WHERE id=${o.id} AND status IN ('failed','expired') AND payout_amount=0
-        RETURNING id
-      `;
-      if (upd.length === 0) continue;
-      await sql`UPDATE users SET balance=balance+${userPayout}, lifetime_earning=lifetime_earning+${userPayout} WHERE id=${o.user_id}`;
-      if (agentId && commission > 0) {
-        await sql`UPDATE users SET balance=balance+${commission}, lifetime_earning=lifetime_earning+${commission} WHERE id=${agentId}`;
-      }
-      console.log(`[poller] recovery sweep: allocation ${o.id} (${o.status}) → success, credited ৳${userPayout}`);
+      const settled = await settleAllocation(o.id, o.user_id, o.status, defaultPayout);
+      if (settled) console.log(`[poller] recovery sweep: allocation ${o.id} (${o.status}) → success, credited ৳${settled.userPayout}`);
     }
   } catch (e) {
     console.error("[poller] recovery sweep failed", e);
   }
+}
+
+type SettledAllocation = { userPayout: number; agentId: string | null; commission: number };
+
+async function settleAllocation(allocationId: string, userId: string, priorStatus: string, defaultPayout: number): Promise<SettledAllocation | null> {
+  const result = await sql.begin(async (tx): Promise<SettledAllocation | null> => {
+    const [u] = await tx<any[]>`
+      SELECT otp_rate::text AS rate, agent_id
+      FROM users
+      WHERE id = ${userId}
+      FOR UPDATE
+    `;
+    const userPayout = u?.rate != null ? Number(u.rate) : defaultPayout;
+    const fullRate = defaultPayout;
+    const agentId: string | null = u?.agent_id && u.agent_id !== userId ? u.agent_id : null;
+    const commission = agentId ? Math.max(0, Number((fullRate - userPayout).toFixed(4))) : 0;
+
+    const updated = await tx<any[]>`
+      UPDATE allocations
+      SET status = 'success',
+          payout_amount = ${userPayout},
+          agent_id = ${agentId},
+          agent_commission = ${commission},
+          completed_at = now()
+      WHERE id = ${allocationId}
+        AND status IN ('pending', 'failed', 'expired')
+        AND payout_amount = 0
+      RETURNING id
+    `;
+    if (updated.length === 0) return null;
+
+    await tx`
+      UPDATE users
+      SET balance = balance + ${userPayout}, lifetime_earning = lifetime_earning + ${userPayout}
+      WHERE id = ${userId}
+    `;
+    if (agentId && commission > 0) {
+      await tx`
+        UPDATE users
+        SET balance = balance + ${commission}, lifetime_earning = lifetime_earning + ${commission}
+        WHERE id = ${agentId}
+      `;
+    }
+    return { userPayout, agentId, commission };
+  });
+
+  if (result?.agentId && result.commission > 0) {
+    console.log(`[poller] agent commission ৳${result.commission} → agent ${result.agentId} (user rate ৳${result.userPayout}, full ৳${defaultPayout})`);
+  }
+  if (result && priorStatus !== "pending") {
+    console.log(`[poller] settled allocation ${allocationId} from ${priorStatus}`);
+  }
+  return result;
 }

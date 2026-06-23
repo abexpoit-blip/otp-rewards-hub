@@ -13,6 +13,8 @@ export const Route = createFileRoute("/api/v1/numbers/$id")({
         try {
           const auth = await requireApiKey(request);
           const { sql } = await import("@/lib/db.server");
+          const { triggerPollerIngest } = await import("@/lib/poller.server");
+          await triggerPollerIngest("api-number-status");
           const [a] = await sql<any[]>`
             SELECT id, full_number, national_number, no_plus_number, country, operator,
                    status::text AS status, payout_amount::text AS payout_amount,

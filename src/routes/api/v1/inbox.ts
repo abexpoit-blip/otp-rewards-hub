@@ -15,6 +15,8 @@ export const Route = createFileRoute("/api/v1/inbox")({
           const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") || 50)));
           const since = url.searchParams.get("since");
           const { sql } = await import("@/lib/db.server");
+          const { triggerPollerIngest } = await import("@/lib/poller.server");
+          await triggerPollerIngest("api-inbox");
           const rows = await sql<any[]>`
             SELECT om.id, om.allocation_id, om.number, om.sender, om.body, om.country, om.received_at,
                    a.payout_amount::text AS payout
