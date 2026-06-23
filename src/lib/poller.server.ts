@@ -166,7 +166,16 @@ async function ingestOnce() {
       WHERE a.status IN ('pending', 'failed', 'expired')
         AND a.payout_amount = 0
         AND a.created_at >= now() - interval '24 hours'
-        AND EXISTS (SELECT 1 FROM otp_messages m WHERE m.allocation_id = a.id)
+        AND EXISTS (
+          SELECT 1 FROM otp_messages m
+          WHERE m.allocation_id = a.id
+             OR (m.user_id = a.user_id AND m.received_at >= a.created_at - interval '2 minutes' AND (
+                  regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.full_number,''), '\D','','g')
+               OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.no_plus_number,''), '\D','','g')
+               OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.national_number,''), '\D','','g')
+               OR regexp_replace(COALESCE(m.number,''), '\D','','g') LIKE '%' || regexp_replace(COALESCE(a.national_number,''), '\D','','g')
+             ))
+        )
       LIMIT 100
     `;
     for (const o of orphans) {
@@ -178,10 +187,10 @@ async function ingestOnce() {
   }
 }
 
-async function settleAllocation(allocationId: string, userId: string, priorStatus: string, defaultPayout: number) {
-  let result: { userPayout: number; agentId: string | null; commission: number } | null = null;
+type SettledAllocation = { userPayout: number; agentId: string | null; commission: number };
 
-  await sql.begin(async (tx) => {
+async function settleAllocation(allocationId: string, userId: string, priorStatus: string, defaultPayout: number): Promise<SettledAllocation | null> {
+  const result = await sql.begin(async (tx): Promise<SettledAllocation | null> => {
     const [u] = await tx<any[]>`
       SELECT otp_rate::text AS rate, agent_id
       FROM users
@@ -205,7 +214,7 @@ async function settleAllocation(allocationId: string, userId: string, priorStatu
         AND payout_amount = 0
       RETURNING id
     `;
-    if (updated.length === 0) return;
+    if (updated.length === 0) return null;
 
     await tx`
       UPDATE users
@@ -219,7 +228,7 @@ async function settleAllocation(allocationId: string, userId: string, priorStatu
         WHERE id = ${agentId}
       `;
     }
-    result = { userPayout, agentId, commission };
+    return { userPayout, agentId, commission };
   });
 
   if (result?.agentId && result.commission > 0) {
