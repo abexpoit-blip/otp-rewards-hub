@@ -65,6 +65,8 @@ export const Route = createFileRoute("/api/v1/numbers")({
           const status = url.searchParams.get("status");
           const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") || 50)));
           const { sql } = await import("@/lib/db.server");
+          const { triggerPollerIngest } = await import("@/lib/poller.server");
+          await triggerPollerIngest("api-numbers-list");
           const rows = await sql<any[]>`
             SELECT id, full_number, national_number, no_plus_number, country, operator,
                    status::text AS status, payout_amount::text AS payout_amount,
