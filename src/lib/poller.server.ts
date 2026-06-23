@@ -140,18 +140,16 @@ async function ingestOnce() {
       ON CONFLICT (stex_otp_id) DO NOTHING
       RETURNING id
     `;
-    if (inserted.length === 0) continue;
+    // NOTE: even on duplicate (inserted.length===0) we still attempt to promote
+    // the allocation — previous cycle may have inserted the msg but failed to
+    // update the allocation. The UPDATE below is idempotent via status check.
 
-    // If allocation is already 'success', this is a 2nd/3rd OTP from the same number.
-    // Show it in inbox (already inserted above) but NO additional payout.
     if (alloc.status === "success") {
-      console.log(`[poller] duplicate OTP for already-paid allocation ${alloc.id} — no extra payout`);
+      if (inserted.length > 0) console.log(`[poller] extra OTP for already-paid allocation ${alloc.id} — no extra payout`);
       continue;
     }
 
     // Per-user rate (set by agent/admin) + agent commission split.
-    // Full platform rate = default_payout (0.70). User gets their otp_rate.
-    // Agent (if any, and not self) gets max(0, full - user_rate).
     const [u] = await sql<any[]>`
       SELECT otp_rate::text AS rate, agent_id FROM users WHERE id = ${alloc.user_id}
     `;
@@ -184,5 +182,48 @@ async function ingestOnce() {
       `;
       console.log(`[poller] agent commission ৳${commission} → agent ${agentId} (user rate ৳${userPayout}, full ৳${fullRate})`);
     }
+    if (alloc.status !== "pending") {
+      console.log(`[poller] recovered allocation ${alloc.id} from '${alloc.status}' → success (OTP arrived after timeout)`);
+    }
+  }
+
+  // ---- Recovery sweep: failed/expired allocations that already have an OTP
+  // message but weren't credited (race, old bug). Idempotent — only acts when
+  // status is still failed/expired AND payout_amount = 0.
+  try {
+    const orphans = await sql<any[]>`
+      SELECT DISTINCT a.id, a.user_id, a.status::text AS status
+      FROM allocations a
+      WHERE a.status IN ('failed', 'expired')
+        AND a.payout_amount = 0
+        AND a.created_at >= now() - interval '24 hours'
+        AND EXISTS (SELECT 1 FROM otp_messages m WHERE m.allocation_id = a.id)
+      LIMIT 100
+    `;
+    for (const o of orphans) {
+      const [u] = await sql<any[]>`
+        SELECT otp_rate::text AS rate, agent_id FROM users WHERE id = ${o.user_id}
+      `;
+      const userPayout = u?.rate != null ? Number(u.rate) : defaultPayout;
+      const fullRate = defaultPayout;
+      const agentId: string | null = u?.agent_id && u.agent_id !== o.user_id ? u.agent_id : null;
+      const commission = agentId ? Math.max(0, Number((fullRate - userPayout).toFixed(4))) : 0;
+      const upd = await sql<any[]>`
+        UPDATE allocations
+        SET status='success', payout_amount=${userPayout},
+            agent_id=${agentId}, agent_commission=${commission},
+            completed_at=COALESCE(completed_at, now())
+        WHERE id=${o.id} AND status IN ('failed','expired') AND payout_amount=0
+        RETURNING id
+      `;
+      if (upd.length === 0) continue;
+      await sql`UPDATE users SET balance=balance+${userPayout}, lifetime_earning=lifetime_earning+${userPayout} WHERE id=${o.user_id}`;
+      if (agentId && commission > 0) {
+        await sql`UPDATE users SET balance=balance+${commission}, lifetime_earning=lifetime_earning+${commission} WHERE id=${agentId}`;
+      }
+      console.log(`[poller] recovery sweep: allocation ${o.id} (${o.status}) → success, credited ৳${userPayout}`);
+    }
+  } catch (e) {
+    console.error("[poller] recovery sweep failed", e);
   }
 }
