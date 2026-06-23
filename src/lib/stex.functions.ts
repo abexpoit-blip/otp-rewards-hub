@@ -93,63 +93,9 @@ export const ingestOtpsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireAuth } = await import("./auth-guard.server");
     await requireAuth(data.token);
-    const { sql } = await import("./db.server");
-    const { stexSuccessOtp } = await import("./stex.server");
-
-    const { getSetting } = await import("./settings.server");
-    const defaultPayout = Number(await getSetting("default_payout", 0.40));
-    const r = await stexSuccessOtp();
-    if (r.meta.code !== 200 || !r.data) return { processed: 0, credited: 0 };
-
-    let processed = 0;
-    let credited = 0;
-
-    for (const otp of r.data.otps) {
-      // Normalize to digits-only on both sides — STEX may return number in
-      // different format than what we stored (kept in sync with poller.server.ts)
-      const otpDigits = String(otp.number || "").replace(/\D/g, "");
-      if (!otpDigits) continue;
-      const otpReceivedAt = new Date(Number(otp.time) || Date.now());
-      const matches = await sql<any[]>`
-        SELECT id, user_id, sid, country FROM allocations
-        WHERE status IN ('pending', 'failed', 'expired')
-          AND created_at >= now() - interval '24 hours'
-          AND ${otpReceivedAt} >= created_at - interval '2 minutes'
-          AND (
-               regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
-            OR regexp_replace(COALESCE(no_plus_number,''),  '\D','','g') = ${otpDigits}
-            OR regexp_replace(COALESCE(national_number,''), '\D','','g') = ${otpDigits}
-            OR ${otpDigits} LIKE '%' || regexp_replace(COALESCE(national_number,''), '\D','','g')
-            OR regexp_replace(COALESCE(full_number,''),     '\D','','g') LIKE '%' || ${otpDigits}
-          )
-        ORDER BY created_at DESC LIMIT 1
-      `;
-      if (matches.length === 0) continue;
-      const alloc = matches[0];
-
-      const inserted = await sql<any[]>`
-        INSERT INTO otp_messages (allocation_id, user_id, number, body, stex_otp_id, received_at)
-        VALUES (${alloc.id}, ${alloc.user_id}, ${otp.number}, ${otp.message}, ${otp.otp_id}, to_timestamp(${otp.time / 1000}))
-        ON CONFLICT (stex_otp_id) DO NOTHING
-        RETURNING id
-      `;
-      if (inserted.length === 0) continue;
-      processed += 1;
-
-      // Flat rate: every successful OTP pays default_payout.
-      const payout = defaultPayout;
-
-      const updated = await sql<any[]>`
-        UPDATE allocations
-        SET status='success', payout_amount=${payout}, completed_at=now()
-        WHERE id=${alloc.id} AND status IN ('pending', 'failed', 'expired')
-        RETURNING id
-      `;
-      if (updated.length === 0) continue;
-      await sql`UPDATE users SET balance=balance+${payout}, lifetime_earning=lifetime_earning+${payout} WHERE id=${alloc.user_id}`;
-      credited += 1;
-    }
-    return { processed, credited };
+    const { forcePollerIngest } = await import("./poller.server");
+    await forcePollerIngest("manual-ingest");
+    return { ok: true };
   });
 
 // ---------- Summary for the user ----------
@@ -324,6 +270,8 @@ export const myAllocationsFn = createServerFn({ method: "POST" })
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
+    const { triggerPollerIngest } = await import("./poller.server");
+    await triggerPollerIngest("allocations-refresh");
 
     const statusFilter = data.status === "all" ? null
       : data.status === "failed" ? ["failed", "expired"]
@@ -331,16 +279,30 @@ export const myAllocationsFn = createServerFn({ method: "POST" })
     const search = data.search?.length ? `%${data.search}%` : null;
 
     const rows = await sql<any[]>`
-      SELECT id, full_number, national_number, no_plus_number, country, operator,
-             sid, status, payout_amount::text AS payout_amount, created_at, completed_at, flags
-      FROM allocations
-      WHERE user_id = ${auth.sub}
+      SELECT a.id, a.full_number, a.national_number, a.no_plus_number, a.country, a.operator,
+             a.sid, a.status, a.payout_amount::text AS payout_amount, a.created_at, a.completed_at, a.flags,
+             latest_otp.body AS otp_body, latest_otp.received_at AS otp_received_at
+      FROM allocations a
+      LEFT JOIN LATERAL (
+        SELECT m.body, m.received_at
+        FROM otp_messages m
+        WHERE m.allocation_id = a.id
+           OR (m.user_id = a.user_id AND m.received_at >= a.created_at - interval '2 minutes' AND (
+                regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.full_number,''), '\D','','g')
+             OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.no_plus_number,''), '\D','','g')
+             OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.national_number,''), '\D','','g')
+             OR regexp_replace(COALESCE(m.number,''), '\D','','g') LIKE '%' || regexp_replace(COALESCE(a.national_number,''), '\D','','g')
+           ))
+        ORDER BY m.received_at DESC
+        LIMIT 1
+      ) latest_otp ON true
+      WHERE a.user_id = ${auth.sub}
         AND created_at >= now() - interval '24 hours'
         AND (${statusFilter}::text[] IS NULL OR status::text = ANY(${statusFilter}::text[]))
-        AND (${search}::text IS NULL OR full_number ILIKE ${search} OR no_plus_number ILIKE ${search}
-             OR national_number ILIKE ${search} OR COALESCE(sid,'') ILIKE ${search}
-             OR COALESCE(country,'') ILIKE ${search})
-      ORDER BY created_at DESC
+        AND (${search}::text IS NULL OR a.full_number ILIKE ${search} OR a.no_plus_number ILIKE ${search}
+             OR a.national_number ILIKE ${search} OR COALESCE(a.sid,'') ILIKE ${search}
+             OR COALESCE(a.country,'') ILIKE ${search})
+      ORDER BY a.created_at DESC
       LIMIT ${data.limit}
     `;
 
