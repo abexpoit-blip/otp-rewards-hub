@@ -120,8 +120,10 @@ async function ingestOnce() {
              regexp_replace(COALESCE(full_number,''),     '\D','','g') = ${otpDigits}
           OR regexp_replace(COALESCE(no_plus_number,''),  '\D','','g') = ${otpDigits}
           OR regexp_replace(COALESCE(national_number,''), '\D','','g') = ${otpDigits}
-          OR ${otpDigits} LIKE '%' || regexp_replace(COALESCE(national_number,''), '\D','','g')
-          OR regexp_replace(COALESCE(full_number,''),     '\D','','g') LIKE '%' || ${otpDigits}
+          OR (regexp_replace(COALESCE(national_number,''), '\D','','g') <> ''
+              AND ${otpDigits} LIKE '%' || regexp_replace(COALESCE(national_number,''), '\D','','g'))
+          OR (regexp_replace(COALESCE(full_number,''),     '\D','','g') <> ''
+              AND regexp_replace(COALESCE(full_number,''),     '\D','','g') LIKE '%' || ${otpDigits})
         )
       ORDER BY created_at DESC LIMIT 1
     `;
@@ -173,7 +175,8 @@ async function ingestOnce() {
                   regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.full_number,''), '\D','','g')
                OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.no_plus_number,''), '\D','','g')
                OR regexp_replace(COALESCE(m.number,''), '\D','','g') = regexp_replace(COALESCE(a.national_number,''), '\D','','g')
-               OR regexp_replace(COALESCE(m.number,''), '\D','','g') LIKE '%' || regexp_replace(COALESCE(a.national_number,''), '\D','','g')
+               OR (regexp_replace(COALESCE(a.national_number,''), '\D','','g') <> ''
+                   AND regexp_replace(COALESCE(m.number,''), '\D','','g') LIKE '%' || regexp_replace(COALESCE(a.national_number,''), '\D','','g'))
              ))
         )
       LIMIT 100
