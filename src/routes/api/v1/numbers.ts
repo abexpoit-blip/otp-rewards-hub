@@ -73,7 +73,7 @@ export const Route = createFileRoute("/api/v1/numbers")({
                    created_at, completed_at, expires_at
             FROM allocations
             WHERE user_id = ${auth.userId}
-              AND (${status} IS NULL OR status::text = ${status})
+              AND (${status}::text IS NULL OR status::text = ${status}::text)
             ORDER BY created_at DESC LIMIT ${limit}
           `;
           return jsonResponse({
