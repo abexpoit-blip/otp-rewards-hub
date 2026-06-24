@@ -118,15 +118,17 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
   const inAdminArea = pathname.startsWith("/admin");
   const inAgentArea = pathname.startsWith("/agent");
   // Pure agents (not admin) only see the agent panel — no dialer/api/dashboard.
+  // API Keys is user-only: admins do not get it in their account section.
   const sections = isAdminUser
     ? inAdminArea
       ? [adminSection]
       : inAgentArea
         ? [agentSection]
-        : [...baseSections, agentSection, adminSection]
+        : [...baseSectionsNoApi, agentSection, adminSection]
     : isAgentUser
       ? [agentSection]
       : baseSections;
+
   const authLoading = loading || !user;
 
   return (
