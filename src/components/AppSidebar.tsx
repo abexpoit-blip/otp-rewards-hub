@@ -228,19 +228,19 @@ export function AppSidebar({ variant = "desktop" }: { variant?: "desktop" | "mob
       <div className="mt-auto space-y-3 pt-3">
         <TweaksPanel />
 
-        {!collapsed && (
+        {!collapsed && !isAdminUser && !isAgentUser && (
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-4 text-white shadow-xl shadow-blue-500/25">
             <div className="absolute -right-4 -bottom-4 size-24 rounded-full bg-white/15 blur-2xl" />
             <p className="relative text-[10px] font-bold uppercase tracking-widest opacity-80">
               Pro API
             </p>
             <p className="relative mt-1 text-sm font-semibold">Ready to integrate?</p>
-            <a
-              href="#"
+            <Link
+              to="/api-keys"
               className="relative mt-3 flex items-center justify-center rounded-xl border border-white/30 bg-white/15 px-3 py-2 text-xs font-bold backdrop-blur-md transition-colors hover:bg-white/25"
             >
               Get API Key →
-            </a>
+            </Link>
           </div>
         )}
       </div>
