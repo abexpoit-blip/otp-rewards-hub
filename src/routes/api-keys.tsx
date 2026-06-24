@@ -15,13 +15,19 @@ export const Route = createFileRoute("/api-keys")({
 });
 
 function ApiKeysPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const isPrivileged = !!user?.roles?.some((r) => r === "admin" || r === "agent");
   const qc = useQueryClient();
   const callList = useServerFn(listApiKeysFn);
   const callCreate = useServerFn(createApiKeyFn);
   const callRevoke = useServerFn(revokeApiKeyFn);
 
-  const keys = useQuery({ queryKey: ["api-keys"], queryFn: () => callList({ data: { token: token! } }), enabled: !!token });
+  const keys = useQuery({
+    queryKey: ["api-keys"],
+    queryFn: () => callList({ data: { token: token! } }),
+    enabled: !!token && !isPrivileged,
+  });
+
   const createMut = useMutation({
     mutationFn: (label: string) => callCreate({ data: { token: token!, label: label || null } }),
     onSuccess: () => { toast.success("API key created"); qc.invalidateQueries({ queryKey: ["api-keys"] }); },
