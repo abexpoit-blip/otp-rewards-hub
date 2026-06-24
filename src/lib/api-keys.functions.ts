@@ -12,12 +12,27 @@ export type ApiKeyRow = {
 
 const tokenSchema = z.object({ token: z.string().min(1) });
 
+/**
+ * API access is restricted to regular user accounts only.
+ * Admins and agents cannot create / list / revoke API keys —
+ * keeps the public REST surface scoped to bot-using customers.
+ */
+function assertUserOnly(roles: string[] | undefined) {
+  const r = roles ?? [];
+  if (r.includes("admin") || r.includes("agent")) {
+    const err: any = new Error("API access is available to user accounts only");
+    err.status = 403;
+    throw err;
+  }
+}
+
 export const listApiKeysFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
   .handler(async ({ data }): Promise<ApiKeyRow[]> => {
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
+    assertUserOnly(auth.roles);
     const rows = await sql`
       SELECT id, key_prefix, label, last_used_at, revoked_at, created_at
       FROM api_keys WHERE user_id = ${auth.sub}
@@ -42,6 +57,7 @@ export const createApiKeyFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
+    assertUserOnly(auth.roles);
     const crypto = await import("node:crypto");
     const raw = "nx_" + crypto.randomBytes(28).toString("base64url");
     const hash = crypto.createHash("sha256").update(raw).digest("hex");
@@ -64,6 +80,7 @@ export const revokeApiKeyFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
+    assertUserOnly(auth.roles);
     await sql`
       UPDATE api_keys SET revoked_at = now()
       WHERE id = ${data.id} AND user_id = ${auth.sub} AND revoked_at IS NULL
