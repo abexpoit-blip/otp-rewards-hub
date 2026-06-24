@@ -50,9 +50,24 @@ function ApiKeysPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (isPrivileged) {
+    return (
+      <AppShell>
+        <PageHeader icon={<Key className="size-6" />} title="API Keys" subtitle="REST API for external bots and integrations." />
+        <div className="glass-panel p-8 text-center">
+          <p className="text-sm font-semibold text-foreground">API access is for user accounts only.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Admin and agent accounts cannot generate API keys. Sign in with a regular user account to use the REST API.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <PageHeader icon={<Key className="size-6" />} title="API Keys" subtitle="Generate keys for external bots and integrations." />
+
 
       <form
         onSubmit={(e) => {
