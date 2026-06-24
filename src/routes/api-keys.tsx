@@ -15,13 +15,19 @@ export const Route = createFileRoute("/api-keys")({
 });
 
 function ApiKeysPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const isPrivileged = !!user?.roles?.some((r) => r === "admin" || r === "agent");
   const qc = useQueryClient();
   const callList = useServerFn(listApiKeysFn);
   const callCreate = useServerFn(createApiKeyFn);
   const callRevoke = useServerFn(revokeApiKeyFn);
 
-  const keys = useQuery({ queryKey: ["api-keys"], queryFn: () => callList({ data: { token: token! } }), enabled: !!token });
+  const keys = useQuery({
+    queryKey: ["api-keys"],
+    queryFn: () => callList({ data: { token: token! } }),
+    enabled: !!token && !isPrivileged,
+  });
+
   const createMut = useMutation({
     mutationFn: (label: string) => callCreate({ data: { token: token!, label: label || null } }),
     onSuccess: () => { toast.success("API key created"); qc.invalidateQueries({ queryKey: ["api-keys"] }); },
@@ -44,9 +50,24 @@ function ApiKeysPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (isPrivileged) {
+    return (
+      <AppShell>
+        <PageHeader icon={<Key className="size-6" />} title="API Keys" subtitle="REST API for external bots and integrations." />
+        <div className="glass-panel p-8 text-center">
+          <p className="text-sm font-semibold text-foreground">API access is for user accounts only.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Admin and agent accounts cannot generate API keys. Sign in with a regular user account to use the REST API.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <PageHeader icon={<Key className="size-6" />} title="API Keys" subtitle="Generate keys for external bots and integrations." />
+
 
       <form
         onSubmit={(e) => {

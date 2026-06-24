@@ -19,7 +19,9 @@ export async function requireApiKey(req: Request): Promise<ApiAuth> {
   const hash = createHash("sha256").update(raw).digest("hex");
 
   const [row] = await sql<any[]>`
-    SELECT k.id AS key_id, k.user_id, k.revoked_at, u.status::text AS user_status
+    SELECT k.id AS key_id, k.user_id, k.revoked_at, u.status::text AS user_status,
+           EXISTS(SELECT 1 FROM user_roles ur
+                  WHERE ur.user_id = k.user_id AND ur.role IN ('admin','agent')) AS is_privileged
     FROM api_keys k
     JOIN users u ON u.id = k.user_id
     WHERE k.key_hash = ${hash}
@@ -29,6 +31,8 @@ export async function requireApiKey(req: Request): Promise<ApiAuth> {
   if (row.revoked_at) throw apiError(401, "API key revoked");
   if (row.user_status === "blocked") throw apiError(403, "Account blocked");
   if (row.user_status === "pending") throw apiError(403, "Account pending approval");
+  if (row.is_privileged) throw apiError(403, "API access is available to user accounts only");
+
 
   // best-effort last_used_at (don't await for latency)
   void sql`UPDATE api_keys SET last_used_at = now() WHERE id = ${row.key_id}`.catch(() => {});
