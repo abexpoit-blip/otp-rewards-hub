@@ -61,6 +61,14 @@ const baseSections: NavSection[] = [
   },
 ];
 
+// Account section without API Keys — shown to admins (API is user-only)
+const baseSectionsNoApi: NavSection[] = baseSections.map((s) =>
+  s.label === "Account"
+    ? { ...s, items: s.items.filter((i) => i.to !== "/api-keys") }
+    : s,
+);
+
+
 const adminSection: NavSection = {
   label: "Admin",
   items: [
