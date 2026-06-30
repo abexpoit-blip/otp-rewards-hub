@@ -114,13 +114,14 @@ function AgentSettings() {
   const save = useMutation({
     mutationFn: () => callSave({ data: {
       token: token!,
-      name: form.name.trim() || "—",
-      phone: form.phone.trim() || "—",
-      telegram: form.telegram.trim() || "—",
-      personal_email: form.personal_email.trim() || `noreply+${Date.now()}@local`,
-      address: form.address.trim() || "—",
+      name: form.name.trim() || null,
+      phone: form.phone.trim() || null,
+      telegram: form.telegram.trim() || null,
+      personal_email: form.personal_email.trim() || null,
+      address: form.address.trim() || null,
       group_link: form.group_link.trim() || null,
     } }),
+
     onSuccess: () => {
       toast.success("Profile saved.");
       qc.invalidateQueries({ queryKey: ["agent-profile"] });
