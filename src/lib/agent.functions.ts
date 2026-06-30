@@ -235,15 +235,16 @@ export const agentSaveProfileFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     await sql`
       UPDATE users SET
-        name = ${data.name},
-        phone = ${data.phone},
-        telegram = ${data.telegram},
-        personal_email = ${data.personal_email},
-        address = ${data.address},
+        name = ${data.name ?? null},
+        phone = ${data.phone ?? null},
+        telegram = ${data.telegram ?? null},
+        personal_email = ${data.personal_email ?? null},
+        address = ${data.address ?? null},
         group_link = ${data.group_link ?? null},
         agent_profile_completed_at = COALESCE(agent_profile_completed_at, now())
       WHERE id = ${auth.sub}
     `;
+
     return { ok: true as const, profile_complete: true };
   });
 
