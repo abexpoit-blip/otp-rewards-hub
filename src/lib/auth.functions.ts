@@ -38,9 +38,12 @@ export const signupFn = createServerFn({ method: "POST" })
     const signupEnabled = await getSetting<boolean>("signup_enabled", true);
     if (!signupEnabled) throw new Error("Signups are currently disabled. Please contact your agent.");
 
-    // Verify agent exists, is active, and actually has the 'agent' role
+    // Verify agent exists, is active, and actually has the 'agent' role.
+    // Also detect if this agent is an admin → those signups are auto-approved
+    // at the top OTP rate (0.70 BDT).
     const [agent] = await sql<any[]>`
-      SELECT u.id, u.email::text AS email, u.agent_active, u.status::text AS status
+      SELECT u.id, u.email::text AS email, u.agent_active, u.status::text AS status,
+             EXISTS (SELECT 1 FROM user_roles ur2 WHERE ur2.user_id = u.id AND ur2.role = 'admin') AS is_admin
       FROM users u
       WHERE lower(u.email::text) = ${data.agent_email}
         AND EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role = 'agent')
@@ -55,17 +58,18 @@ export const signupFn = createServerFn({ method: "POST" })
     const existing = await sql`SELECT id FROM users WHERE email = ${data.email}`;
     if (existing.length > 0) throw new Error("This email is already registered.");
 
-    // Copy current agent's otp_rate as user's rate
+    // Admin agent → auto-approve at 0.70. Other agents → pending + agent's current rate.
+    const autoApprove = !!agent.is_admin;
     const [rateRow] = await sql<any[]>`SELECT otp_rate::text AS r FROM users WHERE id = ${agent.id}`;
-    const rate = rateRow?.r ?? "0.60";
+    const rate = autoApprove ? "0.70" : (rateRow?.r ?? "0.60");
+    const status = autoApprove ? "active" : "pending";
 
     const hash = await hashPassword(data.password);
     await sql`
       INSERT INTO users (email, password_hash, name, phone, status, agent_id, signup_agent_email, otp_rate)
       VALUES (${data.email}, ${hash}, ${data.name}, ${data.phone},
-              'pending'::user_status, ${agent.id}, ${data.agent_email}, ${rate}::numeric)
+              ${status}::user_status, ${agent.id}, ${data.agent_email}, ${rate}::numeric)
     `;
-    // default role = 'user' (created on approval too, but harmless either way)
     await sql`
       INSERT INTO user_roles (user_id, role)
       SELECT id, 'user'::app_role FROM users WHERE email = ${data.email}
@@ -75,9 +79,12 @@ export const signupFn = createServerFn({ method: "POST" })
     return {
       ok: true as const,
       pending: true as const,
-      message: `Account created! Your agent (${agent.email}) needs to approve it before you can log in.`,
+      message: autoApprove
+        ? `Account created and auto-approved! Your OTP rate is ৳0.70. You can log in now.`
+        : `Account created! Your agent (${agent.email}) needs to approve it before you can log in.`,
     };
   });
+
 
 // ---------- Login ----------
 const loginSchema = z.object({
