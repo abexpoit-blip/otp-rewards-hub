@@ -215,13 +215,17 @@ export const agentGetProfileFn = createServerFn({ method: "POST" })
 
 const saveProfileSchema = z.object({
   token: z.string().min(1),
-  name: z.string().trim().min(1).max(120),
-  phone: z.string().trim().min(3).max(40),
-  telegram: z.string().trim().min(2).max(80),
-  personal_email: z.string().trim().toLowerCase().email().max(255),
-  address: z.string().trim().min(3).max(500),
+  // All optional/empty-allowed so partial saves work; completion is enforced
+  // by is_agent_profile_complete() (>= 4 of 5 filled).
+  name: z.string().trim().max(120).optional().nullable(),
+  phone: z.string().trim().max(40).optional().nullable(),
+  telegram: z.string().trim().max(80).optional().nullable(),
+  personal_email: z.string().trim().toLowerCase().max(255).optional().nullable()
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Invalid email"),
+  address: z.string().trim().max(500).optional().nullable(),
   group_link: z.string().trim().max(300).optional().nullable(),
 });
+
 
 export const agentSaveProfileFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => saveProfileSchema.parse(d))
