@@ -8,11 +8,11 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import {
   adminListUsersFn, adminUserActionFn, adminDeleteUserFn,
-  adminImpersonateFn, adminCleanupInactiveFn, type AdminUserRow,
+  adminImpersonateFn, adminCleanupInactiveFn, adminSetUserOtpRateFn, type AdminUserRow,
 } from "@/lib/admin.functions";
 import {
   Users, Ban, CheckCircle2, Plus, Minus, ShieldCheck, ShieldOff, Search, AlertTriangle,
-  Clock, LogOut, StickyNote, Trash2, UserCog, Sparkles, MoreHorizontal,
+  Clock, LogOut, StickyNote, Trash2, UserCog, Sparkles, MoreHorizontal, Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
