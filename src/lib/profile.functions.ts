@@ -15,9 +15,11 @@ export type ProfileDTO = {
   bio: string | null;
   balance: string;
   lifetime_earning: string;
+  otp_rate: number;
   created_at: string;
   last_login_at: string | null;
 };
+
 
 export type SessionDTO = {
   id: string;
