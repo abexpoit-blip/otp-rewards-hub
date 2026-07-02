@@ -37,7 +37,7 @@ export const getProfileFn = createServerFn({ method: "POST" })
     const auth = await requireAuth(data.token);
     const rows = await sql`
       SELECT id, email, name, phone, country, city, timezone, telegram, bio,
-             balance::text, lifetime_earning::text,
+             balance::text, lifetime_earning::text, otp_rate::text AS otp_rate,
              created_at, last_login_at
       FROM users WHERE id = ${auth.sub}
     `;
@@ -48,10 +48,12 @@ export const getProfileFn = createServerFn({ method: "POST" })
       country: u.country, city: u.city, timezone: u.timezone,
       telegram: u.telegram, bio: u.bio,
       balance: String(u.balance), lifetime_earning: String(u.lifetime_earning),
+      otp_rate: Number(u.otp_rate),
       created_at: u.created_at.toISOString(),
       last_login_at: u.last_login_at ? u.last_login_at.toISOString() : null,
     };
   });
+
 
 // ---------- Update profile ----------
 const updateSchema = z.object({
