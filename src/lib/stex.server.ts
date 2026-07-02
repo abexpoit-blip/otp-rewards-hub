@@ -1,18 +1,33 @@
 /**
- * STEX SMS upstream API client.
- * Base + key from env. All endpoints share the `mauthapi` header.
+ * Upstream SMS API client (VoltxSMS — same envelope shape as legacy Stex).
+ * Base + key from env / settings. All endpoints share the `mauthapi` header.
+ * Setting keys `voltx_api_base` / `voltx_api_key` win over env; legacy
+ * `stex_api_*` keys are still read as fallback so existing deployments keep
+ * working while migrating.
  */
 
-const BASE = process.env.STEX_API_BASE || "https://api.2oo9.cloud/MXS47FLFX0U/tness/@public/api";
-
-async function getApiKey(): Promise<string> {
-  // Settings (DB) wins so admin can rotate without redeploy; .env is fallback.
+async function getBase(): Promise<string> {
   try {
     const { getSetting } = await import("./settings.server");
-    const k = await getSetting<string>("stex_api_key", "");
-    if (k && typeof k === "string" && k.length) return k;
+    const v = await getSetting<string>("voltx_api_base", "");
+    if (v && typeof v === "string" && v.length) return v;
+    const s = await getSetting<string>("stex_api_base", "");
+    if (s && typeof s === "string" && s.length) return s;
   } catch { /* settings table may not exist yet during first boot */ }
-  return process.env.STEX_API_KEY || "";
+  return process.env.VOLTX_API_BASE
+      || process.env.STEX_API_BASE
+      || "https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api";
+}
+
+async function getApiKey(): Promise<string> {
+  try {
+    const { getSetting } = await import("./settings.server");
+    const v = await getSetting<string>("voltx_api_key", "");
+    if (v && typeof v === "string" && v.length) return v;
+    const s = await getSetting<string>("stex_api_key", "");
+    if (s && typeof s === "string" && s.length) return s;
+  } catch { /* settings table may not exist yet during first boot */ }
+  return process.env.VOLTX_API_KEY || process.env.STEX_API_KEY || "";
 }
 
 export type StexEnvelope<T> = {
