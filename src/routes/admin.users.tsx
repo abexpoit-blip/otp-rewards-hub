@@ -252,6 +252,22 @@ function AdminUsers() {
                           <DropdownMenuItem onClick={() => openModal({ kind: "debit", user: u })} className="text-rose-700">
                             <Minus className="size-4" /> Debit balance
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-indigo-700"
+                            onClick={async () => {
+                              const raw = window.prompt(`New OTP rate for ${u.email}\n(Max ৳0.75 by default, admin cap configurable in Settings)`, Number((u as any).otp_rate ?? "0.60").toFixed(2));
+                              if (raw == null) return;
+                              const val = parseFloat(raw);
+                              if (!Number.isFinite(val) || val < 0) { toast.error("Invalid rate"); return; }
+                              try {
+                                await callSetRate({ data: { token: token!, user_id: u.id, otp_rate: val } });
+                                toast.success(`Rate updated to ৳${val.toFixed(2)}`);
+                                qc.invalidateQueries({ queryKey: ["admin-users"] });
+                              } catch (e: any) { toast.error(e?.message || "Failed"); }
+                            }}
+                          >
+                            <Coins className="size-4" /> Set OTP rate…
+                          </DropdownMenuItem>
 
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel className="text-xs">Admin</DropdownMenuLabel>
