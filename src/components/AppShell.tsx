@@ -28,7 +28,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <AppFooter />
         </div>
       </div>
+      <PaymentApprovedWatcher />
     </div>
+
   );
 }
 
