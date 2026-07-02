@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/v1/inbox")({
           await triggerPollerIngest("api-inbox");
           const rows = await sql<any[]>`
             SELECT om.id, om.allocation_id, om.number, om.sender, om.body, om.country, om.received_at,
-                   a.payout_amount::text AS payout
+                   a.payout_amount::text AS payout, a.sid AS service, a.operator
             FROM otp_messages om
             LEFT JOIN allocations a ON a.id = om.allocation_id
             WHERE om.user_id = ${auth.userId}
@@ -30,7 +30,11 @@ export const Route = createFileRoute("/api/v1/inbox")({
             ok: true, count: rows.length,
             items: rows.map((r) => ({
               id: r.id, allocation_id: r.allocation_id,
-              number: r.number, sender: r.sender, body: r.body, country: r.country,
+              number: r.number, sender: r.sender,
+              service: r.service ?? null,
+              access: r.service ?? null,
+              body: r.body, text: r.body, full_text: r.body, console: r.body,
+              country: r.country, operator: r.operator,
               payout: r.payout != null ? Number(r.payout) : 0,
               received_at: r.received_at.toISOString(),
             })),
