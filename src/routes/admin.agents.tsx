@@ -86,7 +86,7 @@ function AdminAgents() {
 
   return (
     <AppShell>
-      <PageHeader icon={<UserCog className="size-6" />} title="Agents (Sub-Admins)" subtitle={`Create agent accounts. Email auto-generates as username@${domain}. Cap: ৳0.70 per OTP.`} />
+      <PageHeader icon={<UserCog className="size-6" />} title="Agents (Sub-Admins)" subtitle={`Create agent accounts. Email auto-generates as username@${domain}. Cap: ৳0.75 per OTP.`} />
 
       <div className="mb-4 flex justify-end">
         <button onClick={openCreate} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-xs font-bold shadow-md shadow-primary/25 hover:bg-primary/90">
