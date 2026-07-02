@@ -844,7 +844,7 @@ const createAgentSchema = z.object({
     .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i, "Username: letters, digits, dot, dash, underscore only"),
   password: z.string().min(6).max(200),
   name: z.string().trim().max(120).optional().nullable(),
-  otp_rate: z.number().min(0).max(0.70),
+  otp_rate: z.number().min(0).max(0.75),
 });
 
 export const adminCreateAgentFn = createServerFn({ method: "POST" })
