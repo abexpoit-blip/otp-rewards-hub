@@ -99,7 +99,7 @@ export const agentListUsersFn = createServerFn({ method: "POST" })
 // =====================================================================
 // Approve / Reject pending users (with per-approval rate prompt)
 // =====================================================================
-const RATE_CAP = 0.70;
+const RATE_CAP = 0.75;
 const RATE_DEFAULT = 0.60;
 
 const approveSchema = z.object({
