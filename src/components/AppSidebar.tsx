@@ -96,7 +96,7 @@ const agentSection: NavSection = {
     { to: "/agent", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/agent/users", icon: Users, label: "My Users" },
     { to: "/agent/top", icon: Crown, label: "Top Performers" },
-    // Withdrawals are admin-only now; agents cannot review payouts.
+    { to: "/agent/withdrawals", icon: Wallet, label: "My Commission" },
     { to: "/agent/support", icon: MessageSquare, label: "Support" },
     { to: "/agent/settings", icon: Settings, label: "Settings" },
   ],

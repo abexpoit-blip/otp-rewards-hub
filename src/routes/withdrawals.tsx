@@ -20,7 +20,7 @@ export const Route = createFileRoute("/withdrawals")({
   component: () => (<Protected><WithdrawalsPage /></Protected>),
 });
 
-function WithdrawalsPage() {
+export function WithdrawalsPage() {
   const { token } = useAuth();
   const qc = useQueryClient();
   const callAddrs = useServerFn(listAddressesFn);
