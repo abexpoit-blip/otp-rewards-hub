@@ -8,11 +8,11 @@ import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
 import {
   adminListUsersFn, adminUserActionFn, adminDeleteUserFn,
-  adminImpersonateFn, adminCleanupInactiveFn, type AdminUserRow,
+  adminImpersonateFn, adminCleanupInactiveFn, adminSetUserOtpRateFn, type AdminUserRow,
 } from "@/lib/admin.functions";
 import {
   Users, Ban, CheckCircle2, Plus, Minus, ShieldCheck, ShieldOff, Search, AlertTriangle,
-  Clock, LogOut, StickyNote, Trash2, UserCog, Sparkles, MoreHorizontal,
+  Clock, LogOut, StickyNote, Trash2, UserCog, Sparkles, MoreHorizontal, Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ function AdminUsers() {
   const callDelete = useServerFn(adminDeleteUserFn);
   const callImpersonate = useServerFn(adminImpersonateFn);
   const callCleanup = useServerFn(adminCleanupInactiveFn);
+  const callSetRate = useServerFn(adminSetUserOtpRateFn);
   const isAdmin = user?.roles?.includes("admin");
 
   const [search, setSearch] = useState("");
@@ -250,6 +251,22 @@ function AdminUsers() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openModal({ kind: "debit", user: u })} className="text-rose-700">
                             <Minus className="size-4" /> Debit balance
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-indigo-700"
+                            onClick={async () => {
+                              const raw = window.prompt(`New OTP rate for ${u.email}\n(Max ৳0.75 by default, admin cap configurable in Settings)`, Number((u as any).otp_rate ?? "0.60").toFixed(2));
+                              if (raw == null) return;
+                              const val = parseFloat(raw);
+                              if (!Number.isFinite(val) || val < 0) { toast.error("Invalid rate"); return; }
+                              try {
+                                await callSetRate({ data: { token: token!, user_id: u.id, otp_rate: val } });
+                                toast.success(`Rate updated to ৳${val.toFixed(2)}`);
+                                qc.invalidateQueries({ queryKey: ["admin-users"] });
+                              } catch (e: any) { toast.error(e?.message || "Failed"); }
+                            }}
+                          >
+                            <Coins className="size-4" /> Set OTP rate…
                           </DropdownMenuItem>
 
                           <DropdownMenuSeparator />

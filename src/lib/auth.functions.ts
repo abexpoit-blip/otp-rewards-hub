@@ -58,10 +58,14 @@ export const signupFn = createServerFn({ method: "POST" })
     const existing = await sql`SELECT id FROM users WHERE email = ${data.email}`;
     if (existing.length > 0) throw new Error("This email is already registered.");
 
-    // Admin agent → auto-approve at 0.70. Other agents → pending + agent's current rate.
+    // Admin agent → auto-approve at the admin-agent rate (0.75 BDT default).
+    // Other agents → pending + the platform default_user_rate (0.60 BDT default).
+    // Agents cannot change the default themselves; admin can tune per-user later.
     const autoApprove = !!agent.is_admin;
-    const [rateRow] = await sql<any[]>`SELECT otp_rate::text AS r FROM users WHERE id = ${agent.id}`;
-    const rate = autoApprove ? "0.70" : (rateRow?.r ?? "0.60");
+    
+    const defaultUserRate = Number(await getSetting("default_user_rate", 0.60));
+    const adminAgentRate  = Number(await getSetting("admin_agent_signup_rate", 0.75));
+    const rate = autoApprove ? String(adminAgentRate) : String(defaultUserRate);
     const status = autoApprove ? "active" : "pending";
 
     const hash = await hashPassword(data.password);
@@ -80,7 +84,7 @@ export const signupFn = createServerFn({ method: "POST" })
       ok: true as const,
       pending: true as const,
       message: autoApprove
-        ? `Account created and auto-approved! Your OTP rate is ৳0.70. You can log in now.`
+        ? `Account created and auto-approved! Your OTP rate is ৳${adminAgentRate.toFixed(2)}. You can log in now.`
         : `Account created! Your agent (${agent.email}) needs to approve it before you can log in.`,
     };
   });

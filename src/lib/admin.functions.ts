@@ -844,7 +844,7 @@ const createAgentSchema = z.object({
     .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i, "Username: letters, digits, dot, dash, underscore only"),
   password: z.string().min(6).max(200),
   name: z.string().trim().max(120).optional().nullable(),
-  otp_rate: z.number().min(0).max(0.70),
+  otp_rate: z.number().min(0).max(0.75),
 });
 
 export const adminCreateAgentFn = createServerFn({ method: "POST" })
@@ -857,7 +857,7 @@ export const adminCreateAgentFn = createServerFn({ method: "POST" })
     const { audit } = await import("./audit.server");
     const { getSetting } = await import("./settings.server");
 
-    const cap = Number(await getSetting("max_agent_otp_rate", 0.70));
+    const cap = Number(await getSetting("max_agent_otp_rate", 0.75));
     if (data.otp_rate > cap) throw new Error(`OTP rate exceeds cap of ৳${cap}`);
 
     const domainRaw = String(await getSetting("agent_email_domain", "v2.nexus-x.site")).trim().replace(/^@+/, "");
@@ -891,7 +891,7 @@ export const adminGetAgentDomainFn = createServerFn({ method: "POST" })
 const updateAgentSchema = z.object({
   token: z.string().min(1),
   agent_id: z.string().uuid(),
-  otp_rate: z.number().min(0).max(0.70).optional(),
+  otp_rate: z.number().min(0).max(0.75).optional(),
   agent_active: z.boolean().optional(),
   password: z.string().min(6).max(200).optional(),
   name: z.string().trim().max(120).optional().nullable(),
@@ -914,7 +914,7 @@ export const adminUpdateAgentFn = createServerFn({ method: "POST" })
     if (!a) throw new Error("Agent not found");
 
     if (data.otp_rate !== undefined) {
-      const cap = Number(await getSetting("max_agent_otp_rate", 0.70));
+      const cap = Number(await getSetting("max_agent_otp_rate", 0.75));
       if (data.otp_rate > cap) throw new Error(`OTP rate exceeds cap of ৳${cap}`);
       await sql`UPDATE users SET otp_rate = ${data.otp_rate}::numeric WHERE id = ${data.agent_id}`;
     }
@@ -942,3 +942,33 @@ export const adminToggleSupportFn = createServerFn({ method: "POST" })
     return { ok: true as const, enabled: data.enabled };
   });
 
+
+// =====================================================================
+// Set a user's OTP rate (admin can raise/lower ANY user, capped by
+// max_user_otp_rate setting). Agents can only affect their own users
+// via agentSetUserOtpRateFn.
+// =====================================================================
+const adminSetUserRateSchema = z.object({
+  token: z.string().min(1),
+  user_id: z.string().uuid(),
+  otp_rate: z.number().min(0).max(2),
+});
+
+export const adminSetUserOtpRateFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => adminSetUserRateSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; otp_rate: number }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { getSetting } = await import("./settings.server");
+    const { audit } = await import("./audit.server");
+
+    const cap = Number(await getSetting("max_user_otp_rate", 0.75));
+    if (data.otp_rate > cap) throw new Error(`Rate exceeds cap of ৳${cap}`);
+
+    const [u] = await sql<any[]>`SELECT id, email::text AS email FROM users WHERE id = ${data.user_id}`;
+    if (!u) throw new Error("User not found");
+    await sql`UPDATE users SET otp_rate = ${data.otp_rate}::numeric WHERE id = ${data.user_id}`;
+    await audit(admin.sub, "admin.set_user_rate", { type: "user", id: data.user_id }, { email: u.email, rate: data.otp_rate });
+    return { ok: true as const, otp_rate: data.otp_rate };
+  });

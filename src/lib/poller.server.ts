@@ -99,7 +99,7 @@ async function runIngest(state: PollerState, source: string) {
 
 async function ingestOnce() {
   const { getSetting } = await import("./settings.server");
-  const defaultPayout = Number(await getSetting("default_payout", 0.40));
+  const defaultPayout = Number(await getSetting("default_payout", 0.75));
   const r = await stexSuccessOtp();
   if (r.meta.code !== 200 || !r.data) return;
   if (r.data.otps.length) console.log(`[poller] fetched ${r.data.otps.length} OTP(s) from STEX`);

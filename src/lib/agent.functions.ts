@@ -34,9 +34,7 @@ export const agentDashboardStatsFn = createServerFn({ method: "POST" })
            JOIN my_users mu ON mu.id = a.user_id
            WHERE a.status = 'success' AND a.completed_at::date = current_date)::text            AS earned_today,
         (SELECT COALESCE(SUM(lifetime_earning),0)::numeric FROM users WHERE agent_id = ${auth.sub})::text AS lifetime_earned,
-        (SELECT COUNT(*)::int FROM withdrawals w
-           JOIN my_users mu ON mu.id = w.user_id
-           WHERE w.status = 'pending')                                                          AS pending_withdrawals
+        (SELECT 0)                                                                              AS pending_withdrawals
     `;
     return {
       total_users: r?.total_users ?? 0,
@@ -99,7 +97,7 @@ export const agentListUsersFn = createServerFn({ method: "POST" })
 // =====================================================================
 // Approve / Reject pending users (with per-approval rate prompt)
 // =====================================================================
-const RATE_CAP = 0.70;
+const RATE_CAP = 0.75;
 const RATE_DEFAULT = 0.60;
 
 const approveSchema = z.object({
@@ -173,6 +171,35 @@ export const agentBulkApproveFn = createServerFn({ method: "POST" })
     await audit(auth.sub, "agent.bulk_approve", { type: "user", id: "bulk" },
       { count: rows.length, rate: data.otp_rate });
     return { ok: true as const, approved: rows.length };
+  });
+
+// =====================================================================
+// Set per-user OTP rate (agent can raise/lower for any user under them,
+// bounded by the platform cap). Admin can set any user via the admin fn.
+// =====================================================================
+const setUserRateSchema = z.object({
+  token: z.string().min(1),
+  user_id: z.string().uuid(),
+  otp_rate: z.number().min(0).max(RATE_CAP),
+});
+
+export const agentSetUserOtpRateFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => setUserRateSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; otp_rate: number }> => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+
+    const [u] = await sql<any[]>`
+      SELECT id, email::text AS email, agent_id FROM users WHERE id = ${data.user_id}
+    `;
+    if (!u) throw new Error("User not found");
+    if (u.agent_id !== auth.sub) throw new Error("This user is not under your agent account");
+
+    await sql`UPDATE users SET otp_rate = ${data.otp_rate}::numeric WHERE id = ${data.user_id}`;
+    await audit(auth.sub, "agent.set_user_rate", { type: "user", id: data.user_id }, { email: u.email, rate: data.otp_rate });
+    return { ok: true as const, otp_rate: data.otp_rate };
   });
 
 // =====================================================================
@@ -367,28 +394,9 @@ export const agentUserDetailsFn = createServerFn({ method: "POST" })
 // =====================================================================
 export const agentListWithdrawalsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
-  .handler(async ({ data }) => {
-    const { requireAgent } = await import("./agent-guard.server");
-    const auth = await requireAgent(data.token);
-    const { sql } = await import("./db.server");
-    const rows = await sql<any[]>`
-      SELECT w.id, w.user_id, u.email::text AS user_email, u.name AS user_name,
-             w.amount::text, w.gateway, w.address, w.status, w.tx_id,
-             w.admin_note, w.created_at, w.processed_at
-      FROM withdrawals w
-      JOIN users u ON u.id = w.user_id
-      WHERE u.agent_id = ${auth.sub}
-      ORDER BY
-        CASE w.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1
-                      WHEN 'paid' THEN 2 ELSE 3 END,
-        w.created_at DESC
-      LIMIT 200
-    `;
-    return rows.map((r) => ({
-      ...r, amount: String(r.amount),
-      created_at: r.created_at.toISOString(),
-      processed_at: r.processed_at ? r.processed_at.toISOString() : null,
-    }));
+  .handler(async (_ctx): Promise<any[]> => {
+    // Withdrawals are now managed exclusively by admin. Agents no longer see them.
+    return [];
   });
 
 const updateWdSchema = z.object({
@@ -401,48 +409,10 @@ const updateWdSchema = z.object({
 
 export const agentUpdateWithdrawalFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => updateWdSchema.parse(d))
-  .handler(async ({ data }) => {
-    const { requireAgent } = await import("./agent-guard.server");
-    const auth = await requireAgent(data.token);
-    const { sql } = await import("./db.server");
-    const { audit } = await import("./audit.server");
-
-    return await sql.begin(async (tx) => {
-      const [wd] = await tx<any[]>`
-        SELECT w.id, w.user_id, w.amount::numeric AS amount, w.status, u.agent_id
-        FROM withdrawals w
-        JOIN users u ON u.id = w.user_id
-        WHERE w.id = ${data.id} FOR UPDATE
-      `;
-      if (!wd) throw new Error("Withdrawal not found");
-      if (wd.agent_id !== auth.sub) throw new Error("This withdrawal is not under your agent account");
-
-      let newStatus: string;
-      if (data.action === "approve") {
-        if (wd.status !== "pending") throw new Error(`Cannot approve a ${wd.status} withdrawal`);
-        newStatus = "approved";
-      } else if (data.action === "paid") {
-        if (wd.status !== "approved" && wd.status !== "pending") throw new Error(`Cannot mark ${wd.status} as paid`);
-        newStatus = "paid";
-      } else {
-        if (wd.status === "paid") throw new Error("Cannot reject a paid withdrawal");
-        if (wd.status === "rejected") throw new Error("Already rejected");
-        await tx`UPDATE users SET balance = balance + ${wd.amount} WHERE id = ${wd.user_id}`;
-        newStatus = "rejected";
-      }
-      await tx`
-        UPDATE withdrawals
-        SET status = ${newStatus}::withdrawal_status,
-            tx_id = COALESCE(${data.tx_id ?? null}, tx_id),
-            admin_note = COALESCE(${data.admin_note ?? null}, admin_note),
-            processed_by = ${auth.sub},
-            processed_at = now()
-        WHERE id = ${data.id}
-      `;
-      await audit(auth.sub, `agent.withdrawal.${data.action}`, { type: "withdrawal", id: data.id }, { amount: wd.amount });
-      return { ok: true as const, status: newStatus };
-    });
+  .handler(async () => {
+    throw new Error("Withdrawals are managed by admin only. Agents cannot review payouts.");
   });
+
 
 // =====================================================================
 // Top performers — users under this agent ranked by successful OTPs.
