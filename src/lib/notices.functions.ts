@@ -16,6 +16,7 @@ export type NoticeRow = {
   audience: "user" | "agent" | "both";
   title: string;
   body: string;
+  image_url: string | null;
   active: boolean;
   starts_at: string | null;
   ends_at: string | null;
@@ -48,7 +49,7 @@ export const adminListNoticesFn = createServerFn({ method: "POST" })
     const rows = await sql<any[]>`
       SELECT n.id, n.type::text AS type, n.priority::text AS priority,
              n.audience::text AS audience,
-             n.title, n.body, n.active, n.starts_at, n.ends_at,
+             n.title, n.body, n.image_url, n.active, n.starts_at, n.ends_at,
              n.target_user_ids, n.created_at, n.updated_at,
              COALESCE(
                (SELECT array_agg(u.email::text)
@@ -79,6 +80,7 @@ const upsertNoticeSchema = z.object({
   audience: z.enum(["user", "agent", "both"]).default("user"),
   title: z.string().trim().min(1).max(200),
   body: z.string().trim().max(4000).default(""),
+  image_url: z.string().trim().max(2000).optional().nullable(),
   active: z.boolean().default(true),
   starts_at: z.string().datetime().optional().nullable(),
   ends_at: z.string().datetime().optional().nullable(),
@@ -105,6 +107,7 @@ export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
     }
 
     let id: string;
+    const image_url = (data.image_url ?? "").trim() || null;
     if (data.id) {
       const [row] = await sql<any[]>`
         UPDATE notices SET
@@ -112,6 +115,7 @@ export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
           priority = ${data.priority}::notice_priority,
           audience = ${data.audience}::notice_audience,
           title = ${data.title}, body = ${data.body},
+          image_url = ${image_url},
           active = ${data.active},
           starts_at = ${data.starts_at ?? null},
           ends_at = ${data.ends_at ?? null},
@@ -124,10 +128,10 @@ export const adminUpsertNoticeFn = createServerFn({ method: "POST" })
       id = row.id;
     } else {
       const [row] = await sql<any[]>`
-        INSERT INTO notices (type, priority, audience, title, body, active, starts_at, ends_at, target_user_ids, created_by)
+        INSERT INTO notices (type, priority, audience, title, body, image_url, active, starts_at, ends_at, target_user_ids, created_by)
         VALUES (${data.type}::notice_type, ${data.priority}::notice_priority,
                 ${data.audience}::notice_audience,
-                ${data.title}, ${data.body}, ${data.active},
+                ${data.title}, ${data.body}, ${image_url}, ${data.active},
                 ${data.starts_at ?? null}, ${data.ends_at ?? null},
                 ${target_user_ids as any}, ${admin.sub})
         RETURNING id
@@ -165,10 +169,14 @@ export const listActiveNoticesFn = createServerFn({ method: "POST" })
     const { requireAuth } = await import("./auth-guard.server");
     const auth = await requireAuth(data.token);
     const { sql } = await import("./db.server");
+    const { getSetting } = await import("./settings.server");
+    // Global kill switch
+    const enabled = await getSetting("notices_enabled", true).catch(() => true);
+    if (enabled === false) return [];
     const rows = await sql<any[]>`
       SELECT id, type::text AS type, priority::text AS priority,
              audience::text AS audience,
-             title, body, active, starts_at, ends_at, target_user_ids,
+             title, body, image_url, active, starts_at, ends_at, target_user_ids,
              created_at, updated_at
       FROM notices
       WHERE active = true

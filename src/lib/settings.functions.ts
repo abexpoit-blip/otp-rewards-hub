@@ -12,6 +12,7 @@ export type PublicSettingsDTO = {
   maintenance_mode: boolean;             // FULL — blocks login
   maintenance_banner_enabled: boolean;   // SOFT — app works, banner shown
   maintenance_message: string;
+  notices_enabled: boolean;              // Master switch for notice system
 };
 
 const DEFAULT_PUBLIC_SETTINGS: PublicSettingsDTO = {
@@ -22,6 +23,7 @@ const DEFAULT_PUBLIC_SETTINGS: PublicSettingsDTO = {
   maintenance_mode: false,
   maintenance_banner_enabled: false,
   maintenance_message: "System is under maintenance.",
+  notices_enabled: true,
 };
 
 export const getPublicSettingsFn = createServerFn({ method: "GET" })
@@ -36,13 +38,13 @@ export const getPublicSettingsFn = createServerFn({ method: "GET" })
       const maintenance_message = String(
         await getSetting("maintenance_message", "System is under maintenance.")
       );
+      const notices_enabled = Boolean(await getSetting("notices_enabled", true));
       return {
         otp_rate, min_withdraw, currency: "BDT", signup_enabled,
         maintenance_mode, maintenance_banner_enabled, maintenance_message,
+        notices_enabled,
       };
     } catch (e: any) {
-      // DB unreachable (e.g. Lovable preview sandbox has no Postgres).
-      // Return safe defaults so the login/landing page still renders.
       console.warn("[settings] getPublicSettings DB unavailable, using defaults:", e?.message);
       return DEFAULT_PUBLIC_SETTINGS;
     }

@@ -5,8 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
-import { adminListAgentsFn, adminCreateAgentFn, adminUpdateAgentFn, adminImpersonateFn, adminGetAgentDomainFn, type AdminAgentRow } from "@/lib/admin.functions";
-import { UserCog, Plus, Pencil, AlertTriangle, ShieldCheck, ShieldOff, Sparkles, AtSign } from "lucide-react";
+import { adminListAgentsFn, adminCreateAgentFn, adminUpdateAgentFn, adminImpersonateFn, adminGetAgentDomainFn, adminDeleteUserFn, type AdminAgentRow } from "@/lib/admin.functions";
+import { UserCog, Plus, Pencil, AlertTriangle, ShieldCheck, ShieldOff, Sparkles, AtSign, Trash2 } from "lucide-react";
 import { PerfBadge } from "@/components/PerfBadge";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
@@ -31,8 +31,11 @@ function AdminAgents() {
   const callUpdate = useServerFn(adminUpdateAgentFn);
   const callImp = useServerFn(adminImpersonateFn);
   const callDomain = useServerFn(adminGetAgentDomainFn);
+  const callDelete = useServerFn(adminDeleteUserFn);
 
   const [modal, setModal] = useState<ModalState>(null);
+  const [deleteRow, setDeleteRow] = useState<AdminAgentRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const [form, setForm] = useState<{ username: string; password: string; name: string; otp_rate: string; agent_active: boolean }>({ username: "", password: "", name: "", otp_rate: "0.60", agent_active: true });
 
   const list = useQuery({
@@ -64,6 +67,11 @@ function AdminAgents() {
     mutationFn: (uid: string) => callImp({ data: { token: token!, user_id: uid } }),
     onSuccess: (r) => { enterImpersonation(r.token, r.user); toast.success(`Now viewing as ${r.user.email}`); navigate({ to: "/agent" }); },
     onError: (e: any) => toast.error(e?.message || "Failed"),
+  });
+  const del = useMutation({
+    mutationFn: () => callDelete({ data: { token: token!, user_id: deleteRow!.id, confirm_email: deleteConfirm.trim() } }),
+    onSuccess: (r) => { toast.success(`Agent deleted · ${r.email}`); setDeleteRow(null); setDeleteConfirm(""); qc.invalidateQueries({ queryKey: ["admin-agents"] }); },
+    onError: (e: any) => toast.error(e?.message || "Delete failed"),
   });
 
   const openCreate = () => { setForm({ username: "", password: "", name: "", otp_rate: "0.60", agent_active: true }); setModal({ kind: "create" }); };
@@ -123,6 +131,7 @@ function AdminAgents() {
                       <div className="flex justify-end gap-1.5">
                         <button onClick={() => { if (confirm(`Sign in as ${a.email}? You can exit anytime.`)) imp.mutate(a.id); }} className="rounded bg-indigo-50 text-indigo-700 border border-indigo-200/60 px-2 py-1 text-xs font-bold inline-flex items-center gap-1"><Sparkles className="size-3" /> Login as</button>
                         <button onClick={() => openEdit(a)} className="rounded border border-border px-2 py-1 text-xs font-medium hover:bg-muted inline-flex items-center gap-1"><Pencil className="size-3" /> Edit</button>
+                        <button onClick={() => { setDeleteRow(a); setDeleteConfirm(""); }} className="rounded border border-destructive/40 text-destructive hover:bg-destructive/10 px-2 py-1 text-xs font-bold inline-flex items-center gap-1" title="Delete agent"><Trash2 className="size-3" /></button>
                       </div>
                     </td>
                   </tr>
@@ -204,6 +213,45 @@ function AdminAgents() {
                 className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-50"
               >
                 {modal.kind === "create" ? "Create Agent" : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteRow && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { if (!del.isPending) { setDeleteRow(null); setDeleteConfirm(""); } }}>
+          <div className="glass-panel-strong p-6 w-[480px] max-w-full border border-destructive/40" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="size-12 rounded-2xl bg-destructive/15 text-destructive flex items-center justify-center"><Trash2 className="size-6" /></div>
+              <div>
+                <h3 className="font-bold text-lg">Delete agent?</h3>
+                <p className="text-xs text-muted-foreground">This permanently removes <span className="font-mono font-bold">{deleteRow.email}</span> and their sessions.</p>
+              </div>
+            </div>
+            <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 mb-3 text-xs text-destructive">
+              <strong>Users under this agent are NOT deleted.</strong> They remain, but lose their agent association. Pending withdrawals must be cleared first.
+            </div>
+            <label className="block text-xs mb-4">
+              <span className="font-bold mb-1 block">Type the agent's email to confirm</span>
+              <input
+                autoFocus
+                type="email"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={deleteRow.email}
+                className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setDeleteRow(null); setDeleteConfirm(""); }} className="px-3 py-2 text-xs hover:bg-accent rounded-lg">Cancel</button>
+              <button
+                disabled={del.isPending || deleteConfirm.trim().toLowerCase() !== deleteRow.email.toLowerCase()}
+                onClick={() => del.mutate()}
+                className="bg-destructive text-destructive-foreground rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-40 inline-flex items-center gap-1.5"
+              >
+                <Trash2 className="size-3.5" />
+                {del.isPending ? "Deleting…" : "Delete agent"}
               </button>
             </div>
           </div>
