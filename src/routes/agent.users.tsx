@@ -30,6 +30,7 @@ function AgentUsers() {
   const callBulk = useServerFn(agentBulkApproveFn);
   const callStatus = useServerFn(agentSetUserStatusFn);
   const callDetails = useServerFn(agentUserDetailsFn);
+  const callSetRate = useServerFn(agentSetUserOtpRateFn);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all"|"pending"|"active"|"blocked">("all");
