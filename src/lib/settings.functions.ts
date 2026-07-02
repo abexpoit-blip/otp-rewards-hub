@@ -17,7 +17,7 @@ export type PublicSettingsDTO = {
 
 const DEFAULT_PUBLIC_SETTINGS: PublicSettingsDTO = {
   otp_rate: 0.40,
-  min_withdraw: 500,
+  min_withdraw: 250,
   currency: "BDT",
   signup_enabled: true,
   maintenance_mode: false,
@@ -42,7 +42,7 @@ export const getPublicSettingsFn = createServerFn({ method: "GET" })
     try {
       const { getSetting } = await import("./settings.server");
       const otp_rate = Number(await getSetting("default_payout", 0.40));
-      const min_withdraw = Number(await getSetting("min_withdraw", 500));
+      const min_withdraw = Number(await getSetting("min_withdraw", 250));
       const signup_enabled = toBool(await getSetting("signup_enabled", true), true);
       const maintenance_mode = toBool(await getSetting("maintenance_mode", false), false);
       const maintenance_banner_enabled = toBool(await getSetting("maintenance_banner_enabled", false), false);
