@@ -349,16 +349,9 @@ function InboxPage() {
                       <td className="py-2 text-xs text-muted-foreground">{o.country || "—"}</td>
                       <td className="py-2 text-right whitespace-nowrap">
                         {userPay != null ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                              You +৳{userPay.toFixed(2)}
-                            </span>
-                            {agentPay > 0 && (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-                                Agent +৳{agentPay.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                            +৳{userPay.toFixed(2)}
+                          </span>
                         ) : (
                           <span className="text-[10px] text-muted-foreground">—</span>
                         )}
