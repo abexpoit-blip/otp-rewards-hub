@@ -151,7 +151,7 @@ async function ingestOnce() {
       continue;
     }
 
-    const settled = await settleAllocation(alloc.id, alloc.user_id, alloc.status, defaultPayout);
+    const settled = await settleAllocation(alloc.id, alloc.user_id, alloc.status, defaultPayout, otp.message, otpReceivedAt);
     if (!settled) continue;
     if (alloc.status !== "pending") {
       console.log(`[poller] recovered allocation ${alloc.id} from '${alloc.status}' → success (OTP arrived after timeout)`);
@@ -192,7 +192,19 @@ async function ingestOnce() {
 
 type SettledAllocation = { userPayout: number; agentId: string | null; commission: number };
 
-async function settleAllocation(allocationId: string, userId: string, priorStatus: string, defaultPayout: number): Promise<SettledAllocation | null> {
+function extractOtpCode(message?: string | null) {
+  if (!message) return null;
+  return message.match(/\b\d{4,8}\b/)?.[0] ?? message;
+}
+
+async function settleAllocation(
+  allocationId: string,
+  userId: string,
+  priorStatus: string,
+  defaultPayout: number,
+  otpMessage?: string | null,
+  otpReceivedAt?: Date | null,
+): Promise<SettledAllocation | null> {
   const result = await sql.begin(async (tx): Promise<SettledAllocation | null> => {
     const [u] = await tx<any[]>`
       SELECT otp_rate::text AS rate, agent_id
@@ -204,14 +216,19 @@ async function settleAllocation(allocationId: string, userId: string, priorStatu
     const fullRate = defaultPayout;
     const agentId: string | null = u?.agent_id && u.agent_id !== userId ? u.agent_id : null;
     const commission = agentId ? Math.max(0, Number((fullRate - userPayout).toFixed(4))) : 0;
+    const otpCode = extractOtpCode(otpMessage);
 
     const updated = await tx<any[]>`
       UPDATE allocations
       SET status = 'success',
           payout_amount = ${userPayout},
+          user_payout = ${userPayout},
           agent_id = ${agentId},
           agent_commission = ${commission},
-          completed_at = now()
+          received_at = COALESCE(received_at, ${otpReceivedAt ?? null}),
+          otp_code = COALESCE(otp_code, ${otpCode}),
+          completed_at = now(),
+          settled_at = now()
       WHERE id = ${allocationId}
         AND status IN ('pending', 'failed', 'expired')
         AND payout_amount = 0
