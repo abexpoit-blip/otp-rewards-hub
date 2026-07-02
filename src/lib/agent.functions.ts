@@ -174,6 +174,35 @@ export const agentBulkApproveFn = createServerFn({ method: "POST" })
   });
 
 // =====================================================================
+// Set per-user OTP rate (agent can raise/lower for any user under them,
+// bounded by the platform cap). Admin can set any user via the admin fn.
+// =====================================================================
+const setUserRateSchema = z.object({
+  token: z.string().min(1),
+  user_id: z.string().uuid(),
+  otp_rate: z.number().min(0).max(RATE_CAP),
+});
+
+export const agentSetUserOtpRateFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => setUserRateSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; otp_rate: number }> => {
+    const { requireAgent } = await import("./agent-guard.server");
+    const auth = await requireAgent(data.token);
+    const { sql } = await import("./db.server");
+    const { audit } = await import("./audit.server");
+
+    const [u] = await sql<any[]>`
+      SELECT id, email::text AS email, agent_id FROM users WHERE id = ${data.user_id}
+    `;
+    if (!u) throw new Error("User not found");
+    if (u.agent_id !== auth.sub) throw new Error("This user is not under your agent account");
+
+    await sql`UPDATE users SET otp_rate = ${data.otp_rate}::numeric WHERE id = ${data.user_id}`;
+    await audit(auth.sub, "agent.set_user_rate", { type: "user", id: data.user_id }, { email: u.email, rate: data.otp_rate });
+    return { ok: true as const, otp_rate: data.otp_rate };
+  });
+
+// =====================================================================
 // Agent profile (self) — must be complete before approving users
 // =====================================================================
 export type AgentProfileDTO = {
