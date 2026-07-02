@@ -28,17 +28,28 @@ const DEFAULT_PUBLIC_SETTINGS: PublicSettingsDTO = {
 
 export const getPublicSettingsFn = createServerFn({ method: "GET" })
   .handler(async (): Promise<PublicSettingsDTO> => {
+    const toBool = (v: any, dflt: boolean): boolean => {
+      if (typeof v === "boolean") return v;
+      if (typeof v === "number") return v !== 0;
+      if (typeof v === "string") {
+        const s = v.trim().toLowerCase();
+        if (s === "true" || s === "1" || s === "yes" || s === "on") return true;
+        if (s === "false" || s === "0" || s === "no" || s === "off" || s === "") return false;
+      }
+      if (v == null) return dflt;
+      return Boolean(v);
+    };
     try {
       const { getSetting } = await import("./settings.server");
       const otp_rate = Number(await getSetting("default_payout", 0.40));
       const min_withdraw = Number(await getSetting("min_withdraw", 500));
-      const signup_enabled = Boolean(await getSetting("signup_enabled", true));
-      const maintenance_mode = Boolean(await getSetting("maintenance_mode", false));
-      const maintenance_banner_enabled = Boolean(await getSetting("maintenance_banner_enabled", false));
+      const signup_enabled = toBool(await getSetting("signup_enabled", true), true);
+      const maintenance_mode = toBool(await getSetting("maintenance_mode", false), false);
+      const maintenance_banner_enabled = toBool(await getSetting("maintenance_banner_enabled", false), false);
       const maintenance_message = String(
         await getSetting("maintenance_message", "System is under maintenance.")
       );
-      const notices_enabled = Boolean(await getSetting("notices_enabled", true));
+      const notices_enabled = toBool(await getSetting("notices_enabled", true), true);
       return {
         otp_rate, min_withdraw, currency: "BDT", signup_enabled,
         maintenance_mode, maintenance_banner_enabled, maintenance_message,
