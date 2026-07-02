@@ -914,7 +914,7 @@ export const adminUpdateAgentFn = createServerFn({ method: "POST" })
     if (!a) throw new Error("Agent not found");
 
     if (data.otp_rate !== undefined) {
-      const cap = Number(await getSetting("max_agent_otp_rate", 0.70));
+      const cap = Number(await getSetting("max_agent_otp_rate", 0.75));
       if (data.otp_rate > cap) throw new Error(`OTP rate exceeds cap of ৳${cap}`);
       await sql`UPDATE users SET otp_rate = ${data.otp_rate}::numeric WHERE id = ${data.agent_id}`;
     }
