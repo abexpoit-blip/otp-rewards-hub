@@ -80,7 +80,7 @@ function GetNumberPage() {
     queryFn: () => callPublicSettings(),
     staleTime: 60_000,
   });
-  const otpRate = settings.data?.otp_rate ?? 0.40;
+  const otpRate = profile.data?.otp_rate ?? settings.data?.otp_rate ?? 0.40;
 
   const otpByNumber = useMemo(() => {
     const m = new Map<string, { body: string; received_at: string }>();
