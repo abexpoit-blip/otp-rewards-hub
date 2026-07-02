@@ -942,3 +942,33 @@ export const adminToggleSupportFn = createServerFn({ method: "POST" })
     return { ok: true as const, enabled: data.enabled };
   });
 
+
+// =====================================================================
+// Set a user's OTP rate (admin can raise/lower ANY user, capped by
+// max_user_otp_rate setting). Agents can only affect their own users
+// via agentSetUserOtpRateFn.
+// =====================================================================
+const adminSetUserRateSchema = z.object({
+  token: z.string().min(1),
+  user_id: z.string().uuid(),
+  otp_rate: z.number().min(0).max(2),
+});
+
+export const adminSetUserOtpRateFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => adminSetUserRateSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true; otp_rate: number }> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    const admin = await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const { getSetting } = await import("./settings.server");
+    const { audit } = await import("./audit.server");
+
+    const cap = Number(await getSetting("max_user_otp_rate", 0.75));
+    if (data.otp_rate > cap) throw new Error(`Rate exceeds cap of ৳${cap}`);
+
+    const [u] = await sql<any[]>`SELECT id, email::text AS email FROM users WHERE id = ${data.user_id}`;
+    if (!u) throw new Error("User not found");
+    await sql`UPDATE users SET otp_rate = ${data.otp_rate}::numeric WHERE id = ${data.user_id}`;
+    await audit(admin.sub, "admin.set_user_rate", { type: "user", id: data.user_id }, { email: u.email, rate: data.otp_rate });
+    return { ok: true as const, otp_rate: data.otp_rate };
+  });
