@@ -413,58 +413,6 @@ export const agentUpdateWithdrawalFn = createServerFn({ method: "POST" })
     throw new Error("Withdrawals are managed by admin only. Agents cannot review payouts.");
   });
 
-const updateWdSchema = z.object({
-  token: z.string().min(1),
-  id: z.string().uuid(),
-  action: z.enum(["approve","reject","paid"]),
-  tx_id: z.string().trim().max(200).optional().nullable(),
-  admin_note: z.string().trim().max(500).optional().nullable(),
-});
-
-export const agentUpdateWithdrawalFn = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => updateWdSchema.parse(d))
-  .handler(async ({ data }) => {
-    const { requireAgent } = await import("./agent-guard.server");
-    const auth = await requireAgent(data.token);
-    const { sql } = await import("./db.server");
-    const { audit } = await import("./audit.server");
-
-    return await sql.begin(async (tx) => {
-      const [wd] = await tx<any[]>`
-        SELECT w.id, w.user_id, w.amount::numeric AS amount, w.status, u.agent_id
-        FROM withdrawals w
-        JOIN users u ON u.id = w.user_id
-        WHERE w.id = ${data.id} FOR UPDATE
-      `;
-      if (!wd) throw new Error("Withdrawal not found");
-      if (wd.agent_id !== auth.sub) throw new Error("This withdrawal is not under your agent account");
-
-      let newStatus: string;
-      if (data.action === "approve") {
-        if (wd.status !== "pending") throw new Error(`Cannot approve a ${wd.status} withdrawal`);
-        newStatus = "approved";
-      } else if (data.action === "paid") {
-        if (wd.status !== "approved" && wd.status !== "pending") throw new Error(`Cannot mark ${wd.status} as paid`);
-        newStatus = "paid";
-      } else {
-        if (wd.status === "paid") throw new Error("Cannot reject a paid withdrawal");
-        if (wd.status === "rejected") throw new Error("Already rejected");
-        await tx`UPDATE users SET balance = balance + ${wd.amount} WHERE id = ${wd.user_id}`;
-        newStatus = "rejected";
-      }
-      await tx`
-        UPDATE withdrawals
-        SET status = ${newStatus}::withdrawal_status,
-            tx_id = COALESCE(${data.tx_id ?? null}, tx_id),
-            admin_note = COALESCE(${data.admin_note ?? null}, admin_note),
-            processed_by = ${auth.sub},
-            processed_at = now()
-        WHERE id = ${data.id}
-      `;
-      await audit(auth.sub, `agent.withdrawal.${data.action}`, { type: "withdrawal", id: data.id }, { amount: wd.amount });
-      return { ok: true as const, status: newStatus };
-    });
-  });
 
 // =====================================================================
 // Top performers — users under this agent ranked by successful OTPs.
