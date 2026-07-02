@@ -207,6 +207,20 @@ function AgentUsers() {
                     ) : (
                       <>
                         <button onClick={() => setOpenUser(u)} className="rounded border border-border px-2 py-1 text-xs font-medium hover:bg-muted inline-flex items-center gap-1"><Eye className="size-3" /> View</button>
+                        <button
+                          onClick={async () => {
+                            const raw = window.prompt(`New OTP rate for ${u.email}\nMax ৳${RATE_CAP.toFixed(2)}`, Number(u.otp_rate).toFixed(2));
+                            if (raw == null) return;
+                            const val = parseFloat(raw);
+                            if (!Number.isFinite(val) || val < 0 || val > RATE_CAP) { toast.error(`Rate must be between 0 and ${RATE_CAP}`); return; }
+                            try {
+                              await callSetRate({ data: { token: token!, user_id: u.id, otp_rate: val } });
+                              toast.success(`Rate updated to ৳${val.toFixed(2)}`);
+                              invalidate();
+                            } catch (e: any) { toast.error(e?.message || "Failed"); }
+                          }}
+                          className="rounded bg-indigo-500/15 text-indigo-700 px-2 py-1 text-xs font-bold hover:bg-indigo-500/25 inline-flex items-center gap-1"
+                        ><Coins className="size-3" /> Rate</button>
                         {u.status === "blocked" ? (
                           <button onClick={() => { if (confirm(`Unban ${u.email}?`)) statusMut.mutate({ user_id: u.id, action: "unban" }); }} className="rounded bg-emerald-500/15 text-emerald-700 px-2 py-1 text-xs font-bold hover:bg-emerald-500/25 inline-flex items-center gap-1"><ShieldCheck className="size-3" /> Unban</button>
                         ) : (
