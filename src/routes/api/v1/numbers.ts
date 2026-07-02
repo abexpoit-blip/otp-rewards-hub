@@ -68,7 +68,7 @@ export const Route = createFileRoute("/api/v1/numbers")({
           const { triggerPollerIngest } = await import("@/lib/poller.server");
           await triggerPollerIngest("api-numbers-list");
           const rows = await sql<any[]>`
-            SELECT id, full_number, national_number, no_plus_number, country, operator,
+            SELECT id, sid, full_number, national_number, no_plus_number, country, operator,
                    status::text AS status, payout_amount::text AS payout_amount,
                    created_at, completed_at, expires_at
             FROM allocations
@@ -83,6 +83,7 @@ export const Route = createFileRoute("/api/v1/numbers")({
               id: r.id, number: r.full_number,
               full_number: r.full_number, national_number: r.national_number, no_plus_number: r.no_plus_number,
               country: r.country, operator: r.operator, status: r.status,
+              service: r.sid ?? null, access: r.sid ?? null,
               payout: Number(r.payout_amount),
               created_at: r.created_at.toISOString(),
               completed_at: r.completed_at ? r.completed_at.toISOString() : null,
