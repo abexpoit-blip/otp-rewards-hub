@@ -195,7 +195,7 @@ function AdminAgents() {
                 disabled={create.isPending || update.isPending}
                 onClick={() => {
                   const rate = parseFloat(form.otp_rate);
-                  if (!isFinite(rate) || rate < 0 || rate > 0.70) return toast.error("Rate must be between 0 and 0.70");
+                  if (!isFinite(rate) || rate < 0 || rate > 0.75) return toast.error("Rate must be between 0 and 0.75");
                   if (modal.kind === "create") {
                     if (!usernameOk) return toast.error("Invalid username");
                     if (form.password.length < 6) return toast.error("Password must be at least 6 chars");
