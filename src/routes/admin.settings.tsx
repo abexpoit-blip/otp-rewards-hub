@@ -220,7 +220,10 @@ function AdminSettings() {
                   draftValue={draft[s.key]}
                   isDirty={dirtyKeys.has(s.key)}
                   onChange={(v) => setDraft((p) => ({ ...p, [s.key]: v }))}
-                  onSave={(v) => mut.mutate({ key: s.key, value: v })}
+                  onSave={(v) => {
+                    setDraft((p) => ({ ...p, [s.key]: v }));
+                    mut.mutate({ key: s.key, value: v });
+                  }}
                   onRevert={() => setDraft((p) => ({ ...p, [s.key]: s.value }))}
                   pending={mut.isPending}
                 />
@@ -266,8 +269,13 @@ function SettingRow({ s, draftValue, isDirty, onChange, onSave, onRevert, pendin
             />
           ) : (
             <>
-              <ValueInput value={draftValue} onChange={onChange} />
-              {isDirty && (
+              <ValueInput
+                value={draftValue}
+                onChange={onChange}
+                onInstantSave={onSave}
+                pending={pending}
+              />
+              {isDirty && !isBoolLike(draftValue) && (
                 <>
                   <button
                     onClick={onRevert}
@@ -293,27 +301,54 @@ function SettingRow({ s, draftValue, isDirty, onChange, onSave, onRevert, pendin
   );
 }
 
-function ValueInput({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-  const isBool = typeof value === "boolean";
+function isBoolLike(v: any): boolean {
+  if (typeof v === "boolean") return true;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "true" || s === "false";
+  }
+  return false;
+}
+
+function toBool(v: any): boolean {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return v.trim().toLowerCase() === "true";
+  return false;
+}
+
+function ValueInput({
+  value, onChange, onInstantSave, pending,
+}: {
+  value: any;
+  onChange: (v: any) => void;
+  onInstantSave: (v: any) => void;
+  pending: boolean;
+}) {
+  const isBool = isBoolLike(value);
   const isNum = typeof value === "number";
 
   if (isBool) {
+    const on = toBool(value);
+    // Preserve original type: if it was a string, save as string; else boolean.
+    const nextVal = (next: boolean) =>
+      typeof value === "string" ? String(next) : next;
     return (
       <button
-        onClick={() => onChange(!value)}
-        className={`relative inline-flex h-9 w-[88px] items-center rounded-full border transition ${
-          value ? "bg-emerald-500/20 border-emerald-500/40" : "bg-muted border-border"
+        disabled={pending}
+        onClick={() => onInstantSave(nextVal(!on))}
+        className={`relative inline-flex h-9 w-[88px] items-center rounded-full border transition disabled:opacity-60 ${
+          on ? "bg-emerald-500/20 border-emerald-500/40" : "bg-muted border-border"
         }`}
       >
         <span
           className={`absolute h-7 w-7 rounded-full bg-background shadow-md transition-all flex items-center justify-center ${
-            value ? "translate-x-[52px]" : "translate-x-1"
+            on ? "translate-x-[52px]" : "translate-x-1"
           }`}
         >
-          {value ? <Check className="size-3.5 text-emerald-600" /> : <span className="size-2 rounded-full bg-muted-foreground" />}
+          {on ? <Check className="size-3.5 text-emerald-600" /> : <span className="size-2 rounded-full bg-muted-foreground" />}
         </span>
-        <span className={`absolute text-[10px] font-bold uppercase tracking-wider ${value ? "left-3 text-emerald-700" : "right-3 text-muted-foreground"}`}>
-          {value ? "On" : "Off"}
+        <span className={`absolute text-[10px] font-bold uppercase tracking-wider ${on ? "left-3 text-emerald-700" : "right-3 text-muted-foreground"}`}>
+          {on ? "On" : "Off"}
         </span>
       </button>
     );
