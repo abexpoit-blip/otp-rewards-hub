@@ -7,9 +7,9 @@ import { AgentProtected } from "@/components/AgentProtected";
 import { useAuth } from "@/lib/auth";
 import {
   agentListUsersFn, agentApproveUserFn, agentBulkApproveFn,
-  agentSetUserStatusFn, agentUserDetailsFn, type AgentUserRow,
+  agentSetUserStatusFn, agentUserDetailsFn, agentSetUserOtpRateFn, type AgentUserRow,
 } from "@/lib/agent.functions";
-import { Users, Check, X, Search, Eye, Clock, Ban, ShieldCheck, CheckSquare, Crown } from "lucide-react";
+import { Users, Check, X, Search, Eye, Clock, Ban, ShieldCheck, CheckSquare, Crown, Coins } from "lucide-react";
 import { PerfBadge } from "@/components/PerfBadge";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
