@@ -394,28 +394,23 @@ export const agentUserDetailsFn = createServerFn({ method: "POST" })
 // =====================================================================
 export const agentListWithdrawalsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => tokenSchema.parse(d))
-  .handler(async ({ data }) => {
-    const { requireAgent } = await import("./agent-guard.server");
-    const auth = await requireAgent(data.token);
-    const { sql } = await import("./db.server");
-    const rows = await sql<any[]>`
-      SELECT w.id, w.user_id, u.email::text AS user_email, u.name AS user_name,
-             w.amount::text, w.gateway, w.address, w.status, w.tx_id,
-             w.admin_note, w.created_at, w.processed_at
-      FROM withdrawals w
-      JOIN users u ON u.id = w.user_id
-      WHERE u.agent_id = ${auth.sub}
-      ORDER BY
-        CASE w.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1
-                      WHEN 'paid' THEN 2 ELSE 3 END,
-        w.created_at DESC
-      LIMIT 200
-    `;
-    return rows.map((r) => ({
-      ...r, amount: String(r.amount),
-      created_at: r.created_at.toISOString(),
-      processed_at: r.processed_at ? r.processed_at.toISOString() : null,
-    }));
+  .handler(async (_ctx): Promise<any[]> => {
+    // Withdrawals are now managed exclusively by admin. Agents no longer see them.
+    return [];
+  });
+
+const updateWdSchema = z.object({
+  token: z.string().min(1),
+  id: z.string().uuid(),
+  action: z.enum(["approve","reject","paid"]),
+  tx_id: z.string().trim().max(200).optional().nullable(),
+  admin_note: z.string().trim().max(500).optional().nullable(),
+});
+
+export const agentUpdateWithdrawalFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => updateWdSchema.parse(d))
+  .handler(async () => {
+    throw new Error("Withdrawals are managed by admin only. Agents cannot review payouts.");
   });
 
 const updateWdSchema = z.object({
