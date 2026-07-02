@@ -32,12 +32,15 @@ export function WithdrawalsPage() {
   const callGateways = useServerFn(listEnabledGatewaysFn);
   const callPublicSettings = useServerFn(getPublicSettingsFn);
 
-  const profile = useQuery({ queryKey: ["profile"], queryFn: () => callProfile({ data: { token: token! } }), enabled: !!token });
+  const profile = useQuery({ queryKey: ["profile", token], queryFn: () => callProfile({ data: { token: token! } }), enabled: !!token, staleTime: 0 });
   const addrs = useQuery({ queryKey: ["addresses"], queryFn: () => callAddrs({ data: { token: token! } }), enabled: !!token });
   const wds = useQuery({ queryKey: ["withdrawals"], queryFn: () => callWds({ data: { token: token! } }), enabled: !!token });
   const gateways = useQuery({ queryKey: ["gateways"], queryFn: () => callGateways({ data: { token: token! } }), enabled: !!token });
   const settings = useQuery({ queryKey: ["public-settings"], queryFn: () => callPublicSettings(), staleTime: 30_000 });
   const globalMin = settings.data?.min_withdraw ?? 250;
+  const profileRate = typeof profile.data?.otp_rate === "number" && Number.isFinite(profile.data.otp_rate)
+    ? profile.data.otp_rate
+    : null;
   const gwOptions = (gateways.data ?? []).map((g) => g.code);
   const gwOptionsSafe = gwOptions.length ? gwOptions : ["bKash"];
 
@@ -57,6 +60,7 @@ export function WithdrawalsPage() {
       toast.success("Withdrawal request submitted");
       qc.invalidateQueries({ queryKey: ["withdrawals"] });
       qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["profile", token] });
     },
     onError: (e: any) => toast.error(e?.message || "Withdrawal failed"),
   });
@@ -108,7 +112,7 @@ export function WithdrawalsPage() {
             Lifetime: ৳{profile.data ? Number(profile.data.lifetime_earning).toFixed(2) : "—"}
           </p>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Per-OTP rate: <span className="text-foreground font-semibold">৳{Number(profile.data?.otp_rate ?? settings.data?.otp_rate ?? 0.40).toFixed(2)}</span>
+            Per-OTP rate: <span className="text-foreground font-semibold">{profileRate !== null ? `৳${profileRate.toFixed(2)}` : "—"}</span>
             {" · "}Min withdraw: <span className="text-foreground font-semibold">৳{globalMin.toFixed(2)}</span>
           </p>
         </div>
