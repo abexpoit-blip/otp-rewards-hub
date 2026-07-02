@@ -8,7 +8,6 @@ import { useAuth } from "@/lib/auth";
 import { allocateNumberFn, myAllocationsFn } from "@/lib/stex.functions";
 import { getOtpsFn } from "@/lib/inbox.functions";
 import { getProfileFn } from "@/lib/profile.functions";
-import { getPublicSettingsFn } from "@/lib/settings.functions";
 import { Hash, Copy, Loader2, Search, Globe2, Play, Pause, RefreshCw, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Inbox, Wallet, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { SkeletonRows } from "@/components/Skeleton";
@@ -26,7 +25,6 @@ function GetNumberPage() {
   const callMine = useServerFn(myAllocationsFn);
   const callOtps = useServerFn(getOtpsFn);
   const callProfile = useServerFn(getProfileFn);
-  const callPublicSettings = useServerFn(getPublicSettingsFn);
   const qc = useQueryClient();
   const seenStatusRef = useRef<Map<string, string>>(new Map());
   const initializedRef = useRef(false);
@@ -68,19 +66,15 @@ function GetNumberPage() {
   });
 
   const profile = useQuery({
-    queryKey: ["profile"],
+    queryKey: ["profile", token],
     queryFn: () => callProfile({ data: { token: token! } }),
     enabled: !!token,
     refetchInterval: 15000,
-    staleTime: 5000,
+    staleTime: 0,
   });
-
-  const settings = useQuery({
-    queryKey: ["public-settings"],
-    queryFn: () => callPublicSettings(),
-    staleTime: 60_000,
-  });
-  const otpRate = profile.data?.otp_rate ?? settings.data?.otp_rate ?? 0.40;
+  const otpRate = typeof profile.data?.otp_rate === "number" && Number.isFinite(profile.data.otp_rate)
+    ? profile.data.otp_rate
+    : null;
 
   const otpByNumber = useMemo(() => {
     const m = new Map<string, { body: string; received_at: string }>();
@@ -106,14 +100,15 @@ function GetNumberPage() {
       if (prev && prev !== r.status) {
         const shown = r.full_number || r.national_number || r.no_plus_number || "number";
         if (r.status === "success") {
-          toast.success(`✓ OTP received for ${shown} — +৳${otpRate.toFixed(2)} credited`, { duration: 4500 });
+          toast.success(`✓ OTP received for ${shown}${otpRate !== null ? ` — +৳${otpRate.toFixed(2)} credited` : ""}`, { duration: 4500 });
           qc.invalidateQueries({ queryKey: ["profile"] });
+          qc.invalidateQueries({ queryKey: ["profile", token] });
         }
         else if (r.status === "failed" || r.status === "expired") toast.error(`Allocation ${shown} ${r.status}`);
       }
       map.set(r.id, r.status);
     }
-  }, [mine, qc, otpRate]);
+  }, [mine, qc, otpRate, token]);
 
   const counts = mine?.counts ?? { total: 0, success: 0, failed: 0, pending: 0 };
   const successRate = counts.total ? (counts.success / counts.total) * 100 : 0;
@@ -236,7 +231,7 @@ function GetNumberPage() {
             <div className="rounded-lg bg-chart-2/15 p-2"><MessageSquare className="size-5 text-chart-2" /></div>
             <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Per-OTP Rate</p>
-              <p className="text-xl font-bold tracking-tight tabular-nums">৳{otpRate.toFixed(2)}</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums">{otpRate !== null ? `৳${otpRate.toFixed(2)}` : "—"}</p>
             </div>
           </div>
         </div>
