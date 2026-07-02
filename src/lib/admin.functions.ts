@@ -857,7 +857,7 @@ export const adminCreateAgentFn = createServerFn({ method: "POST" })
     const { audit } = await import("./audit.server");
     const { getSetting } = await import("./settings.server");
 
-    const cap = Number(await getSetting("max_agent_otp_rate", 0.70));
+    const cap = Number(await getSetting("max_agent_otp_rate", 0.75));
     if (data.otp_rate > cap) throw new Error(`OTP rate exceeds cap of ৳${cap}`);
 
     const domainRaw = String(await getSetting("agent_email_domain", "v2.nexus-x.site")).trim().replace(/^@+/, "");
