@@ -34,9 +34,7 @@ export const agentDashboardStatsFn = createServerFn({ method: "POST" })
            JOIN my_users mu ON mu.id = a.user_id
            WHERE a.status = 'success' AND a.completed_at::date = current_date)::text            AS earned_today,
         (SELECT COALESCE(SUM(lifetime_earning),0)::numeric FROM users WHERE agent_id = ${auth.sub})::text AS lifetime_earned,
-        (SELECT COUNT(*)::int FROM withdrawals w
-           JOIN my_users mu ON mu.id = w.user_id
-           WHERE w.status = 'pending')                                                          AS pending_withdrawals
+        (SELECT 0)                                                                              AS pending_withdrawals
     `;
     return {
       total_users: r?.total_users ?? 0,
