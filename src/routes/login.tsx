@@ -36,7 +36,7 @@ function LoginPage() {
     queryFn: () => callPublic(),
     staleTime: 30_000,
   });
-  const fullMaintenance = !!pub?.maintenance_mode;
+  const fullMaintenance = pub?.maintenance_mode === true;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

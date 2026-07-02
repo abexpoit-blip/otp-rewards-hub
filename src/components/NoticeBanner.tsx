@@ -94,7 +94,7 @@ export function NoticeBanner({ surface = "user" }: { surface?: "user" | "agent" 
   if (!token) return null;
 
   const banners = noticesEnabled ? (data ?? []).filter((n) => n.type === "banner" && !dismissed[n.id]) : [];
-  const showMaintBanner = !!pub?.maintenance_banner_enabled;
+  const showMaintBanner = pub?.maintenance_banner_enabled === true;
 
   const dismiss = (id: string) => {
     const next = { ...dismissed, [id]: Date.now() };
