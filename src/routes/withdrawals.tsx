@@ -37,7 +37,7 @@ export function WithdrawalsPage() {
   const wds = useQuery({ queryKey: ["withdrawals"], queryFn: () => callWds({ data: { token: token! } }), enabled: !!token });
   const gateways = useQuery({ queryKey: ["gateways"], queryFn: () => callGateways({ data: { token: token! } }), enabled: !!token });
   const settings = useQuery({ queryKey: ["public-settings"], queryFn: () => callPublicSettings(), staleTime: 30_000 });
-  const globalMin = settings.data?.min_withdraw ?? 500;
+  const globalMin = settings.data?.min_withdraw ?? 250;
   const gwOptions = (gateways.data ?? []).map((g) => g.code);
   const gwOptionsSafe = gwOptions.length ? gwOptions : ["bKash"];
 

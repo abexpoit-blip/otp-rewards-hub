@@ -114,7 +114,7 @@ export const createWithdrawalFn = createServerFn({ method: "POST" })
 
     // Global minimum (admin-configurable via app_settings.min_withdraw)
     const { getSetting } = await import("./settings.server");
-    const globalMin = Number(await getSetting("min_withdraw", 500));
+    const globalMin = Number(await getSetting("min_withdraw", 250));
     if (data.amount < globalMin) {
       throw new Error(`Minimum withdrawal amount is ৳${globalMin.toFixed(2)} BDT. You entered ৳${data.amount.toFixed(2)}.`);
     }
