@@ -12,15 +12,19 @@
 --
 -- Safe to run multiple times.
 
-INSERT INTO settings (key, value) VALUES
-  ('voltx_api_base',          to_jsonb('https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api'::text)),
-  ('voltx_api_key',           to_jsonb('M7Q6ZDUJWBG'::text)),
-  ('default_payout',          to_jsonb(0.75::numeric)),
-  ('default_user_rate',       to_jsonb(0.60::numeric)),
-  ('admin_agent_signup_rate', to_jsonb(0.75::numeric)),
-  ('max_agent_otp_rate',      to_jsonb(0.75::numeric)),
-  ('max_user_otp_rate',       to_jsonb(0.75::numeric))
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+INSERT INTO app_settings (key, value, is_secret, description) VALUES
+  ('voltx_api_base',          to_jsonb('https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api'::text), false, 'VoltxSMS upstream API base URL'),
+  ('voltx_api_key',           to_jsonb('M7Q6ZDUJWBG'::text), true,  'VoltxSMS upstream API key (mauthapi header)'),
+  ('default_payout',          to_jsonb(0.75::numeric), false, 'Platform full payout per OTP (BDT). Agent commission = this - user otp_rate.'),
+  ('default_user_rate',       to_jsonb(0.60::numeric), false, 'Default OTP rate for normal user signups (BDT).'),
+  ('admin_agent_signup_rate', to_jsonb(0.75::numeric), false, 'Auto-approved user OTP rate when signing up under admin agent email (BDT).'),
+  ('max_agent_otp_rate',      to_jsonb(0.75::numeric), false, 'Maximum agent OTP rate cap (BDT).'),
+  ('max_user_otp_rate',       to_jsonb(0.75::numeric), false, 'Maximum user OTP rate cap (BDT).')
+ON CONFLICT (key) DO UPDATE SET
+  value = EXCLUDED.value,
+  is_secret = EXCLUDED.is_secret,
+  description = EXCLUDED.description,
+  updated_at = now();
 
 -- Flatten every agent's own rate to the new fixed 0.75 BDT.
 UPDATE users u
