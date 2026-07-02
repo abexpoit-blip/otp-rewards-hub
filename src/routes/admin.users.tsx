@@ -43,6 +43,7 @@ function AdminUsers() {
   const callDelete = useServerFn(adminDeleteUserFn);
   const callImpersonate = useServerFn(adminImpersonateFn);
   const callCleanup = useServerFn(adminCleanupInactiveFn);
+  const callSetRate = useServerFn(adminSetUserOtpRateFn);
   const isAdmin = user?.roles?.includes("admin");
 
   const [search, setSearch] = useState("");
