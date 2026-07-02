@@ -273,17 +273,94 @@ function ApiDocs() {
   "id": "a1b2c3d4-...",
   "number": "+8801XXXXXXXXX",
   "status": "success",
-  "payout": 0.60,
+  "service": "wa",     // alias: access, sid
+  "access":  "wa",
+  "sid":     "wa",
+  "payout": 0.70,
   "otps": [
     {
       "id": "f9...",
       "sender": "WhatsApp",
-      "body": "Your code is 123-456",
+      "body":      "Your code is 123-456",   // alias: text, full_text, console
+      "text":      "Your code is 123-456",
+      "full_text": "Your code is 123-456",
+      "console":   "Your code is 123-456",
       "received_at": "2026-06-22T12:01:34.000Z"
     }
   ]
 }`}</CodeBlock>
       </section>
+
+      {/* Field naming reference */}
+      <section className="mb-6">
+        <h4 className="font-bold text-sm mb-2">🤖 Bot Field Reference — service / access / sender / console</h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          Different Telegram bots use different key names for the same data. Every response includes <b>all common aliases</b>,
+          so whichever field your bot template reads, it will just work.
+        </p>
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-xs">
+            <thead className="bg-muted/60">
+              <tr className="text-left">
+                <th className="px-3 py-2 font-bold">Field(s)</th>
+                <th className="px-3 py-2 font-bold">Meaning</th>
+                <th className="px-3 py-2 font-bold">Example</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              <tr>
+                <td className="px-3 py-2 font-mono"><b>service</b> · access · sid</td>
+                <td className="px-3 py-2 text-muted-foreground">The app/service the number was allocated for.</td>
+                <td className="px-3 py-2 font-mono">"wa", "tg", "fb"</td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 font-mono"><b>sender</b></td>
+                <td className="px-3 py-2 text-muted-foreground">SMS originator (brand or number). <code>""</code> if unknown.</td>
+                <td className="px-3 py-2 font-mono">"WhatsApp"</td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 font-mono"><b>body</b> · text · full_text · console</td>
+                <td className="px-3 py-2 text-muted-foreground">Full SMS text including the OTP code.</td>
+                <td className="px-3 py-2 font-mono">"Your code is 123-456"</td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 font-mono"><b>number</b> · full_number · national_number · no_plus_number</td>
+                <td className="px-3 py-2 text-muted-foreground">Phone in E.164 / national / digits-only form.</td>
+                <td className="px-3 py-2 font-mono">+8801…, 01…, 8801…</td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 font-mono"><b>status</b></td>
+                <td className="px-3 py-2 text-muted-foreground">Allocation state.</td>
+                <td className="px-3 py-2 font-mono">pending · success · failed · expired</td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 font-mono"><b>payout</b></td>
+                <td className="px-3 py-2 text-muted-foreground">BDT credited to your balance on success.</td>
+                <td className="px-3 py-2 font-mono">0.70</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          All fields are <b>always present</b> in responses — never <code>undefined</code>. Unknown strings are <code>""</code>,
+          unknown scalars are <code>null</code>. Safe to read directly without null-checks.
+        </p>
+
+        <p className="text-xs font-semibold mt-4 mb-2">Python (Telegram bot) — read any naming style:</p>
+        <CodeBlock>{`service = item.get("service") or item.get("access") or item.get("sid")
+sender  = item.get("sender", "")
+otp_txt = (item.get("console") or item.get("full_text")
+           or item.get("text") or item.get("body", ""))
+
+await bot.send_message(
+    chat_id,
+    f"📲 {item['number']}\\n"
+    f"🔧 Service: {service}\\n"
+    f"👤 Sender:  {sender}\\n"
+    f"💬 {otp_txt}"
+)`}</CodeBlock>
+      </section>
+
 
       {/* Node bot example */}
       <section className="mb-6">
