@@ -891,7 +891,7 @@ export const adminGetAgentDomainFn = createServerFn({ method: "POST" })
 const updateAgentSchema = z.object({
   token: z.string().min(1),
   agent_id: z.string().uuid(),
-  otp_rate: z.number().min(0).max(0.70).optional(),
+  otp_rate: z.number().min(0).max(0.75).optional(),
   agent_active: z.boolean().optional(),
   password: z.string().min(6).max(200).optional(),
   name: z.string().trim().max(120).optional().nullable(),
