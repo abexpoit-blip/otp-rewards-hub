@@ -62,7 +62,7 @@ export const signupFn = createServerFn({ method: "POST" })
     // Other agents → pending + the platform default_user_rate (0.60 BDT default).
     // Agents cannot change the default themselves; admin can tune per-user later.
     const autoApprove = !!agent.is_admin;
-    const { getSetting } = await import("./settings.server");
+    const { getSetting: _gs2 } = { getSetting };
     const defaultUserRate = Number(await getSetting("default_user_rate", 0.60));
     const adminAgentRate  = Number(await getSetting("admin_agent_signup_rate", 0.75));
     const rate = autoApprove ? String(adminAgentRate) : String(defaultUserRate);
