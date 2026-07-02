@@ -220,7 +220,10 @@ function AdminSettings() {
                   draftValue={draft[s.key]}
                   isDirty={dirtyKeys.has(s.key)}
                   onChange={(v) => setDraft((p) => ({ ...p, [s.key]: v }))}
-                  onSave={(v) => mut.mutate({ key: s.key, value: v })}
+                  onSave={(v) => {
+                    setDraft((p) => ({ ...p, [s.key]: v }));
+                    mut.mutate({ key: s.key, value: v });
+                  }}
                   onRevert={() => setDraft((p) => ({ ...p, [s.key]: s.value }))}
                   pending={mut.isPending}
                 />
