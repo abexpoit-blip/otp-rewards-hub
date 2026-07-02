@@ -82,10 +82,10 @@ function throttle<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 async function stexFetch<T>(path: string, init?: RequestInit): Promise<StexEnvelope<T>> {
-  const key = await getApiKey();
-  if (!key) throw new Error("STEX API key not configured. Set it in Admin → Settings.");
+  const [key, base] = await Promise.all([getApiKey(), getBase()]);
+  if (!key) throw new Error("Upstream SMS API key not configured. Set it in Admin → Settings.");
   return throttle(async () => {
-    const res = await fetch(`${BASE}${path}`, {
+    const res = await fetch(`${base}${path}`, {
       ...init,
       headers: {
         "mauthapi": key,
