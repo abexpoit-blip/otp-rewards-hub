@@ -5,6 +5,7 @@ import { TopBar } from "./TopBar";
 import { NoticeBanner } from "./NoticeBanner";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { AppFooter } from "./AppFooter";
+import { PaymentApprovedWatcher } from "./PaymentApprovedWatcher";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
