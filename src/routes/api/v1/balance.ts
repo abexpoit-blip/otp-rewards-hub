@@ -3,6 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/v1/balance")({
   server: {
     handlers: {
+      OPTIONS: async () => {
+        const { corsPreflight } = await import("@/lib/api-key-auth.server");
+        return corsPreflight();
+      },
       GET: async ({ request }) => {
         const { requireApiKey, jsonResponse, errorResponse } = await import("@/lib/api-key-auth.server");
         try {
