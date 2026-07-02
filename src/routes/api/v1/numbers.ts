@@ -1,10 +1,29 @@
 /**
- * POST /api/v1/numbers — allocate a fresh phone number for the bot
+ * POST /api/v1/numbers — allocate a fresh phone number for the bot.
  *   body: { "range": "<rid>", "sid"?: "<service id>",
  *           "national"?: bool, "no_plus"?: bool }
  *
  * GET  /api/v1/numbers?status=pending|success|failed|expired&limit=50
- *   list this user's recent allocations
+ *   list this user's recent allocations.
+ *
+ * Auth: `Authorization: Bearer nx_...` (user-role API key only).
+ *
+ * Response item fields (always present):
+ *   id              - allocation UUID
+ *   number          - display number (E.164 by default)
+ *   full_number     - E.164 form  (+8801...)
+ *   national_number - national form (01...)
+ *   no_plus_number  - digits only  (8801...)
+ *   country         - ISO country code (nullable)
+ *   operator        - carrier/operator (nullable)
+ *   status          - pending | success | failed | expired
+ *   service         - service/app slug (alias: `access`, `sid`)
+ *   access          - alias of `service`
+ *   sid             - alias of `service`
+ *   payout          - credited BDT amount when status = success (number, 0 otherwise)
+ *   created_at      - ISO-8601 UTC
+ *   completed_at    - ISO-8601 UTC or null
+ *   expires_at      - ISO-8601 UTC or null
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
@@ -16,15 +35,24 @@ const allocBody = z.object({
   no_plus: z.boolean().optional(),
 });
 
+const statusEnum = new Set(["pending", "success", "failed", "expired"]);
+
 export const Route = createFileRoute("/api/v1/numbers")({
   server: {
     handlers: {
+      OPTIONS: async () => {
+        const { corsPreflight } = await import("@/lib/api-key-auth.server");
+        return corsPreflight();
+      },
       POST: async ({ request }) => {
         const { requireApiKey, jsonResponse, errorResponse, apiError } =
           await import("@/lib/api-key-auth.server");
         try {
           const auth = await requireApiKey(request);
-          const body = allocBody.parse(await request.json().catch(() => ({})));
+          const raw = await request.json().catch(() => ({}));
+          const parsed = allocBody.safeParse(raw);
+          if (!parsed.success) throw apiError(400, "Invalid body: " + parsed.error.issues.map(i => i.message).join(", "));
+          const body = parsed.data;
           const { sql } = await import("@/lib/db.server");
           const { stexGetNum } = await import("@/lib/stex.server");
           const { ensurePollerStarted } = await import("@/lib/poller.server");
@@ -37,10 +65,11 @@ export const Route = createFileRoute("/api/v1/numbers")({
           const [row] = await sql<any[]>`
             INSERT INTO allocations (user_id, rid, sid, full_number, national_number, no_plus_number, country, operator, status, stex_response, flags)
             VALUES (${auth.userId}, ${body.range}, ${body.sid ?? null}, ${n.full_number}, ${n.national_number}, ${n.no_plus_number}, ${n.country}, ${n.operator}, 'pending', ${JSON.stringify(r)}::jsonb, ${JSON.stringify(flags)}::jsonb)
-            RETURNING id, full_number, national_number, no_plus_number, country, operator, status, created_at, expires_at
+            RETURNING id, sid, full_number, national_number, no_plus_number, country, operator, status, created_at, expires_at
           `;
           ensurePollerStarted();
           const display = body.no_plus ? row.no_plus_number : body.national ? row.national_number : row.full_number;
+          const service = row.sid ?? null;
           return jsonResponse({
             ok: true,
             id: row.id,
@@ -48,9 +77,12 @@ export const Route = createFileRoute("/api/v1/numbers")({
             full_number: row.full_number,
             national_number: row.national_number,
             no_plus_number: row.no_plus_number,
-            country: row.country,
-            operator: row.operator,
+            country: row.country ?? null,
+            operator: row.operator ?? null,
             status: row.status,
+            service,
+            access: service,
+            sid: service,
             created_at: row.created_at.toISOString(),
             expires_at: row.expires_at ? row.expires_at.toISOString() : null,
           }, 201);
@@ -62,8 +94,10 @@ export const Route = createFileRoute("/api/v1/numbers")({
         try {
           const auth = await requireApiKey(request);
           const url = new URL(request.url);
-          const status = url.searchParams.get("status");
-          const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") || 50)));
+          const statusRaw = url.searchParams.get("status");
+          const status = statusRaw && statusEnum.has(statusRaw) ? statusRaw : null;
+          const limitRaw = Number(url.searchParams.get("limit") || 50);
+          const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, Math.trunc(limitRaw))) : 50;
           const { sql } = await import("@/lib/db.server");
           const { triggerPollerIngest } = await import("@/lib/poller.server");
           await triggerPollerIngest("api-numbers-list");
@@ -79,16 +113,27 @@ export const Route = createFileRoute("/api/v1/numbers")({
           return jsonResponse({
             ok: true,
             count: rows.length,
-            items: rows.map((r) => ({
-              id: r.id, number: r.full_number,
-              full_number: r.full_number, national_number: r.national_number, no_plus_number: r.no_plus_number,
-              country: r.country, operator: r.operator, status: r.status,
-              service: r.sid ?? null, access: r.sid ?? null,
-              payout: Number(r.payout_amount),
-              created_at: r.created_at.toISOString(),
-              completed_at: r.completed_at ? r.completed_at.toISOString() : null,
-              expires_at: r.expires_at ? r.expires_at.toISOString() : null,
-            })),
+            items: rows.map((r) => {
+              const service = r.sid ?? null;
+              const payout = r.payout_amount != null && Number.isFinite(Number(r.payout_amount)) ? Number(r.payout_amount) : 0;
+              return {
+                id: r.id,
+                number: r.full_number,
+                full_number: r.full_number,
+                national_number: r.national_number,
+                no_plus_number: r.no_plus_number,
+                country: r.country ?? null,
+                operator: r.operator ?? null,
+                status: r.status,
+                service,
+                access: service,
+                sid: service,
+                payout,
+                created_at: r.created_at.toISOString(),
+                completed_at: r.completed_at ? r.completed_at.toISOString() : null,
+                expires_at: r.expires_at ? r.expires_at.toISOString() : null,
+              };
+            }),
           });
         } catch (e) { return errorResponse(e); }
       },
