@@ -20,7 +20,7 @@ export const Route = createFileRoute("/agent/users")({
 });
 
 const RATE_DEFAULT = "0.60";
-const RATE_CAP = 0.70;
+const RATE_CAP = 0.75;
 
 function AgentUsers() {
   const { token } = useAuth();
