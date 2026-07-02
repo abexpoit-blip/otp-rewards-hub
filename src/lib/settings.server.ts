@@ -19,7 +19,29 @@ export async function getAllSettings(): Promise<Record<string, any>> {
 
 export async function getSetting<T = any>(key: string, fallback: T): Promise<T> {
   const all = await getAllSettings();
-  return (all[key] ?? fallback) as T;
+  return coerceSettingValue(all[key], fallback);
+}
+
+function coerceSettingValue<T = any>(value: any, fallback: T): T {
+  if (value == null) return fallback;
+
+  if (typeof fallback === "boolean") {
+    if (typeof value === "boolean") return value as T;
+    if (typeof value === "number") return (value !== 0) as T;
+    if (typeof value === "string") {
+      const normalized = value.trim().replace(/^['\"]|['\"]$/g, "").toLowerCase();
+      if (["true", "1", "yes", "on", "enabled"].includes(normalized)) return true as T;
+      if (["false", "0", "no", "off", "disabled", ""].includes(normalized)) return false as T;
+    }
+    return fallback;
+  }
+
+  if (typeof fallback === "number") {
+    const n = Number(value);
+    return Number.isFinite(n) ? (n as T) : fallback;
+  }
+
+  return value as T;
 }
 
 export async function setSetting(key: string, value: any, actor: string): Promise<void> {
