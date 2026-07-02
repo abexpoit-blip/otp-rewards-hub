@@ -46,10 +46,21 @@ export function apiError(status: number, message: string): Error & { __apiStatus
   return e;
 }
 
+export const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400",
+};
+
+export function corsPreflight(): Response {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...CORS_HEADERS },
   });
 }
 
