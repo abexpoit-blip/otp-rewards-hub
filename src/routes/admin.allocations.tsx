@@ -156,8 +156,17 @@ function AdminAllocations() {
             ))}
           </div>
           <button
+            onClick={runAudit}
+            disabled={auditing}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-60"
+            title="Recompute commission = agent_rate − user_rate for the last 24h and flag mismatches"
+          >
+            <ShieldCheck className={`size-3.5 ${auditing ? "animate-pulse" : ""}`} />
+            Verify commissions (24h)
+          </button>
+          <button
             onClick={() => refetch()}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
           >
             <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
             Refresh
