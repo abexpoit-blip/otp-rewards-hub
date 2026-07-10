@@ -535,6 +535,89 @@ export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
   });
 
 // =====================================================================
+// Verify agent commissions — scans recent success allocations and reports
+// any where stored agent_commission ≠ (current agent.otp_rate − user.otp_rate).
+// Note: rates are read live (not snapshotted at settle time), so rows
+// settled BEFORE a rate change may legitimately show mismatched.
+// =====================================================================
+export type CommissionAudit = {
+  scanned: number;
+  mismatched: number;
+  rows: {
+    id: string;
+    full_number: string;
+    user_email: string;
+    agent_email: string | null;
+    user_rate: string;
+    agent_rate: string | null;
+    stored_commission: string;
+    expected_commission: string | null;
+    diff: string;
+    settled_at: string | null;
+  }[];
+};
+
+export const adminVerifyCommissionsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().min(1),
+    hours: z.number().int().min(1).max(720).default(24),
+  }).parse(d))
+  .handler(async ({ data }): Promise<CommissionAudit> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const rows = await sql<any[]>`
+      SELECT a.id, a.full_number,
+             u.email::text  AS user_email,
+             ag.email::text AS agent_email,
+             u.otp_rate::text  AS user_rate,
+             ag.otp_rate::text AS agent_rate,
+             COALESCE(a.agent_commission, 0)::text AS stored_commission,
+             a.settled_at, a.agent_id
+      FROM allocations a
+      JOIN users u        ON u.id  = a.user_id
+      LEFT JOIN users ag  ON ag.id = a.agent_id
+      WHERE a.status = 'success'
+        AND a.settled_at >= now() - make_interval(hours => ${data.hours}::int)
+      ORDER BY a.settled_at DESC
+      LIMIT 1000
+    `;
+    let mismatched = 0;
+    const out: CommissionAudit["rows"] = [];
+    for (const r of rows) {
+      const stored = Number(r.stored_commission);
+      let expected: number | null = null;
+      let diff = 0;
+      let bad = false;
+      if (r.agent_id && r.agent_rate != null) {
+        expected = Math.max(0, Number(r.agent_rate) - Number(r.user_rate));
+        diff = Number((stored - expected).toFixed(4));
+        bad = Math.abs(diff) >= 0.0001;
+      } else if (stored > 0) {
+        expected = 0;
+        diff = stored;
+        bad = true;
+      }
+      if (bad) {
+        mismatched++;
+        out.push({
+          id: r.id,
+          full_number: r.full_number,
+          user_email: r.user_email,
+          agent_email: r.agent_email,
+          user_rate: r.user_rate,
+          agent_rate: r.agent_rate,
+          stored_commission: Number(stored).toFixed(4),
+          expected_commission: expected != null ? expected.toFixed(4) : null,
+          diff: diff.toFixed(4),
+          settled_at: r.settled_at ? r.settled_at.toISOString() : null,
+        });
+      }
+    }
+    return { scanned: rows.length, mismatched, rows: out.slice(0, 200) };
+  });
+
+
 // Dashboard — aggregated stats for /admin home
 // =====================================================================
 export type AdminDashboardStats = {
