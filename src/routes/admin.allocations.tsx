@@ -217,43 +217,99 @@ function AdminAllocations() {
         </div>
       )}
 
+      {audit && (
+        <div className={`glass-panel-strong mb-4 p-4 text-sm ${audit.mismatched > 0 ? "border border-destructive/40" : "border border-emerald-500/30"}`}>
+          <div className="mb-2 flex items-center gap-2 font-semibold">
+            <ShieldCheck className="size-4" />
+            Commission audit — last 24h
+            <span className="ml-auto text-xs text-muted-foreground">
+              Scanned {audit.scanned} · Mismatched {audit.mismatched}
+            </span>
+            <button onClick={() => setAudit(null)} className="rounded p-1 hover:bg-muted"><X className="size-3.5" /></button>
+          </div>
+          {audit.mismatched === 0 ? (
+            <p className="text-xs text-emerald-600">✓ All commissions equal (agent_rate − user_rate).</p>
+          ) : (
+            <div className="max-h-64 overflow-auto rounded border border-border">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 text-[10px] uppercase text-muted-foreground">
+                  <tr>
+                    <th className="p-2 text-left">Number</th>
+                    <th className="p-2 text-left">User (rate)</th>
+                    <th className="p-2 text-left">Agent (rate)</th>
+                    <th className="p-2 text-right">Stored</th>
+                    <th className="p-2 text-right">Expected</th>
+                    <th className="p-2 text-right">Diff</th>
+                    <th className="p-2 text-left">Settled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {audit.rows.map((r) => (
+                    <tr key={r.id} className="border-t border-border/40">
+                      <td className="p-2 font-mono">{r.full_number}</td>
+                      <td className="p-2">{r.user_email} <span className="text-muted-foreground">(৳{Number(r.user_rate).toFixed(2)})</span></td>
+                      <td className="p-2">{r.agent_email || "—"} <span className="text-muted-foreground">{r.agent_rate ? `(৳${Number(r.agent_rate).toFixed(2)})` : ""}</span></td>
+                      <td className="p-2 text-right font-mono">৳{r.stored_commission}</td>
+                      <td className="p-2 text-right font-mono">{r.expected_commission != null ? `৳${r.expected_commission}` : "—"}</td>
+                      <td className={`p-2 text-right font-mono font-bold ${Number(r.diff) > 0 ? "text-emerald-600" : "text-destructive"}`}>{Number(r.diff) > 0 ? "+" : ""}৳{r.diff}</td>
+                      <td className="p-2 text-muted-foreground whitespace-nowrap">{r.settled_at ? new Date(r.settled_at).toLocaleString() : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="glass-panel-strong overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
             <tr>
               <th className="p-3 text-left">Number</th>
               <th className="p-3 text-left">User</th>
+              <th className="p-3 text-left">Agent</th>
               <th className="p-3 text-left">Service</th>
-              <th className="p-3 text-left">Range</th>
               <th className="p-3 text-left">Status</th>
               <th className="p-3 text-left">Expires</th>
-              <th className="p-3 text-right">Payout</th>
+              <th className="p-3 text-right">User pay</th>
+              <th className="p-3 text-right">Agent pay</th>
               <th className="p-3 text-left">Created</th>
               <th className="p-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Loading…</td></tr>
             ) : !data || data.rows.length === 0 ? (
-              <tr><td colSpan={9} className="p-10 text-center text-muted-foreground">No allocations match this filter.</td></tr>
-            ) : data.rows.map((a) => (
-              <tr key={a.id} className="border-t border-border/40 transition-colors hover:bg-muted/30">
+              <tr><td colSpan={10} className="p-10 text-center text-muted-foreground">No allocations match this filter.</td></tr>
+            ) : data.rows.map((a) => {
+              const userPay = Number(a.user_payout || a.payout_amount || 0);
+              const agentPay = Number(a.agent_commission || 0);
+              const expected = a.expected_commission != null ? Number(a.expected_commission) : null;
+              const mismatch = a.status === "success" && !a.commission_ok;
+              return (
+              <tr key={a.id} className={`border-t border-border/40 transition-colors hover:bg-muted/30 ${mismatch ? "bg-destructive/5" : ""}`}>
                 <td className="p-3 font-mono text-xs">{a.full_number}</td>
                 <td className="p-3 text-xs text-muted-foreground">
                   <button
                     onClick={() => setSearch({ q: a.user_email, page: 1 })}
                     className="hover:underline"
-                    title="Filter by this user"
+                    title={`User rate: ৳${Number(a.user_rate).toFixed(4)}`}
                   >
                     {a.user_email}
                   </button>
+                  <div className="text-[10px] text-muted-foreground/70">rate ৳{Number(a.user_rate).toFixed(2)}</div>
+                </td>
+                <td className="p-3 text-xs text-muted-foreground">
+                  {a.agent_email ? (
+                    <>
+                      <span>{a.agent_email}</span>
+                      <div className="text-[10px] text-muted-foreground/70">rate ৳{a.agent_rate ? Number(a.agent_rate).toFixed(2) : "—"}</div>
+                    </>
+                  ) : <span className="text-muted-foreground/60">—</span>}
                 </td>
                 <td className="p-3 text-xs">{a.sid || "—"}</td>
-                <td className="p-3 text-xs">
-                  {a.country || "—"}
-                  {a.operator ? <span className="text-muted-foreground"> · {a.operator}</span> : ""}
-                </td>
                 <td className="p-3">
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusBadge[a.status] || "bg-muted text-muted-foreground"}`}>
                     {a.status}
@@ -265,7 +321,28 @@ function AdminAllocations() {
                     : <span className="text-xs text-muted-foreground">—</span>}
                 </td>
                 <td className="p-3 text-right font-mono text-xs">
-                  {Number(a.payout_amount) > 0 ? `৳${Number(a.payout_amount).toFixed(4)}` : "—"}
+                  {userPay > 0 ? <span className="text-emerald-600 font-semibold">৳{userPay.toFixed(4)}</span> : <span className="text-muted-foreground">—</span>}
+                </td>
+                <td className="p-3 text-right font-mono text-xs">
+                  {agentPay > 0 ? (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="text-violet-600 font-semibold">৳{agentPay.toFixed(4)}</span>
+                      {mismatch && expected != null && (
+                        <span
+                          className="rounded bg-destructive/15 px-1 py-0.5 text-[9px] font-bold text-destructive"
+                          title={`Expected ৳${expected.toFixed(4)} (agent_rate − user_rate)`}
+                        >
+                          ⚠ ≠ ৳{expected.toFixed(4)}
+                        </span>
+                      )}
+                    </span>
+                  ) : a.agent_id ? (
+                    mismatch && expected != null ? (
+                      <span className="rounded bg-destructive/15 px-1 py-0.5 text-[9px] font-bold text-destructive" title="Commission missing">
+                        ⚠ expected ৳{expected.toFixed(4)}
+                      </span>
+                    ) : <span className="text-muted-foreground">৳0</span>
+                  ) : <span className="text-muted-foreground">—</span>}
                 </td>
                 <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
                   {new Date(a.created_at).toLocaleString()}
