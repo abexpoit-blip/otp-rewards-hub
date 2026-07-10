@@ -428,6 +428,14 @@ export type AdminAllocRow = {
   sid: string | null;
   status: string;
   payout_amount: string;
+  user_payout: string;
+  agent_commission: string;
+  agent_id: string | null;
+  agent_email: string | null;
+  user_rate: string;
+  agent_rate: string | null;
+  expected_commission: string | null;
+  commission_ok: boolean;
   created_at: string;
   expires_at: string;
   completed_at: string | null;
@@ -469,8 +477,15 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
       SELECT a.id, a.user_id, u.email::text AS user_email,
              a.full_number, a.country, a.operator, a.sid, a.status::text AS status,
              a.payout_amount::text AS payout_amount,
+             COALESCE(a.user_payout, 0)::text AS user_payout,
+             COALESCE(a.agent_commission, 0)::text AS agent_commission,
+             a.agent_id, ag.email::text AS agent_email,
+             u.otp_rate::text AS user_rate,
+             ag.otp_rate::text AS agent_rate,
              a.created_at, a.expires_at, a.completed_at
-      FROM allocations a JOIN users u ON u.id = a.user_id
+      FROM allocations a
+      JOIN users u ON u.id = a.user_id
+      LEFT JOIN users ag ON ag.id = a.agent_id
       WHERE (${status} = 'all' OR a.status::text = ${status})
         AND (${range} = 'all'
              OR (${range} = 'today' AND a.created_at >= date_trunc('day', now()))
@@ -483,12 +498,26 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
     `;
     return {
       total: countRow?.n ?? 0,
-      rows: rows.map((r) => ({
-        ...r,
-        created_at: r.created_at.toISOString(),
-        expires_at: r.expires_at.toISOString(),
-        completed_at: r.completed_at ? r.completed_at.toISOString() : null,
-      })) as AdminAllocRow[],
+      rows: rows.map((r) => {
+        const isSuccess = r.status === "success";
+        const hasAgent = !!r.agent_id && r.agent_rate != null;
+        let expected: number | null = null;
+        let ok = true;
+        if (isSuccess && hasAgent) {
+          expected = Math.max(0, Number(r.agent_rate) - Number(r.user_rate));
+          const actual = Number(r.agent_commission);
+          // tolerate 0.0001 rounding
+          ok = Math.abs(expected - actual) < 0.0001;
+        }
+        return {
+          ...r,
+          expected_commission: expected != null ? expected.toFixed(4) : null,
+          commission_ok: ok,
+          created_at: r.created_at.toISOString(),
+          expires_at: r.expires_at.toISOString(),
+          completed_at: r.completed_at ? r.completed_at.toISOString() : null,
+        };
+      }) as AdminAllocRow[],
     };
   });
 
@@ -506,6 +535,89 @@ export const adminForceExpireAllocFn = createServerFn({ method: "POST" })
   });
 
 // =====================================================================
+// Verify agent commissions — scans recent success allocations and reports
+// any where stored agent_commission ≠ (current agent.otp_rate − user.otp_rate).
+// Note: rates are read live (not snapshotted at settle time), so rows
+// settled BEFORE a rate change may legitimately show mismatched.
+// =====================================================================
+export type CommissionAudit = {
+  scanned: number;
+  mismatched: number;
+  rows: {
+    id: string;
+    full_number: string;
+    user_email: string;
+    agent_email: string | null;
+    user_rate: string;
+    agent_rate: string | null;
+    stored_commission: string;
+    expected_commission: string | null;
+    diff: string;
+    settled_at: string | null;
+  }[];
+};
+
+export const adminVerifyCommissionsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().min(1),
+    hours: z.number().int().min(1).max(720).default(24),
+  }).parse(d))
+  .handler(async ({ data }): Promise<CommissionAudit> => {
+    const { requireAdmin } = await import("./admin-guard.server");
+    await requireAdmin(data.token);
+    const { sql } = await import("./db.server");
+    const rows = await sql<any[]>`
+      SELECT a.id, a.full_number,
+             u.email::text  AS user_email,
+             ag.email::text AS agent_email,
+             u.otp_rate::text  AS user_rate,
+             ag.otp_rate::text AS agent_rate,
+             COALESCE(a.agent_commission, 0)::text AS stored_commission,
+             a.settled_at, a.agent_id
+      FROM allocations a
+      JOIN users u        ON u.id  = a.user_id
+      LEFT JOIN users ag  ON ag.id = a.agent_id
+      WHERE a.status = 'success'
+        AND a.settled_at >= now() - make_interval(hours => ${data.hours}::int)
+      ORDER BY a.settled_at DESC
+      LIMIT 1000
+    `;
+    let mismatched = 0;
+    const out: CommissionAudit["rows"] = [];
+    for (const r of rows) {
+      const stored = Number(r.stored_commission);
+      let expected: number | null = null;
+      let diff = 0;
+      let bad = false;
+      if (r.agent_id && r.agent_rate != null) {
+        expected = Math.max(0, Number(r.agent_rate) - Number(r.user_rate));
+        diff = Number((stored - expected).toFixed(4));
+        bad = Math.abs(diff) >= 0.0001;
+      } else if (stored > 0) {
+        expected = 0;
+        diff = stored;
+        bad = true;
+      }
+      if (bad) {
+        mismatched++;
+        out.push({
+          id: r.id,
+          full_number: r.full_number,
+          user_email: r.user_email,
+          agent_email: r.agent_email,
+          user_rate: r.user_rate,
+          agent_rate: r.agent_rate,
+          stored_commission: Number(stored).toFixed(4),
+          expected_commission: expected != null ? expected.toFixed(4) : null,
+          diff: diff.toFixed(4),
+          settled_at: r.settled_at ? r.settled_at.toISOString() : null,
+        });
+      }
+    }
+    return { scanned: rows.length, mismatched, rows: out.slice(0, 200) };
+  });
+
+
 // Dashboard — aggregated stats for /admin home
 // =====================================================================
 export type AdminDashboardStats = {
