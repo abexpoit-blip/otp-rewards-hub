@@ -58,6 +58,19 @@ function AdminAllocations() {
 
   const callList = useServerFn(adminListAllocationsFn);
   const callExpire = useServerFn(adminForceExpireAllocFn);
+  const callVerify = useServerFn(adminVerifyCommissionsFn);
+  const [audit, setAudit] = useState<{ scanned: number; mismatched: number; rows: any[] } | null>(null);
+  const [auditing, setAuditing] = useState(false);
+  const runAudit = async () => {
+    setAuditing(true);
+    try {
+      const r = await callVerify({ data: { token: token!, hours: 24 } });
+      setAudit(r);
+      if (r.mismatched === 0) toast.success(`✓ All ${r.scanned} commissions match (last 24h)`);
+      else toast.warning(`${r.mismatched} of ${r.scanned} allocations mismatched`);
+    } catch (e: any) { toast.error(e?.message || "Audit failed"); }
+    finally { setAuditing(false); }
+  };
   const isAdmin = !!user?.roles?.includes("admin");
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
