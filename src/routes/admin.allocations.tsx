@@ -7,8 +7,8 @@ import { z } from "zod";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Protected } from "@/components/Protected";
 import { useAuth } from "@/lib/auth";
-import { adminListAllocationsFn, adminForceExpireAllocFn } from "@/lib/admin.functions";
-import { Activity, X, Search, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle, Hash, Calendar } from "lucide-react";
+import { adminListAllocationsFn, adminForceExpireAllocFn, adminVerifyCommissionsFn } from "@/lib/admin.functions";
+import { Activity, X, Search, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle, Hash, Calendar, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Pager } from "@/components/Pager";
 
