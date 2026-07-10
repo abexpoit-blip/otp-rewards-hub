@@ -213,9 +213,15 @@ async function settleAllocation(
       FOR UPDATE
     `;
     const userPayout = u?.rate != null ? Number(u.rate) : defaultPayout;
-    const fullRate = defaultPayout;
     const agentId: string | null = u?.agent_id && u.agent_id !== userId ? u.agent_id : null;
-    const commission = agentId ? Math.max(0, Number((fullRate - userPayout).toFixed(4))) : 0;
+    // Agent commission = agent's own otp_rate − user's otp_rate.
+    // (Not the global default_payout — agents can have their own rate.)
+    let agentRate = defaultPayout;
+    if (agentId) {
+      const [a] = await tx<any[]>`SELECT otp_rate::text AS rate FROM users WHERE id = ${agentId}`;
+      if (a?.rate != null) agentRate = Number(a.rate);
+    }
+    const commission = agentId ? Math.max(0, Number((agentRate - userPayout).toFixed(4))) : 0;
     const otpCode = extractOtpCode(otpMessage);
 
     const updated = await tx<any[]>`
