@@ -428,6 +428,14 @@ export type AdminAllocRow = {
   sid: string | null;
   status: string;
   payout_amount: string;
+  user_payout: string;
+  agent_commission: string;
+  agent_id: string | null;
+  agent_email: string | null;
+  user_rate: string;
+  agent_rate: string | null;
+  expected_commission: string | null;
+  commission_ok: boolean;
   created_at: string;
   expires_at: string;
   completed_at: string | null;
