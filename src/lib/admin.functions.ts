@@ -477,8 +477,15 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
       SELECT a.id, a.user_id, u.email::text AS user_email,
              a.full_number, a.country, a.operator, a.sid, a.status::text AS status,
              a.payout_amount::text AS payout_amount,
+             COALESCE(a.user_payout, 0)::text AS user_payout,
+             COALESCE(a.agent_commission, 0)::text AS agent_commission,
+             a.agent_id, ag.email::text AS agent_email,
+             u.otp_rate::text AS user_rate,
+             ag.otp_rate::text AS agent_rate,
              a.created_at, a.expires_at, a.completed_at
-      FROM allocations a JOIN users u ON u.id = a.user_id
+      FROM allocations a
+      JOIN users u ON u.id = a.user_id
+      LEFT JOIN users ag ON ag.id = a.agent_id
       WHERE (${status} = 'all' OR a.status::text = ${status})
         AND (${range} = 'all'
              OR (${range} = 'today' AND a.created_at >= date_trunc('day', now()))
@@ -491,12 +498,26 @@ export const adminListAllocationsFn = createServerFn({ method: "POST" })
     `;
     return {
       total: countRow?.n ?? 0,
-      rows: rows.map((r) => ({
-        ...r,
-        created_at: r.created_at.toISOString(),
-        expires_at: r.expires_at.toISOString(),
-        completed_at: r.completed_at ? r.completed_at.toISOString() : null,
-      })) as AdminAllocRow[],
+      rows: rows.map((r) => {
+        const isSuccess = r.status === "success";
+        const hasAgent = !!r.agent_id && r.agent_rate != null;
+        let expected: number | null = null;
+        let ok = true;
+        if (isSuccess && hasAgent) {
+          expected = Math.max(0, Number(r.agent_rate) - Number(r.user_rate));
+          const actual = Number(r.agent_commission);
+          // tolerate 0.0001 rounding
+          ok = Math.abs(expected - actual) < 0.0001;
+        }
+        return {
+          ...r,
+          expected_commission: expected != null ? expected.toFixed(4) : null,
+          commission_ok: ok,
+          created_at: r.created_at.toISOString(),
+          expires_at: r.expires_at.toISOString(),
+          completed_at: r.completed_at ? r.completed_at.toISOString() : null,
+        };
+      }) as AdminAllocRow[],
     };
   });
 
