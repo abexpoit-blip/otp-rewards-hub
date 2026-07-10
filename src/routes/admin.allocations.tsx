@@ -359,7 +359,8 @@ function AdminAllocations() {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         {data && (
