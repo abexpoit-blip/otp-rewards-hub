@@ -57,7 +57,7 @@ export const Route = createFileRoute("/api/v1/numbers")({
           const { stexGetNum } = await import("@/lib/stex.server");
           const { ensurePollerStarted } = await import("@/lib/poller.server");
 
-          const r = await stexGetNum(body.range);
+          const r = await stexGetNum(body.range, { national: !!body.national, no_plus: !!body.no_plus });
           if (r.meta.code === 2946 || !r.data) throw apiError(409, "Out of stock for this range");
           if (r.meta.code !== 200 || !r.data) throw apiError(502, r.message || "Upstream allocation failed");
           const n = r.data;

@@ -51,7 +51,7 @@ export const allocateNumberFn = createServerFn({ method: "POST" })
     const { sql } = await import("./db.server");
     const { stexGetNum } = await import("./stex.server");
 
-    const r = await stexGetNum(data.rid);
+    const r = await stexGetNum(data.rid, { national: !!data.national, no_plus: !!data.no_plus });
     if (r.meta.code === 2946 || !r.data) {
       throw new Error("Out of stock for this range. Try another.");
     }
