@@ -97,12 +97,21 @@ async function runIngest(state: PollerState, source: string) {
   return state.ingestPromise;
 }
 
+const seenOtpIds = new Set<string>();
+
 async function ingestOnce() {
   const { getSetting } = await import("./settings.server");
   const defaultPayout = Number(await getSetting("default_payout", 0.75));
   const r = await stexSuccessOtp();
   if (r.meta.code !== 200 || !r.data) return;
-  if (r.data.otps.length) console.log(`[poller] fetched ${r.data.otps.length} OTP(s) from STEX`);
+  // Log only OTP ids we haven't seen before — Zenex serves the same feed each
+  // tick, so unconditional logging floods the container log.
+  const fresh = r.data.otps.filter((o) => !seenOtpIds.has(o.otp_id));
+  if (fresh.length) {
+    console.log(`[poller] fetched ${fresh.length} new OTP(s) from upstream`);
+    for (const o of fresh) seenOtpIds.add(o.otp_id);
+    if (seenOtpIds.size > 5000) seenOtpIds.clear();
+  }
 
   for (const otp of r.data.otps) {
     const otpDigits = String(otp.number || "").replace(/\D/g, "");
@@ -132,7 +141,9 @@ async function ingestOnce() {
       continue;
     }
     const alloc = matches[0];
-    console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number}) status=${alloc.status}`);
+    if (alloc.status !== "success") {
+      console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number}) status=${alloc.status}`);
+    }
 
     // Always insert the message — duplicates are blocked only via stex_otp_id uniqueness.
     const inserted = await sql<any[]>`
