@@ -260,8 +260,12 @@ export async function stexConsole(): Promise<StexEnvelope<{ cached: boolean; hit
     const raw: any = await res.json().catch(() => ({}));
     const logs: any[] = raw?.logs ?? raw?.data?.logs ?? [];
     const hits: StexHit[] = logs.map((l) => {
-      const digits = onlyDigits(l?.number);
-      const range = digits ? `${digits.slice(0, 6)}XXX` : "";
+      // Zenex already masks the number ("224678987XXX"). Keep their form so the
+      // console shows the same detail level as the provider; only synthesise a
+      // range when the feed ever returns a raw number.
+      const shown = String(l?.number ?? "").trim();
+      const digits = onlyDigits(shown);
+      const range = /x/i.test(shown) ? shown : digits ? `${digits.slice(0, 6)}XXX` : "";
       return {
         range,
         sid: String(l?.service || "Other"),
@@ -269,6 +273,7 @@ export async function stexConsole(): Promise<StexEnvelope<{ cached: boolean; hit
         time: parseZenexTime(l?.createdAt ?? l?.created_at ?? l?.time),
       };
     });
+
     return { meta: { code: res.ok ? 200 : res.status, status: res.ok ? "ok" : "error" }, data: { cached: true, hits } };
   } catch (e: any) {
     return { meta: { code: 502, status: "error" }, data: null, message: e?.message || "Console feed unavailable" };
