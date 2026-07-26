@@ -66,7 +66,9 @@ export type StexService = {
   sid: string;
   last_at: number;
   ranges: string[];
+  hits?: number;
 };
+
 
 export type StexOtp = {
   otp_id: string;
