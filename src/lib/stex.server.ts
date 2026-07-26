@@ -66,7 +66,9 @@ export type StexService = {
   sid: string;
   last_at: number;
   ranges: string[];
+  hits?: number;
 };
+
 
 export type StexOtp = {
   otp_id: string;
@@ -187,19 +189,27 @@ export function stexLiveAccess(): Promise<StexEnvelope<{ cached: boolean; servic
   return zenexFetch("/active-ranges", { method: "GET" }).then((raw) => {
     const list: any[] = raw?.data?.active_ranges ?? [];
     const now = Date.now();
-    const byService = new Map<string, Set<string>>();
+    // Zenex returns one row per (range, service) with a `hits` counter.
+    // Group by service, keep ranges ordered by hits (hottest first).
+    const byService = new Map<string, Map<string, number>>();
     for (const r of list) {
       const sid = String(r?.service || "Other").trim() || "Other";
       const range = String(r?.range || "").trim();
       if (!range) continue;
-      if (!byService.has(sid)) byService.set(sid, new Set());
-      byService.get(sid)!.add(range);
+      const hits = Number(r?.hits) || 0;
+      if (!byService.has(sid)) byService.set(sid, new Map());
+      const m = byService.get(sid)!;
+      m.set(range, (m.get(range) || 0) + hits);
     }
-    const services: StexService[] = [...byService.entries()].map(([sid, ranges]) => ({
-      sid,
-      last_at: now,
-      ranges: [...ranges],
-    }));
+    const services: StexService[] = [...byService.entries()]
+      .map(([sid, ranges]) => ({
+        sid,
+        last_at: now,
+        hits: [...ranges.values()].reduce((a, b) => a + b, 0),
+        ranges: [...ranges.entries()].sort((a, b) => b[1] - a[1]).map(([r]) => r),
+      }))
+      .sort((a, b) => (b.hits ?? 0) - (a.hits ?? 0));
+
     return {
       meta: { code: raw.meta!.code!, status: raw.meta!.status! },
       data: { cached: !!raw.cached, services },
@@ -250,8 +260,12 @@ export async function stexConsole(): Promise<StexEnvelope<{ cached: boolean; hit
     const raw: any = await res.json().catch(() => ({}));
     const logs: any[] = raw?.logs ?? raw?.data?.logs ?? [];
     const hits: StexHit[] = logs.map((l) => {
-      const digits = onlyDigits(l?.number);
-      const range = digits ? `${digits.slice(0, 6)}XXX` : "";
+      // Zenex already masks the number ("224678987XXX"). Keep their form so the
+      // console shows the same detail level as the provider; only synthesise a
+      // range when the feed ever returns a raw number.
+      const shown = String(l?.number ?? "").trim();
+      const digits = onlyDigits(shown);
+      const range = /x/i.test(shown) ? shown : digits ? `${digits.slice(0, 6)}XXX` : "";
       return {
         range,
         sid: String(l?.service || "Other"),
@@ -259,6 +273,7 @@ export async function stexConsole(): Promise<StexEnvelope<{ cached: boolean; hit
         time: parseZenexTime(l?.createdAt ?? l?.created_at ?? l?.time),
       };
     });
+
     return { meta: { code: res.ok ? 200 : res.status, status: res.ok ? "ok" : "error" }, data: { cached: true, hits } };
   } catch (e: any) {
     return { meta: { code: 502, status: "error" }, data: null, message: e?.message || "Console feed unavailable" };
