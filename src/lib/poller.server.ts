@@ -97,6 +97,8 @@ async function runIngest(state: PollerState, source: string) {
   return state.ingestPromise;
 }
 
+const seenOtpIds = new Set<string>();
+
 async function ingestOnce() {
   const { getSetting } = await import("./settings.server");
   const defaultPayout = Number(await getSetting("default_payout", 0.75));
