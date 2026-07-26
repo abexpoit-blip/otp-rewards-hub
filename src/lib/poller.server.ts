@@ -132,7 +132,9 @@ async function ingestOnce() {
       continue;
     }
     const alloc = matches[0];
-    console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number}) status=${alloc.status}`);
+    if (alloc.status !== "success") {
+      console.log(`[poller] matched OTP ${otp.otp_id} → allocation ${alloc.id} (${alloc.full_number}) status=${alloc.status}`);
+    }
 
     // Always insert the message — duplicates are blocked only via stex_otp_id uniqueness.
     const inserted = await sql<any[]>`
